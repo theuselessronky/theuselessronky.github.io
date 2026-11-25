@@ -24,6 +24,7 @@
 		broadcast: { ru: 'Вещание', en: 'Broadcast', uk: 'Мовлення', zh: '广播' },
 		fullscreen: { ru: 'Полноэкранный режим', en: 'Fullscreen mode', uk: 'Повноэкранний режим', zh: '全屏模式' },
 		blackfriday: { ru: 'Черная пятница', en: 'Black Friday', uk: 'Чорна п’ятниця', zh: '黑色星期五' },
+		secured: { ru: 'Защита', en: 'Protection', uk: 'Захист', zh: '保护' },
 		name_menu: { ru: 'Отображать в шапке', en: 'Display in header', uk: 'Відображати у шапці', zh: '在标题中显示' },
 		name_plugin: { ru: 'Настройка шапки+', en: 'Header settings+', uk: 'Налаштування шапки+', zh: '标题设置+' },
 		plugin_description: { ru: 'Плагин для настройки шапки', en: 'Plugin for customizing the header', uk: 'Плагін для налаштування шапки', zh: '用于配置上限的插件' }
@@ -60,7 +61,7 @@
 		try {
 			if (Lampa.Manifest) {
 				var self = {
-					type: 'other', version: '2.4.0',
+					type: 'other', version: '2.5.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
@@ -81,7 +82,8 @@
 			head_filter_show_notice:     { l: 'notice',     f: 'Уведомления',         s: '.notice--icon' },
 			head_filter_show_broadcast:  { l: 'broadcast',  f: 'Вещание',             s: '.open--broadcast, [data-action="broadcast"]' },
 			head_filter_show_fullscreen: { l: 'fullscreen', f: 'Полноэкранный режим', s: '.full--screen, .full-screen, .fullscreen, .head__fullscreen, [data-action="fullscreen"], [data-action="full-screen"]' },
-			head_filter_show_blackfriday:{ l: 'blackfriday',f: 'Черная пятница',      s: '.black-friday__button' }
+			head_filter_show_blackfriday:{ l: 'blackfriday',f: 'Черная пятница',      s: '.black-friday__button' },
+			head_filter_show_secured:    { l: 'secured',    f: 'Защита',              s: '#secured.head__action, .head__action#secured, #secured.proto, #secured' }
 		};
 		var topHead = {
 			head_filter_show_arrow: { l: 'arrow',    f: 'Стрелка', s: '.head__backward' },
@@ -92,6 +94,7 @@
 			head_filter_show_source: true, head_filter_big_title: true,
 			head_filter_show_network: true,
 			head_filter_show_fullscreen: true,
+			head_filter_show_secured: true,
 			head_filter_show_premium: true,
 			head_filter_show_profile: true,
 			head_filter_show_feed: true,
@@ -168,6 +171,7 @@
 					for (var i = 0; i < BYLAMPA_EXCLUDE.length; i++) if (el.hasClass(BYLAMPA_EXCLUDE[i])) return false;
 					var cls = (this.className || '').toString().toLowerCase();
 					if (/bookmark|torr|cub|tmdb|radio|shot|sync|theme|lang|exit|power/.test(cls)) return false;
+					if (this.id === 'secured') return false;
 					var a = (el.attr('data-action') || '').toLowerCase();
 					if (a && a.indexOf('bylampa') === -1 && a.indexOf('notice') === -1 && a.indexOf('change') === -1) return false;
 					return el.find('svg').length > 0 || el.find('img').length > 0;
@@ -438,6 +442,43 @@
 			return out;
 		}
 
+		function applyNetGap(showNet) {
+			try {
+				var markers = document.querySelector('.head__markers');
+				var targets = [];
+				if (markers && markers.parentElement) {
+					var sib = markers.nextElementSibling;
+					while (sib) {
+						if (sib.style.display !== 'none' && sib.getAttribute('data-hf-hidden') !== '1') targets.push(sib);
+						sib = sib.nextElementSibling;
+					}
+				}
+				var t = document.querySelector('.head__time');
+				if (t && !(markers && markers.contains(t)) && t !== markers) {
+					if (targets.indexOf(t) === -1) targets.push(t);
+				}
+				for (var i = 0; i < targets.length; i++) {
+					var el = targets[i];
+					if (!showNet) {
+						if (el.getAttribute('data-hf-gap') !== '1') {
+							var curM = el.style.getPropertyValue('margin-left');
+							if (!el.getAttribute('data-hf-gap-orig')) el.setAttribute('data-hf-gap-orig', curM || '');
+							el.setAttribute('data-hf-gap', '1');
+							el.style.setProperty('margin-left', '10px', 'important');
+						}
+					} else {
+						if (el.getAttribute('data-hf-gap') === '1') {
+							var orig = el.getAttribute('data-hf-gap-orig');
+							if (orig) el.style.setProperty('margin-left', orig);
+							else el.style.removeProperty('margin-left');
+							el.removeAttribute('data-hf-gap');
+							el.removeAttribute('data-hf-gap-orig');
+						}
+					}
+				}
+			} catch (e) {}
+		}
+
 		function refreshTimeSection(override) {
 			try {
 				var showClock = (override && typeof override.clock === 'boolean') ? override.clock : getBool('head_filter_show_clock', true);
@@ -449,6 +490,7 @@
 				for (var i = 0; i < clocks.length; i++) setVisible(clocks[i], showClock);
 				for (var j = 0; j < dates.length; j++) setVisible(dates[j], showCal);
 				for (var k = 0; k < net.length; k++) setVisible(net[k], showNet);
+				applyNetGap(showNet);
 				var c = document.querySelector('.head__time');
 				if (!c || typeof c.contains !== 'function') return;
 				if (clocks.indexOf(c) !== -1 || dates.indexOf(c) !== -1) return;
