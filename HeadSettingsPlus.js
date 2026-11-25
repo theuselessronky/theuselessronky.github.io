@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '1.0.2',
+			version: '1.1.1',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -197,9 +197,14 @@
 			});
 		}
 
+		// true = "Да" (кнопка в шапке), false = "Перенесено в боковое меню"
 		function isByLampaNoticeInHeader() {
-			var val = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
-			return val === 'yes';
+			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
+			if (val === 'no' || val === 'moved' || val === 'false' || val === false) {
+				if (val !== false) Lampa.Storage.set('head_filter_show_bylampa_notice', false);
+				return false;
+			}
+			return true;
 		}
 
 		function updateNetworkIndicator() {
@@ -354,13 +359,12 @@
 			}
 
 			if (window.ByLampa) {
-				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-			}
-		}
-
-		// Гарантированная вставка ровно ОДНОГО пункта "Изменения" под "Консоль" в боковом меню
-		function updateByLampaNotice() {
+if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
+else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+}
+}
+// Строго ОДИН пункт "Изменения" под "Консоль" при режиме "Перенесено в боковое меню"
+function updateByLampaNotice() {
 var showInHeader = isByLampaNoticeInHeader();
 toggleByLampaBtn(showInHeader);
 var menuContainer = $('.menu');
@@ -415,7 +419,20 @@ Lampa.Menu.update();
 }
 }
 }
-// Безусловная подстановка иконки с пункта "Остальное" и сортировка под "Интерфейс"
+// Подмена текста штатного trigger ("Да" / "Перенесено в боковое меню") без всплывающего окна
+function refreshByLampaSettingRow() {
+var label = isByLampaNoticeInHeader() ? Lampa.Lang.translate('bylampa_notice_yes') : Lampa.Lang.translate('bylampa_notice_moved');
+var row = $('.settings-param[data-name="head_filter_show_bylampa_notice"]');
+if (!row.length) {
+var titleText = Lampa.Lang.translate('bylampa_notice');
+row = $('.settings-param').filter(function() {
+return $(this).find('.settings-param__name').text().trim() === titleText;
+});
+}
+if (row.length) {
+row.find('.settings-param__value').text(label);
+}
+}
 function positionSettingsComponent() {
 var interfaceItem = $('[data-component="interface"]');
 var moreItem = $('[data-component="more"]');
@@ -479,6 +496,8 @@ updateByLampaNotice();
 } else if (e.name === 'settings_component') {
 positionSettingsComponent();
 setTimeout(positionSettingsComponent, 30);
+} else if (e.name === 'settings_param') {
+refreshByLampaSettingRow();
 }
 });
 }
@@ -497,8 +516,9 @@ var show_std = Lampa.Storage.get(event.name, true);
 showHideElement(standardHead[event.name].element, show_std);
 } else if (event.name === 'head_filter_show_source' || event.name === 'head_filter_big_title') {
 updateHeadTitle();
-} else if (event.name === 'head_filter_bylampa_notice_mode') {
+} else if (event.name === 'head_filter_show_bylampa_notice') {
 updateByLampaNotice();
+setTimeout(refreshByLampaSettingRow, 10);
 } else if (event.name === 'head_filter_show_clock' || event.name === 'head_filter_show_calendar' || event.name === 'head_filter_show_network') {
 updateClockAndCalendar();
 }
@@ -517,6 +537,10 @@ if (e.name === 'main') {
 positionSettingsComponent();
 setTimeout(positionSettingsComponent, 50);
 setTimeout(positionSettingsComponent, 200);
+} else if (e.name === 'head_filter') {
+refreshByLampaSettingRow();
+setTimeout(refreshByLampaSettingRow, 30);
+setTimeout(refreshByLampaSettingRow, 150);
 }
 });
 }
@@ -530,20 +554,20 @@ name: Lampa.Lang.translate('name_menu')
 }
 });
 // === НОВЫЕ ПЕРЕКЛЮЧАТЕЛИ (В НАЧАЛЕ СПИСКА) ===
-// 1. Уведомления ByLampa ("Да" / "Перенесено в боковое меню")
+// 1. Уведомления ByLampa: штатный trigger с подменой текста на "Да" / "Перенесено в боковое меню"
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
-name: 'head_filter_bylampa_notice_mode',
-type: 'select',
-values: {
-yes: Lampa.Lang.translate('bylampa_notice_yes'),
-moved: Lampa.Lang.translate('bylampa_notice_moved')
-},
-default: 'yes'
+name: 'head_filter_show_bylampa_notice',
+type: 'trigger',
+default: true
 },
 field: {
 name: Lampa.Lang.translate('bylampa_notice')
+},
+onChange: function() {
+updateByLampaNotice();
+setTimeout(refreshByLampaSettingRow, 10);
 }
 });
 // 2. Часы
