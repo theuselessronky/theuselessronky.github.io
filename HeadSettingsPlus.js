@@ -10,10 +10,9 @@
 		big_title: { ru: 'Увеличенное название раздела', en: 'Enlarged section title', uk: 'Збільшена назва розділу', zh: '放大版块标题' },
 		bylampa_notice: { ru: 'Уведомления ByLampa', en: 'ByLampa notifications', uk: 'Сповіщення ByLampa', zh: 'ByLampa 通知' },
 		opt_yes: { ru: 'Да', en: 'Yes', uk: 'Так', zh: '是' },
+		opt_menu: { ru: 'Перенесено в боковое меню', en: 'Moved to side menu', uk: 'Перенесено в бічне меню', zh: '已移至侧边菜单' },
 		opt_no: { ru: 'Нет', en: 'No', uk: 'Ні', zh: '否' },
-		opt_moved_notice: { ru: 'Да, перенесено в Уведомления', en: 'Yes, moved to Notifications', uk: 'Так, перенесено в Сповіщення', zh: '是，已移至通知' },
-		tab_changes: { ru: 'Изменения', en: 'Changes', uk: 'Зміни', zh: '更新日志' },
-		tab_all: { ru: 'Все', en: 'All', uk: 'Всі', zh: '全部' },
+		menu_changes: { ru: 'Изменения', en: 'Changes', uk: 'Зміни', zh: '更新日志' },
 		clock: { ru: 'Часы', en: 'Clock', uk: 'Годинник', zh: '时钟' },
 		calendar: { ru: 'Календарь', en: 'Calendar', uk: 'Календар', zh: '日历' },
 		cal_yes: { ru: 'Да', en: 'Yes', uk: 'Так', zh: '是' },
@@ -36,17 +35,17 @@
 	});
 
 	function startPlugin() {
-		if (window.head_filter_plus_started) return;
-		window.head_filter_plus_started = true;
+		if (window.head_filter_plus_ready) return;
+		window.head_filter_plus_ready = true;
 
 		Lampa.Manifest.plugins = {
 			type: 'other',
-			version: '0.4.2',
+			version: '0.5.0',
 			name: Lampa.Lang.translate('name_plugin'),
 			component: 'head_filter'
 		};
 
-		var standardTriggers = {
+		var triggers = {
 			'head_filter_show_arrow': { name: Lampa.Lang.translate('arrow'), default: true },
 			'head_filter_show_menu': { name: Lampa.Lang.translate('menu_icon'), default: true },
 			'head_filter_show_source': { name: Lampa.Lang.translate('source_title'), default: true },
@@ -66,7 +65,7 @@
 		};
 
 		var style = document.createElement('style');
-		style.id = 'head-filter-plus-css';
+		style.id = 'head-filter-plus-style';
 		style.textContent = '' +
 			'body.hf-hide-arrow .head__backward { display: none !important; }' +
 			'body.hf-hide-menu .head__menu-icon { display: none !important; }' +
@@ -75,13 +74,8 @@
 			'body.hf-hide-clock .hf-clock-node { display: none !important; }' +
 			'body.hf-hide-calendar .hf-calendar-node { display: none !important; }' +
 			'body.hf-cal-center .hf-calendar-node { display: flex !important; justify-content: center !important; align-items: center !important; text-align: center !important; width: 100% !important; }' +
-			'.hf-cal-year-newline { display: block !important; width: 100%; text-align: right; line-height: 1.1; margin-top: 0.1em; }' +
-			'.hf-notice-tabs { display: flex; flex-direction: row; gap: 0.6em; padding: 0 1.5em 1em 1.5em; border-bottom: 1px solid rgba(255,255,255,0.12); margin-bottom: 1em; }' +
-			'.hf-notice-tab { padding: 0.45em 1.1em; border-radius: 0.4em; background: rgba(255,255,255,0.08); font-size: 0.95em; cursor: pointer; }' +
-			'.hf-notice-tab.focus, .hf-notice-tab.active { background: #fff; color: #000; font-weight: 600; }';
+			'.hf-cal-year-newline { display: block !important; width: 100%; text-align: right; line-height: 1.1; margin-top: 0.1em; }';
 		document.head.appendChild(style);
-
-		var isUpdating = false;
 
 		function findByLampaNoticeBtn() {
 			var explicit = document.querySelector('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
@@ -107,7 +101,72 @@
 			return null;
 		}
 
-		function processTitleAndSource(showSource) {
+		function syncSideMenuItem(showInMenu) {
+			var existingItem = document.querySelector('.hf-menu-bylampa-changes');
+			if (!showInMenu) {
+				if (existingItem) existingItem.remove();
+				return;
+			}
+
+			if (existingItem) return;
+
+			var menuLists = document.querySelectorAll('.menu__list');
+			if (!menuLists || !menuLists.length) return;
+
+			// Добавляем в нижний блок системного меню (рядом с Настройками/Расширениями) или в основной список
+			var targetList = menuLists[menuLists.length - 1];
+
+			var item = document.createElement('li');
+			item.className = 'menu__item selector hf-menu-bylampa-changes';
+			item.innerHTML = '' +
+				'<div class="menu__ico">' +
+					'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+						'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
+						'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
+					'</svg>' +
+				'</div>' +
+				'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>';
+
+			$(item).on('hover:enter click', function() {
+				var originBtn = findByLampaNoticeBtn();
+				if (originBtn) {
+					var prevDisplay = originBtn.style.display;
+					originBtn.style.display = '';
+					$(originBtn).trigger('hover:enter');
+					if (typeof originBtn.click === 'function') originBtn.click();
+					setTimeout(function() {
+						var mode = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
+						if (mode === 'menu' || mode === 'no') {
+							originBtn.style.display = 'none';
+						} else {
+							originBtn.style.display = prevDisplay;
+						}
+					}, 50);
+				}
+			});
+
+			targetList.appendChild(item);
+		}
+
+		function updateByLampaNotice() {
+			var mode = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
+			var showInHeader = (mode === 'yes');
+			var showInMenu = (mode === 'menu');
+
+			var known = document.querySelectorAll('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
+			for (var k = 0; k < known.length; k++) {
+				known[k].style.display = showInHeader ? '' : 'none';
+			}
+
+			var btn = findByLampaNoticeBtn();
+			if (btn) {
+				btn.style.display = showInHeader ? '' : 'none';
+			}
+
+			syncSideMenuItem(showInMenu);
+		}
+
+		function updateTitleAndSource(showSource) {
 			var titleEl = document.querySelector('.head__title');
 			if (!titleEl) return;
 
@@ -129,61 +188,98 @@
 			if (wrappedSource) wrappedSource.style.display = showSource ? '' : 'none';
 		}
 
-		function processClockAndCalendar() {
+		function updateClockAndCalendar() {
 			var timeContainer = document.querySelector('.head__time');
 			if (!timeContainer) return;
 
 			var showClock = Lampa.Storage.get('head_filter_show_clock', true);
-			var calMode = Lampa.Storage.get('head_filter_calendar_mode', 'yes');
-
-			document.body.classList.toggle('hf-hide-clock', !showClock);
-			document.body.classList.toggle('hf-hide-calendar', calMode === 'no');
-			document.body.classList.toggle('hf-cal-center', calMode === 'no_year_weekday');
-
-			var clockEl = timeContainer.querySelector('.head__time-now, .time--clock, .hf-clock-node');
-			var dateEl = timeContainer.querySelector('.head__time-date, .time--date, .hf-calendar-node');
-
-			if (!clockEl || !dateEl) {
-				var kids = timeContainer.children;
-				for (var i = 0; i < kids.length; i++) {
-					var txt = (kids[i].textContent || '').trim();
-					if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(txt)) {
-						kids[i].classList.add('hf-clock-node');
-						clockEl = kids[i];
-					} else if (txt.length > 0) {
-						kids[i].classList.add('hf-calendar-node');
-						dateEl = kids[i];
-					}
-				}
-			}
-
-			if (!clockEl && !dateEl) {
-				var fullText = (timeContainer.textContent || '').trim();
-				var timeMatch = fullText.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s*(.*)$/);
-				if (timeMatch && timeMatch[1]) {
-					timeContainer.innerHTML = '<div class="hf-clock-node">' + timeMatch[1] + '</div><div class="hf-calendar-node">' + (timeMatch[2] || '') + '</div>';
-					clockEl = timeContainer.querySelector('.hf-clock-node');
-					dateEl = timeContainer.querySelector('.hf-calendar-node');
-				}
-			}
-
-			if (!dateEl) return;
-
-			var currentText = (dateEl.textContent || '').trim();
-			if (!dateEl.dataset.hfRaw || (!dateEl.dataset.hfRendered && currentText !== dateEl.dataset.hfRaw)) {
-				if (currentText && currentText !== dateEl.dataset.hfLastFormatted) {
-					dateEl.dataset.hfRaw = currentText;
-				}
-			}
-
-			var rawCal = dateEl.dataset.hfRaw || currentText;
-			if (!rawCal) return;
+if (dateEl.dataset.hfLastFormatted !== plainCheck) {
+dateEl.dataset.hfLastFormatted = plainCheck;
+dateEl.dataset.hfRendered = '1';
+dateEl.innerHTML = formattedHtml;
+}
+}
+}
+function applyAll() {
+try {
+Object.keys(triggers).forEach(function(key) {
+var val = Lampa.Storage.get(key, triggers[key].default);
+if (key === 'head_filter_show_arrow') {
+document.body.classList.toggle('hf-hide-arrow', !val);
+} else if (key === 'head_filter_show_menu') {
+document.body.classList.toggle('hf-hide-menu', !val);
+} else if (key === 'head_filter_show_source') {
+document.body.classList.toggle('hf-hide-source', !val);
+updateTitleAndSource(val);
+} else if (key === 'head_filter_big_title') {
+document.body.classList.toggle('hf-big-title', Boolean(val));
+} else if (key === 'head_filter_show_clock') {
+updateClockAndCalendar();
+} else if (triggers[key].element) {
+if (val) $(triggers[key].element).show();
+else $(triggers[key].element).hide();
+}
+});
+updateByLampaNotice();
+updateClockAndCalendar();
+} catch (e) {}
+}
+Lampa.Storage.listener.follow('change', function(event) {
+if (event.name === 'activity') {
+applyAll();
+setTimeout(applyAll, 400);
+setTimeout(applyAll, 1200);
+} else if (
+event.name in triggers ||
+event.name === 'head_filter_bylampa_notice_mode' ||
+event.name === 'head_filter_calendar_mode'
+) {
+applyAll();
+}
+});
+setInterval(function() {
+try {
+updateTitleAndSource(Lampa.Storage.get('head_filter_show_source', true));
+updateByLampaNotice();
+updateClockAndCalendar();
+} catch (e) {}
+}, 2000);
+Lampa.Template.add('settings_head_filter', '');
+Lampa.SettingsApi.addParam({
+component: 'interface',
+param: { type: 'button' },
+field: { name: Lampa.Lang.translate('name_plugin') },
+onChange: function() {
+Lampa.Settings.create('head_filter', {
+onBack: function() { Lampa.Settings.create('interface'); }
+});
+}
+});
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: { type: 'title' },
+field: { name: Lampa.Lang.translate('name_menu') }
+});
+[
+'head_filter_show_arrow',
+'head_filter_show_menu',
+'head_filter_show_source',
+'head_filter_big_title'
+].forEach(function(key) {
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: { name: key, type: 'trigger', default: triggers[key].default },
+field: { name: triggers[key].name }
+});
+});
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
 param: {
 name: 'head_filter_bylampa_notice_mode',
 type: 'select',
 values: {
 yes: Lampa.Lang.translate('opt_yes'),
-moved: Lampa.Lang.translate('opt_moved_notice'),
+menu: Lampa.Lang.translate('opt_menu'),
 no: Lampa.Lang.translate('opt_no')
 },
 default: 'yes'
@@ -227,12 +323,12 @@ field: { name: Lampa.Lang.translate('calendar') }
 ].forEach(function(key) {
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
-param: { name: key, type: 'trigger', default: standardTriggers[key].default },
-field: { name: standardTriggers[key].name }
+param: { name: key, type: 'trigger', default: triggers[key].default },
+field: { name: triggers[key].name }
 });
 });
-applyAllSettings();
-setTimeout(applyAllSettings, 800);
+applyAll();
+setTimeout(applyAll, 1000);
 }
 if (window.appready) {
 startPlugin();
