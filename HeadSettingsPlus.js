@@ -139,7 +139,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.7.0',
+			version: '0.8.0',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -162,58 +162,54 @@
 			'head_filter_show_split': {name: Lampa.Lang.translate('split'), element: '.head__split'}
 		};
 
+		function setElementVisible(el, show) {
+			if (!el) return;
+			if (show) {
+				if (el.style && el.style.display === 'none') {
+					el.style.removeProperty('display');
+				}
+			} else {
+				if (el.style && el.style.display !== 'none') {
+					el.style.setProperty('display', 'none', 'important');
+				}
+			}
+		}
+
 		function showHideElement(selector, show) {
 			var els = $(selector);
 			if (!els.length) return;
-
 			els.each(function() {
-				if (show == true) {
-					if (this && this.style) {
-						this.style.removeProperty('display');
-					}
-					$(this).show();
-				} else {
-					if (this && this.style) {
-						this.style.setProperty('display', 'none', 'important');
-					} else {
-						$(this).hide();
-					}
-				}
+				setElementVisible(this, show == true);
 			});
 		}
 
-		// Отдельное управление Часами и Календарём (Да / Нет)
+		// Точное разделение Часов (формат ЧЧ:ММ) и Календаря (дата, месяц, год, день недели)
 		function updateClockAndCalendar() {
-			var timeContainer = $('.head__time');
-			if (!timeContainer.length) return;
+			var timeContainer = $('.head__time').get(0);
+			if (!timeContainer) return;
 
-			var defaultClock = Lampa.Storage.get('head_filter_show_time', true);
-			var showClock = Lampa.Storage.get('head_filter_show_clock', defaultClock);
+			var showClock = Lampa.Storage.get('head_filter_show_clock', true);
 			var showCalendar = Lampa.Storage.get('head_filter_show_calendar', true);
 
-			var clockEl = timeContainer.find('.head__time-now');
-			var dateEl = timeContainer.find('.head__time-date');
-
 			if (!showClock && !showCalendar) {
-				timeContainer.hide();
+				setElementVisible(timeContainer, false);
 				return;
 			} else {
-				timeContainer.show();
+				setElementVisible(timeContainer, true);
 			}
 
-			if (clockEl.length) {
-				if (showClock) {
-					clockEl.show();
-				} else {
-					clockEl.hide();
-				}
-			}
+			var children = timeContainer.children;
+			for (var i = 0; i < children.length; i++) {
+				var child = children.item(i);
+				if (!child) continue;
 
-			if (dateEl.length) {
-				if (showCalendar) {
-					dateEl.show();
+				var txt = (child.textContent || '').trim();
+				// Если в блоке есть двоеточие (например 17:28) — это Часы
+				if (txt.indexOf(':') !== -1 || child.classList.contains('head__time-now') || child.classList.contains('time--clock')) {
+					setElementVisible(child, showClock);
 				} else {
-					dateEl.hide();
+					// Всё остальное внутри .head__time (дата, месяц, год, день недели) — это Календарь
+					setElementVisible(child, showCalendar);
 				}
 			}
 		}
@@ -280,14 +276,7 @@
 			if (!btn.length) return;
 
 			btn.each(function() {
-				if (this && this.style) {
-					if (show) {
-						this.style.removeProperty('display');
-						$(this).show();
-					} else {
-						this.style.setProperty('display', 'none', 'important');
-					}
-				}
+				setElementVisible(this, show);
 			});
 		}
 
@@ -296,7 +285,8 @@
 			var domBtn = btn.get(0);
 
 			if (domBtn) {
-				if (domBtn.style && domBtn.style.getPropertyValue('display') === 'none') {
+				var wasHidden = domBtn.style && domBtn.style.display === 'none';
+				if (wasHidden) {
 					domBtn.style.setProperty('display', 'flex', 'important');
 				}
 
@@ -308,8 +298,8 @@
 
 				setTimeout(function() {
 					var showNotice = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
-					if (!showNotice && domBtn.style) {
-						domBtn.style.setProperty('display', 'none', 'important');
+					if (!showNotice) {
+						setElementVisible(domBtn, false);
 					}
 				}, 50);
 				return;
@@ -333,11 +323,9 @@
 			var existingItems = menuContainer.find('.hf-bylampa-changes');
 
 			if (!showInHeader) {
-				// Если дубликатов больше одного — удаляем лишние
 				if (existingItems.length > 1) {
 					existingItems.slice(1).remove();
 				}
-				// Если уже есть ровно один пункт — больше не создаём
 				if (existingItems.length >= 1) return;
 
 				var itemHtml = $(
@@ -383,14 +371,25 @@ Lampa.Menu.update();
 }
 }
 }
-// Позиционирование раздела "Настройка шапки+" строго под "Интерфейс" в главном меню настроек
+// Оригинальная иконка раздела "Каталог" из бокового меню Lampa
+var catalogIcon = '' +
+'' +
+'' +
+'' +
+'' +
+'';
+// Позиционирование раздела "Настройка шапки+" строго под "Интерфейс" и вставка иконки
 function positionSettingsComponent() {
 var settingsMain = $('.settings__main, .settings-folder');
 if (!settingsMain.length) return;
 var interfaceItem = settingsMain.find('[data-component="interface"]');
 var headFilterItem = settingsMain.find('[data-component="head_filter"]');
-if (interfaceItem.length && headFilterItem.length) {
-if (interfaceItem.next().attr('data-component') !== 'head_filter') {
+if (headFilterItem.length) {
+var iconBox = headFilterItem.find('.settings-folder__icon');
+if (iconBox.length && !iconBox.find('svg').length) {
+iconBox.html(catalogIcon);
+}
+if (interfaceItem.length && interfaceItem.next().attr('data-component') !== 'head_filter') {
 interfaceItem.after(headFilterItem);
 }
 }
@@ -412,16 +411,17 @@ updateHeadTitle();
 });
 titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
 }
+// Безопасный обсервер только на добавление новых узлов (без атрибутов — исключает бесконечный цикл и краш!)
 var headNode = document.querySelector('.head');
 if (headNode && window.MutationObserver) {
 var headObserver = new MutationObserver(function() {
 var showInHeader = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
-toggleByLampaBtn(showInHeader);
+if (!showInHeader) toggleByLampaBtn(false);
 var showBF = Lampa.Storage.get('head_filter_show_blackfriday', true);
 if (!showBF) showHideElement('.black-friday__button', false);
 updateClockAndCalendar();
 });
-headObserver.observe(headNode, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+headObserver.observe(headNode, { childList: true, subtree: true });
 }
 Lampa.Storage.listener.follow('change', function(event) {
 if (event.name == 'activity') {
@@ -438,14 +438,6 @@ updateByLampaNotice();
 updateClockAndCalendar();
 }
 });
-// Оригинальная иконка раздела "Каталог" из бокового меню Lampa
-var catalogIcon = '' +
-'' +
-'' +
-'' +
-'' +
-'';
-// Регистрация отдельного раздела в главном меню настроек (без ошибки Template not found)
 if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
 Lampa.SettingsApi.addComponent({
 component: 'head_filter',
@@ -454,11 +446,11 @@ icon: catalogIcon,
 after: 'interface'
 });
 }
-// Отслеживаем открытие главного меню настроек, чтобы гарантированно поставить пункт под "Интерфейс"
 if (Lampa.Settings && Lampa.Settings.listener) {
 Lampa.Settings.listener.follow('open', function(e) {
 if (e.name === 'main') {
 setTimeout(positionSettingsComponent, 10);
+setTimeout(positionSettingsComponent, 100);
 }
 });
 }
