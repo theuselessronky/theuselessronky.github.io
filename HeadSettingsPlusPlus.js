@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '1.5.2',
+			version: '1.5.3',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -178,26 +178,29 @@
 
 		function setElementVisible(el, show) {
 			if (!el) return;
-			if (show) {
-				if (el.style && el.style.display === 'none') {
-					el.style.removeProperty('display');
+			try {
+				if (show) {
+					if (el.style && el.style.display === 'none') {
+						el.style.removeProperty('display');
+					}
+				} else {
+					if (el.style && el.style.display !== 'none') {
+						el.style.setProperty('display', 'none', 'important');
+					}
 				}
-			} else {
-				if (el.style && el.style.display !== 'none') {
-					el.style.setProperty('display', 'none', 'important');
-				}
-			}
+			} catch (err) {}
 		}
 
 		function showHideElement(selector, show) {
-			var els = $(selector);
-			if (!els.length) return;
-			els.each(function() {
-				setElementVisible(this, show == true);
-			});
+			try {
+				var els = $(selector);
+				if (!els.length) return;
+				els.each(function() {
+					setElementVisible(this, show == true);
+				});
+			} catch (err) {}
 		}
 
-		// true = "Да" (кнопка в шапке), false = "Перенесено в боковое меню"
 		function isByLampaNoticeInHeader() {
 			var val = Lampa.Storage.get('head_filter_bylampa_notice_v2', true);
 			return val !== false && val !== 'false' && val !== 0 && val !== '0';
@@ -224,139 +227,141 @@
 		}
 
 		function toggleByLampaBtn(show) {
-			var btn = getByLampaNoticeBtn();
-			if (!btn.length) return;
+			try {
+				var btn = getByLampaNoticeBtn();
+				if (!btn.length) return;
 
-			btn.each(function() {
-				setElementVisible(this, show);
-			});
+				btn.each(function() {
+					setElementVisible(this, show);
+				});
+			} catch (err) {}
 		}
 
 		function openByLampaNoticeModal() {
-			var btn = getByLampaNoticeBtn();
-			var domBtn = btn.get(0);
+			try {
+				var btn = getByLampaNoticeBtn();
+				var domBtn = btn.get(0);
 
-			if (domBtn) {
-				var wasHidden = domBtn.style && domBtn.style.display === 'none';
-				if (wasHidden) {
-					domBtn.style.setProperty('display', 'flex', 'important');
-				}
-
-				btn.trigger('hover:enter');
-				btn.trigger('click');
-				if (typeof domBtn.click === 'function') {
-					domBtn.click();
-				}
-
-				setTimeout(function() {
-					if (!isByLampaNoticeInHeader()) {
-						setElementVisible(domBtn, false);
+				if (domBtn) {
+					var wasHidden = domBtn.style && domBtn.style.display === 'none';
+					if (wasHidden) {
+						domBtn.style.setProperty('display', 'flex', 'important');
 					}
-				}, 50);
-				return;
-			}
 
-			if (window.ByLampa) {
-				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-			}
+					try { btn.trigger('hover:enter'); } catch (e1) {}
+					try { btn.trigger('click'); } catch (e2) {}
+
+					setTimeout(function() {
+						if (!isByLampaNoticeInHeader()) {
+							setElementVisible(domBtn, false);
+						}
+					}, 50);
+					return;
+				}
+
+				if (window.ByLampa) {
+					if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
+					else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+				}
+			} catch (err) {}
 		}
 
-		// Управление пунктом "Изменения" в боковом меню строго под "Консоль" (1 шт.)
-		function updateByLampaNotice() {
-			var showInHeader = isByLampaNoticeInHeader();
-
-			toggleByLampaBtn(showInHeader);
-
-			var existingItems = $('.hf-bylampa-changes');
-
-			if (!showInHeader) {
-				if (existingItems.length > 1) {
-					existingItems.slice(1).remove();
-				}
-				if (existingItems.length === 1) return;
-
-				var consoleItem = $('.menu__item[data-action="console"]');
-				if (!consoleItem.length) {
-					consoleItem = $('.menu__item').filter(function() {
-						var txt = $(this).find('.menu__text').text().trim();
-						return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
-					});
-				}
-
-				if (!consoleItem.length && !$('.menu__list').length) return;
-
-				var bellSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-					'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
-					'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
-				'</svg>';
-
-				var itemHtml;
-				if (consoleItem.length) {
-					// Клонируем структуру элемента "Консоль", чтобы тег и классы 100% совпали с темой
-					itemHtml = consoleItem.first().clone(false);
-					itemHtml.removeClass('focus active select');
-					itemHtml.addClass('hf-bylampa-changes');
-					itemHtml.attr('data-action', 'hf_bylampa_changes');
-					itemHtml.find('.menu__ico').html(bellSvg);
-					itemHtml.find('.menu__text').text(Lampa.Lang.translate('menu_changes'));
-					itemHtml.find('.menu__counter, .menu__badge').remove();
-				} else {
-					itemHtml = $(
-						'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
-							'<div class="menu__ico">' + bellSvg + '</div>' +
-							'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
-						'</li>'
-					);
-				}
-
-				itemHtml.on('hover:enter click', function(e) {
-					if (e && e.preventDefault) e.preventDefault();
-					openByLampaNoticeModal();
-				});
-
-				if (consoleItem.length) {
-					consoleItem.first().after(itemHtml);
-				} else {
-					var lists = $('.menu__list');
-					if (lists.length > 1) {
-						lists.last().prepend(itemHtml);
-					} else {
-						lists.first().append(itemHtml);
-					}
-				}
-
-				if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-					Lampa.Menu.update();
-				}
-				if (Lampa.Controller && Lampa.Controller.enabled().name === 'menu') {
-					Lampa.Controller.collectionSet($('.menu'));
-				}
-			} else {
-				if (existingItems.length) {
-					existingItems.remove();
-					if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-						Lampa.Menu.update();
-					}
-					if (Lampa.Controller && Lampa.Controller.enabled().name === 'menu') {
+		function safeRefreshMenuController() {
+			try {
+				if (Lampa.Controller && typeof Lampa.Controller.enabled === 'function') {
+					var activeCtrl = Lampa.Controller.enabled();
+					if (activeCtrl && activeCtrl.name === 'menu' && typeof Lampa.Controller.collectionSet === 'function') {
 						Lampa.Controller.collectionSet($('.menu'));
 					}
 				}
-			}
+			} catch (err) {}
 		}
 
-		// Защита текста "Да" / "Перенесено в боковое меню" от перезаписи движком Lampa
+		function updateByLampaNotice() {
+			try {
+				var showInHeader = isByLampaNoticeInHeader();
+
+				toggleByLampaBtn(showInHeader);
+
+				var existingItems = $('.hf-bylampa-changes');
+
+				if (!showInHeader) {
+					if (existingItems.length > 1) {
+						existingItems.slice(1).remove();
+					}
+					if (existingItems.length === 1) return;
+
+					var consoleItem = $('.menu__item[data-action="console"]');
+					if (!consoleItem.length) {
+						consoleItem = $('.menu__item').filter(function() {
+							var txt = $(this).find('.menu__text').text().trim();
+							return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
+						});
+					}
+
+					if (!consoleItem.length && !$('.menu__list').length) return;
+
+					var bellSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+						'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
+						'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
+					'</svg>';
+
+					var itemHtml;
+					if (consoleItem.length) {
+						itemHtml = consoleItem.first().clone(false);
+						itemHtml.removeClass('focus active select');
+						itemHtml.addClass('hf-bylampa-changes');
+						itemHtml.attr('data-action', 'hf_bylampa_changes');
+						itemHtml.find('.menu__ico').html(bellSvg);
+						itemHtml.find('.menu__text').text(Lampa.Lang.translate('menu_changes'));
+						itemHtml.find('.menu__counter, .menu__badge').remove();
+					} else {
+						itemHtml = $(
+							'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
+								'<div class="menu__ico">' + bellSvg + '</div>' +
+								'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
+							'</li>'
+						);
+					}
+
+					itemHtml.on('hover:enter click', function(e) {
+						if (e && e.preventDefault) e.preventDefault();
+						openByLampaNoticeModal();
+					});
+
+					if (consoleItem.length) {
+						consoleItem.first().after(itemHtml);
+					} else {
+						var lists = $('.menu__list');
+						if (lists.length > 1) {
+							lists.last().prepend(itemHtml);
+						} else {
+							lists.first().append(itemHtml);
+						}
+					}
+
+					safeRefreshMenuController();
+				} else {
+					if (existingItems.length) {
+						existingItems.remove();
+						safeRefreshMenuController();
+					}
+				}
+			} catch (err) {}
+		}
+
 		function refreshByLampaSettingRow() {
-			var label = isByLampaNoticeInHeader() ? Lampa.Lang.translate('bylampa_notice_yes') : Lampa.Lang.translate('bylampa_notice_moved');
-			var row = $('.settings-param[data-name="head_filter_bylampa_notice_v2"]');
-			if (!row.length) {
-				var titleText = Lampa.Lang.translate('bylampa_notice');
-				row = $('.settings-param').filter(function() {
-					return $(this).find('.settings-param__name').text().trim() === titleText;
-				});
-			}
-			if (row.length) {
-var valEl = row.find('.settings-param__value');
+			try {
+				var label = isByLampaNoticeInHeader() ? Lampa.Lang.translate('bylampa_notice_yes') : Lampa.Lang.translate('bylampa_notice_moved');
+				var row = $('.settings-param[data-name="head_filter_bylampa_notice_v2"]');
+				if (!row.length) {
+					var titleText = Lampa.Lang.translate('bylampa_notice');
+					row = $('.settings-param').filter(function() {
+						return $(this).find('.settings-param__name').text().trim() === titleText;
+					});
+				}
+				if (row.length) {
+					var valEl = row.find('.settings-param__value');
 if (valEl.text() !== label) {
 valEl.text(label);
 }
@@ -370,8 +375,10 @@ refreshByLampaSettingRow();
 });
 }
 }
+} catch (err) {}
 }
 function updateNetworkIndicator() {
+try {
 var showNet = Lampa.Storage.get('head_filter_show_network', true);
 $('.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]').each(function() {
 if ($(this).hasClass('head') || $(this).hasClass('head__body') || $(this).hasClass('head__actions')) return;
@@ -391,8 +398,10 @@ setElementVisible(target, showNet);
 }
 }
 }
+} catch (err) {}
 }
 function updateClockAndCalendar() {
+try {
 var timeContainer = $('.head__time').get(0);
 if (!timeContainer) return;
 var showClock = Lampa.Storage.get('head_filter_show_clock', true);
@@ -420,8 +429,10 @@ setElementVisible(child, showCalendar);
 }
 }
 updateNetworkIndicator();
+} catch (err) {}
 }
 function updateHeadTitle() {
+try {
 var titleEl = $('.head__title');
 if (!titleEl.length) return;
 var showSource = Lampa.Storage.get('head_filter_show_source', true);
@@ -451,8 +462,10 @@ titleEl.css({
 'text-transform': ''
 });
 }
+} catch (err) {}
 }
 function positionSettingsComponent() {
+try {
 var interfaceItem = $('[data-component="interface"]');
 var moreItem = $('[data-component="more"]');
 var headFilterItem = $('[data-component="head_filter"]');
@@ -477,6 +490,7 @@ if (interfaceItem.length && interfaceItem.next().attr('data-component') !== 'hea
 interfaceItem.after(headFilterItem);
 }
 }
+} catch (err) {}
 }
 function applyAll() {
 Object.keys(topHead).forEach(function(key) {
@@ -516,6 +530,7 @@ refreshByLampaSettingRow();
 }, 700);
 if (Lampa.Controller && Lampa.Controller.listener) {
 Lampa.Controller.listener.follow('toggle', function(e) {
+if (!e) return;
 if (e.name === 'menu') {
 updateByLampaNotice();
 } else if (e.name === 'settings_component') {
@@ -527,6 +542,7 @@ refreshByLampaSettingRow();
 });
 }
 Lampa.Storage.listener.follow('change', function(event) {
+if (!event) return;
 if (event.name == 'activity') {
 setTimeout(applyAll, 300);
 setTimeout(applyAll, 1000);
@@ -557,6 +573,7 @@ after: 'interface'
 }
 if (Lampa.Settings && Lampa.Settings.listener) {
 Lampa.Settings.listener.follow('open', function(e) {
+if (!e) return;
 if (e.name === 'main') {
 positionSettingsComponent();
 setTimeout(positionSettingsComponent, 50);
