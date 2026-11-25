@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '1.1.1',
+			version: '1.2.0',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -197,14 +197,10 @@
 			});
 		}
 
-		// true = "Да" (кнопка в шапке), false = "Перенесено в боковое меню"
+		// true = "Да" (в правом верхнем углу), false = "Перенесено в боковое меню"
 		function isByLampaNoticeInHeader() {
 			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
-			if (val === 'no' || val === 'moved' || val === 'false' || val === false) {
-				if (val !== false) Lampa.Storage.set('head_filter_show_bylampa_notice', false);
-				return false;
-			}
-			return true;
+			return Boolean(val) && val !== 'false' && val !== 'no' && val !== 'moved';
 		}
 
 		function updateNetworkIndicator() {
@@ -359,17 +355,18 @@
 			}
 
 			if (window.ByLampa) {
-if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-}
-}
-// Строго ОДИН пункт "Изменения" под "Консоль" при режиме "Перенесено в боковое меню"
+				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
+				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+			}
+		}
+
+// Прямая вставка ровно ОДНОГО пункта "Изменения" под "Консоль" в боковом меню
 function updateByLampaNotice() {
 var showInHeader = isByLampaNoticeInHeader();
 toggleByLampaBtn(showInHeader);
-var menuContainer = $('.menu');
-if (!menuContainer.length) return;
-var existingItems = menuContainer.find('.hf-bylampa-changes');
+var menuLists = $('.menu__list');
+if (!menuLists.length) return;
+var existingItems = $('.hf-bylampa-changes');
 if (!showInHeader) {
 if (existingItems.length > 1) {
 existingItems.slice(1).remove();
@@ -390,22 +387,20 @@ itemHtml.on('hover:enter click', function(e) {
 if (e && e.preventDefault) e.preventDefault();
 openByLampaNoticeModal();
 });
-var consoleItem = menuContainer.find('.menu__item[data-action="console"]');
+// Ищем "Консоль" по тексту или data-action во всём документе
+var consoleItem = $('.menu__item[data-action="console"]');
 if (!consoleItem.length) {
-consoleItem = menuContainer.find('.menu__item').filter(function() {
-var txt = $(this).find('.menu__text').text().trim().toLowerCase();
+consoleItem = $('.menu__item').filter(function() {
+var txt = $(this).text().trim().toLowerCase();
 return txt === 'консоль' || txt === 'console';
 });
 }
 if (consoleItem.length) {
 consoleItem.first().after(itemHtml);
+} else if (menuLists.length > 1) {
+menuLists.last().prepend(itemHtml);
 } else {
-var lists = menuContainer.find('.menu__list');
-if (lists.length > 1) {
-lists.last().prepend(itemHtml);
-} else {
-lists.first().append(itemHtml);
-}
+menuLists.first().append(itemHtml);
 }
 if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
 Lampa.Menu.update();
@@ -419,7 +414,6 @@ Lampa.Menu.update();
 }
 }
 }
-// Подмена текста штатного trigger ("Да" / "Перенесено в боковое меню") без всплывающего окна
 function refreshByLampaSettingRow() {
 var label = isByLampaNoticeInHeader() ? Lampa.Lang.translate('bylampa_notice_yes') : Lampa.Lang.translate('bylampa_notice_moved');
 var row = $('.settings-param[data-name="head_filter_show_bylampa_notice"]');
@@ -489,6 +483,12 @@ updateClockAndCalendar();
 });
 headObserver.observe(headNode, { childList: true, subtree: true });
 }
+// Лёгкая фоновая проверка бокового меню (гарантирует появление "Изменения" в любой момент без крашей)
+setInterval(function() {
+if (!isByLampaNoticeInHeader() && !$('.hf-bylampa-changes').length && $('.menu__list').length) {
+updateByLampaNotice();
+}
+}, 800);
 if (Lampa.Controller && Lampa.Controller.listener) {
 Lampa.Controller.listener.follow('toggle', function(e) {
 if (e.name === 'menu') {
@@ -501,9 +501,6 @@ refreshByLampaSettingRow();
 }
 });
 }
-$(document).on('click hover:enter', '.head__menu-icon', function() {
-setTimeout(updateByLampaNotice, 50);
-});
 Lampa.Storage.listener.follow('change', function(event) {
 if (event.name == 'activity') {
 setTimeout(applyAll, 300);
@@ -553,8 +550,7 @@ field: {
 name: Lampa.Lang.translate('name_menu')
 }
 });
-// === НОВЫЕ ПЕРЕКЛЮЧАТЕЛИ (В НАЧАЛЕ СПИСКА) ===
-// 1. Уведомления ByLampa: штатный trigger с подменой текста на "Да" / "Перенесено в боковое меню"
+// 1. Уведомления ByLampa
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -644,7 +640,7 @@ name: topHead[key].name
 }
 });
 });
-// === ОСТАЛЬНЫЕ СТАНДАРТНЫЕ ПЕРЕКЛЮЧАТЕЛИ ===
+// Остальные стандартные переключатели
 Object.keys(standardHead).forEach(function(key) {
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
