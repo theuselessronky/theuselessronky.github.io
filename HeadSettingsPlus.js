@@ -139,7 +139,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.5.0',
+			version: '0.7.0',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -321,61 +321,77 @@
 			}
 		}
 
-		// Уведомления ByLampa: Да = в шапке, Нет = скрыты в шапке + пункт "Изменения" под "Консоль"
+		// Уведомления ByLampa: строго ОДИН пункт "Изменения" под "Консоль"
 		function updateByLampaNotice() {
 			var showInHeader = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
 
 			toggleByLampaBtn(showInHeader);
 
-			var menuList = $('.menu .menu__list').first();
-			if (!menuList.length) return;
+			var menuContainer = $('.menu');
+			if (!menuContainer.length) return;
 
-			var customItem = menuList.find('.hf-bylampa-changes');
+			var existingItems = menuContainer.find('.hf-bylampa-changes');
 
 			if (!showInHeader) {
-				if (!customItem.length) {
-					var itemHtml = $(
-						'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
-							'<div class="menu__ico">' +
-								'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-									'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
-									'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
-								'</svg>' +
-							'</div>' +
-							'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
-						'</li>'
-					);
-
-					itemHtml.on('hover:enter click', function(e) {
-						if (e && e.preventDefault) e.preventDefault();
-						openByLampaNoticeModal();
-					});
-
-					// Ищем "Консоль" во всех списках бокового меню и ставим "Изменения" строго под ней
-					var consoleItem = $('.menu .menu__item[data-action="console"]');
-					if (!consoleItem.length) {
-						consoleItem = $('.menu .menu__item').filter(function() {
-							var txt = $(this).find('.menu__text').text().trim();
-							return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
-						});
-					}
-
-					if (consoleItem.length) {
-						consoleItem.last().after(itemHtml);
-					} else {
-						menuList.append(itemHtml);
-					}
-
-					if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-						Lampa.Menu.update();
-					}
+				// Если дубликатов больше одного — удаляем лишние
+				if (existingItems.length > 1) {
+					existingItems.slice(1).remove();
 				}
-			} else {
-				if (customItem.length) {
-customItem.remove();
+				// Если уже есть ровно один пункт — больше не создаём
+				if (existingItems.length >= 1) return;
+
+				var itemHtml = $(
+					'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
+						'<div class="menu__ico">' +
+							'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+								'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
+								'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
+							'</svg>' +
+						'</div>' +
+						'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
+					'</li>'
+				);
+
+				itemHtml.on('hover:enter click', function(e) {
+					if (e && e.preventDefault) e.preventDefault();
+					openByLampaNoticeModal();
+				});
+
+				var consoleItem = menuContainer.find('.menu__item[data-action="console"]');
+				if (!consoleItem.length) {
+					consoleItem = menuContainer.find('.menu__item').filter(function() {
+						var txt = $(this).find('.menu__text').text().trim();
+						return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
+					});
+				}
+
+				if (consoleItem.length) {
+					consoleItem.first().after(itemHtml);
+				} else {
+					menuContainer.find('.menu__list').first().append(itemHtml);
+				}
+
 if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
 Lampa.Menu.update();
 }
+} else {
+if (existingItems.length) {
+existingItems.remove();
+if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
+Lampa.Menu.update();
+}
+}
+}
+}
+// Позиционирование раздела "Настройка шапки+" строго под "Интерфейс" в главном меню настроек
+function positionSettingsComponent() {
+var settingsMain = $('.settings__main, .settings-folder');
+if (!settingsMain.length) return;
+var interfaceItem = settingsMain.find('[data-component="interface"]');
+var headFilterItem = settingsMain.find('[data-component="head_filter"]');
+if (interfaceItem.length && headFilterItem.length) {
+if (interfaceItem.next().attr('data-component') !== 'head_filter') {
+interfaceItem.after(headFilterItem);
 }
 }
 }
@@ -387,6 +403,7 @@ showHideElement(head[key].element, show_element);
 updateHeadTitle();
 updateByLampaNotice();
 updateClockAndCalendar();
+positionSettingsComponent();
 }
 var headTitleNode = document.querySelector('.head__title');
 if (headTitleNode && window.MutationObserver) {
@@ -421,31 +438,30 @@ updateByLampaNotice();
 updateClockAndCalendar();
 }
 });
-// Регистрация оригинального пустого шаблона настроек
-function registerSettingsTemplate() {
-if (Lampa.Template && typeof Lampa.Template.add === 'function') {
-Lampa.Template.add('settings_head_filter', '');
-}
-}
-registerSettingsTemplate();
-Lampa.SettingsApi.addParam({
-component: 'interface',
-param: {
-type: 'button'
-},
-field: {
+// Оригинальная иконка раздела "Каталог" из бокового меню Lampa
+var catalogIcon = '' +
+'' +
+'' +
+'' +
+'' +
+'';
+// Регистрация отдельного раздела в главном меню настроек (без ошибки Template not found)
+if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
+Lampa.SettingsApi.addComponent({
+component: 'head_filter',
 name: Lampa.Lang.translate('name_plugin'),
-description: Lampa.Lang.translate('plugin_description')
-},
-onChange: function() {
-registerSettingsTemplate();
-Lampa.Settings.create('head_filter', {
-onBack: function() {
-Lampa.Settings.create('interface');
+icon: catalogIcon,
+after: 'interface'
+});
+}
+// Отслеживаем открытие главного меню настроек, чтобы гарантированно поставить пункт под "Интерфейс"
+if (Lampa.Settings && Lampa.Settings.listener) {
+Lampa.Settings.listener.follow('open', function(e) {
+if (e.name === 'main') {
+setTimeout(positionSettingsComponent, 10);
 }
 });
 }
-});
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -517,7 +533,7 @@ field: {
 name: Lampa.Lang.translate('big_title')
 }
 });
-// Переключатель: Уведомления ByLampa (Да / Нет -> при "Нет" переносит в меню "Изменения")
+// Переключатель: Уведомления ByLampa (Да / Нет)
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
