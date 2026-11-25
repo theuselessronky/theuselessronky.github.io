@@ -56,6 +56,54 @@
 			uk: 'Зміни',
 			zh: '更新日志'
 		},
+		clock_only: {
+			ru: 'Часы',
+			en: 'Clock',
+			uk: 'Годинник',
+			zh: '时钟'
+		},
+		calendar_mode: {
+			ru: 'Календарь',
+			en: 'Calendar',
+			uk: 'Календар',
+			zh: '日历'
+		},
+		cal_yes: {
+			ru: 'Да',
+			en: 'Yes',
+			uk: 'Так',
+			zh: '是'
+		},
+		cal_no: {
+			ru: 'Нет',
+			en: 'No',
+			uk: 'Ні',
+			zh: '否'
+		},
+		cal_ddmmyy: {
+			ru: 'DD.MM.YY',
+			en: 'DD.MM.YY',
+			uk: 'DD.MM.YY',
+			zh: 'DD.MM.YY'
+		},
+		cal_mmddyy: {
+			ru: 'MM.DD.YY',
+			en: 'MM.DD.YY',
+			uk: 'MM.DD.YY',
+			zh: 'MM.DD.YY'
+		},
+		cal_no_year_weekday: {
+			ru: 'Скрытие дня недели и года',
+			en: 'Hide weekday and year',
+			uk: 'Приховати день тижня та рік',
+			zh: '隐藏星期和年份'
+		},
+		cal_no_weekday: {
+			ru: 'Скрытие дня недели',
+			en: 'Hide weekday',
+			uk: 'Приховати день тижня',
+			zh: '隐藏星期'
+		},
 		search: {
 			ru: 'Поиск',
 			en: 'Search',
@@ -122,12 +170,6 @@
 			uk: 'Розділювач',
 			zh: '分隔符'
 		},
-		time: {
-			ru: 'Время',
-			en: 'Time',
-			uk: 'Годинник',
-			zh: '时间'
-		},
 		name_menu: {
 			ru: 'Отображать в шапке',
 			en: 'Display in header',
@@ -151,7 +193,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.3.7',
+			version: '0.4.0',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -171,8 +213,7 @@
 			'head_filter_show_fullscreen': {name: Lampa.Lang.translate('fullscreen'), element: '.full-screen'}, 
 			'head_filter_show_reload': {name: Lampa.Lang.translate('reload'), element: '.m-reload-screen'},
 			'head_filter_show_blackfriday': {name: Lampa.Lang.translate('blackfriday'), element: '.black-friday__button'}, 
-			'head_filter_show_split': {name: Lampa.Lang.translate('split'), element: '.head__split'}, 
-			'head_filter_show_time': {name: Lampa.Lang.translate('time'), element: '.head__time'}
+			'head_filter_show_split': {name: Lampa.Lang.translate('split'), element: '.head__split'}
 		};
 
 		function showHideElement(element, show) {
@@ -180,6 +221,121 @@
 				$(element).show();
 			} else {
 				$(element).hide();
+			}
+		}
+
+		// Раздельное управление Часами и Календарём
+		function updateClockAndCalendar() {
+			var timeContainer = $('.head__time');
+			if (!timeContainer.length) return;
+
+			// Совместимость со старой настройкой времени, если новая ещё не задана
+			var defaultClock = Lampa.Storage.get('head_filter_show_time', true);
+			var showClock = Lampa.Storage.get('head_filter_show_clock', defaultClock);
+			var calMode = Lampa.Storage.get('head_filter_calendar_mode', 'yes');
+
+			var clockEl = timeContainer.find('.head__time-now');
+			var dateEl = timeContainer.find('.head__time-date');
+
+			// Если оба элемента скрыты — прячем весь контейнер
+			if (!showClock && calMode === 'no') {
+				timeContainer.hide();
+				return;
+			} else {
+				timeContainer.show();
+			}
+
+			// 1. Управление часами
+			if (clockEl.length) {
+				if (showClock) {
+					clockEl.show();
+				} else {
+					clockEl.hide();
+				}
+			}
+
+			// 2. Управление календарём
+			if (!dateEl.length) return;
+
+			if (calMode === 'no') {
+				dateEl.hide();
+				timeContainer.css({
+					'display': 'flex',
+					'align-items': 'center',
+					'justify-content': 'center'
+				});
+				return;
+			}
+
+			dateEl.show();
+
+			// Сброс выравнивания, если выбран не режим центрирования
+			if (calMode === 'no_year_weekday') {
+				timeContainer.css({
+					'display': 'flex',
+					'flex-direction': 'column',
+					'align-items': 'center',
+					'justify-content': 'center',
+					'text-align': 'center'
+				});
+				dateEl.css({
+					'text-align': 'center',
+					'width': '100%'
+				});
+			} else {
+				timeContainer.css({
+					'display': '',
+					'flex-direction': '',
+					'align-items': '',
+					'justify-content': '',
+					'text-align': ''
+				});
+				dateEl.css({
+					'text-align': '',
+					'width': ''
+				});
+			}
+
+			var now = new Date();
+			var dayNum = String(now.getDate());
+			var dayPad = now.getDate() < 10 ? '0' + now.getDate() : String(now.getDate());
+			var monthNum = now.getMonth() + 1;
+			var monthPad = monthNum < 10 ? '0' + monthNum : String(monthNum);
+			var yearNum = String(now.getFullYear());
+
+			var monthsRu = [
+				'Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня',
+				'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'
+			];
+			var weekdaysRu = [
+				'Воскресенье', 'Понедельник', 'Вторник', 'Среда',
+				'Четверг', 'Пятница', 'Суббота'
+			];
+
+			var monthName = monthsRu.slice(now.getMonth(), now.getMonth() + 1).shift();
+			var weekdayName = weekdaysRu.slice(now.getDay(), now.getDay() + 1).shift();
+
+			var formattedText = '';
+
+			if (calMode === 'yes') {
+				// 25 Ноября 2026 Среда
+				formattedText = dayNum + ' ' + monthName + ' ' + yearNum + ' ' + weekdayName;
+			} else if (calMode === 'ddmmyy') {
+				// 25.11.2026
+				formattedText = dayPad + '.' + monthPad + '.' + yearNum;
+			} else if (calMode === 'mmddyy') {
+				// 11.25.2026
+				formattedText = monthPad + '.' + dayPad + '.' + yearNum;
+			} else if (calMode === 'no_year_weekday') {
+				// 25 Ноября (по центру)
+				formattedText = dayNum + ' ' + monthName;
+			} else if (calMode === 'no_weekday') {
+				// 25 Ноября 2026
+				formattedText = dayNum + ' ' + monthName + ' ' + yearNum;
+			}
+
+			if (formattedText && dateEl.text() !== formattedText) {
+				dateEl.text(formattedText);
 			}
 		}
 
@@ -224,13 +380,12 @@
 			var standardClasses = [
 				'open--search', 'open--settings', 'open--premium', 'open--profile',
 				'open--feed', 'notice--icon', 'open--broadcast', 'full-screen',
-				'm-reload-screen', 'black-friday__button'
+				'm-reload-screen', 'black-friday__button', 'head__backward',
+				'head__menu-icon', 'head__split', 'head__time', 'head__title'
 			];
 
-			return $('.head__actions .head__action, .head__actions > div, .head__actions > button').filter(function() {
+			return $('.head .head__action, .head__actions > div, .head__actions > button').filter(function() {
 				var el = $(this);
-				if (el.hasClass('head__split') || el.hasClass('head__time')) return false;
-				
 				for (var i = 0; i < standardClasses.length; i++) {
 					var cls = standardClasses.slice(i, i + 1).shift();
 					if (el.hasClass(cls)) return false;
@@ -244,131 +399,117 @@
 			if (!btn.length) return;
 
 			btn.each(function() {
-				if (this && this.style) {
-					if (show) {
-						this.style.removeProperty('display');
-						$(this).show();
-					} else {
-						this.style.setProperty('display', 'none', 'important');
-					}
-				}
-			});
-		}
-
-		function openByLampaNoticeModal() {
-			var btn = getByLampaNoticeBtn();
-			var domBtn = btn.get(0);
-
-			if (domBtn) {
-				if (domBtn.style && domBtn.style.getPropertyValue('display') === 'none') {
-					domBtn.style.setProperty('display', 'flex', 'important');
-				}
-
-				btn.trigger('hover:enter');
-				btn.trigger('click');
-				if (typeof domBtn.click === 'function') {
-					domBtn.click();
-				}
-
-				setTimeout(function() {
-					var currentMode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
-					if (currentMode !== 'yes' && domBtn.style) {
-						domBtn.style.setProperty('display', 'none', 'important');
-					}
-				}, 50);
-				return;
-			}
-
-			if (window.ByLampa) {
-				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-			}
-		}
-
-		function updateByLampaNotice() {
-			var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
-
-			toggleByLampaBtn(mode === 'yes');
-
-			var menuList = $('.menu .menu__list').first();
-			if (!menuList.length) return;
-
-			var customItem = menuList.find('.hf-bylampa-changes');
-
-			if (mode === 'menu') {
-				if (!customItem.length) {
-					var itemHtml = $(
-						'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
-							'<div class="menu__ico">' +
-								'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-									'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
-									'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
-								'</svg>' +
-							'</div>' +
-							'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
-						'</li>'
-					);
-
-					itemHtml.on('hover:enter click', function(e) {
-						if (e && e.preventDefault) e.preventDefault();
-						openByLampaNoticeModal();
-					});
-
-					var consoleItem = menuList.find('.menu__item[data-action="console"]');
-					if (!consoleItem.length) {
-						consoleItem = menuList.find('.menu__item').filter(function() {
-							var txt = $(this).find('.menu__text').text().trim();
-							return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
-						});
-					}
-
-					if (consoleItem.length) {
-						consoleItem.after(itemHtml);
-					} else {
-						menuList.append(itemHtml);
-					}
-
-					if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-						Lampa.Menu.update();
-					}
-				}
-			} else {
-				if (customItem.length) {
-					customItem.remove();
-					if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-						Lampa.Menu.update();
-					}
-				}
-			}
-		}
-
-		function applyAll() {
-			Object.keys(head).forEach(function(key) {
-				var show_element = Lampa.Storage.get(key, true); 
-				showHideElement(head[key].element, show_element);     
-			});
-			updateHeadTitle();
-			updateByLampaNotice();
-		}
-
-		var headTitleNode = document.querySelector('.head__title');
-		if (headTitleNode && window.MutationObserver) {
-			var titleObserver = new MutationObserver(function() {
-				updateHeadTitle();
-			});
-			titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
-		}
-
-		var headActionsNode = document.querySelector('.head__actions');
-		if (headActionsNode && window.MutationObserver) {
-			var actionsObserver = new MutationObserver(function() {
-				var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
-				toggleByLampaBtn(mode === 'yes');
-			});
-			actionsObserver.observe(headActionsNode, { childList: true, subtree: true });
-		}
-
-		Lampa.Storage.listener.follow('change', function(event) {
+if (this && this.style) {
+if (show) {
+this.style.removeProperty('display');
+$(this).show();
+} else {
+this.style.setProperty('display', 'none', 'important');
+}
+}
+});
+}
+function openByLampaNoticeModal() {
+var btn = getByLampaNoticeBtn();
+var domBtn = btn.get(0);
+if (domBtn) {
+if (domBtn.style && domBtn.style.getPropertyValue('display') === 'none') {
+domBtn.style.setProperty('display', 'flex', 'important');
+}
+btn.trigger('hover:enter');
+btn.trigger('click');
+if (typeof domBtn.click === 'function') {
+domBtn.click();
+}
+setTimeout(function() {
+var currentMode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
+if (currentMode !== 'yes' && domBtn.style) {
+domBtn.style.setProperty('display', 'none', 'important');
+}
+}, 50);
+return;
+}
+if (window.ByLampa) {
+if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
+else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+}
+}
+function updateByLampaNotice() {
+var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
+toggleByLampaBtn(mode === 'yes');
+var menuList = $('.menu .menu__list').first();
+if (!menuList.length) return;
+var customItem = menuList.find('.hf-bylampa-changes');
+if (mode === 'menu') {
+if (!customItem.length) {
+var itemHtml = $(
+'' +
+'' +
+'' +
+'' +
+'' +
+'' +
+'' +
+'' + Lampa.Lang.translate('menu_changes') + '' +
+''
+);
+itemHtml.on('hover:enter click', function(e) {
+if (e && e.preventDefault) e.preventDefault();
+openByLampaNoticeModal();
+});
+var consoleItem = menuList.find('.menu__item[data-action="console"]');
+if (!consoleItem.length) {
+consoleItem = menuList.find('.menu__item').filter(function() {
+var txt = $(this).find('.menu__text').text().trim();
+return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
+});
+}
+if (consoleItem.length) {
+consoleItem.after(itemHtml);
+} else {
+menuList.append(itemHtml);
+}
+if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
+Lampa.Menu.update();
+}
+}
+} else {
+if (customItem.length) {
+customItem.remove();
+if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
+Lampa.Menu.update();
+}
+}
+}
+}
+function applyAll() {
+Object.keys(head).forEach(function(key) {
+var show_element = Lampa.Storage.get(key, true);
+showHideElement(head[key].element, show_element);
+});
+updateHeadTitle();
+updateByLampaNotice();
+updateClockAndCalendar();
+}
+var headTitleNode = document.querySelector('.head__title');
+if (headTitleNode && window.MutationObserver) {
+var titleObserver = new MutationObserver(function() {
+updateHeadTitle();
+});
+titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
+}
+var headNode = document.querySelector('.head');
+if (headNode && window.MutationObserver) {
+var headObserver = new MutationObserver(function() {
+var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
+toggleByLampaBtn(mode === 'yes');
+updateClockAndCalendar();
+});
+headObserver.observe(headNode, { childList: true, subtree: true });
+}
+// Следим за ежеминутным обновлением времени самой Лампой, чтобы формат даты не сбивался
+setInterval(updateClockAndCalendar, 1000);
+Lampa.Storage.listener.follow('change', function(event) {
 if (event.name == 'activity') {
 setTimeout(applyAll, 300);
 setTimeout(applyAll, 1000);
@@ -379,13 +520,12 @@ showHideElement(head[event.name].element, show_element);
 updateHeadTitle();
 } else if (event.name === 'head_filter_bylampa_notice') {
 updateByLampaNotice();
+} else if (event.name === 'head_filter_show_clock' || event.name === 'head_filter_calendar_mode') {
+updateClockAndCalendar();
 }
 });
-function ensureTemplate() {
-var baseTpl = (Lampa.Template && typeof Lampa.Template.string === 'function') ? Lampa.Template.string('settings_more') : '';
-Lampa.Template.add('settings_head_filter', baseTpl || '');
-}
-ensureTemplate();
+// Оригинальный чистый вид окна настроек
+Lampa.Template.add('settings_head_filter', '');
 Lampa.SettingsApi.addParam({
 component: 'interface',
 param: {
@@ -396,9 +536,7 @@ name: Lampa.Lang.translate('name_plugin'),
 description: Lampa.Lang.translate('plugin_description')
 },
 onChange: function() {
-ensureTemplate();
 Lampa.Settings.create('head_filter', {
-template: 'settings_more',
 onBack: function() {
 Lampa.Settings.create('interface');
 }
@@ -414,6 +552,7 @@ field: {
 name: Lampa.Lang.translate('name_menu')
 }
 });
+// Стандартные переключатели элементов
 Object.keys(head).forEach(function(key) {
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
@@ -427,6 +566,39 @@ name: head[key].name
 }
 });
 });
+// Переключатель: Часы (отвязаны от календаря)
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: {
+name: 'head_filter_show_clock',
+type: 'trigger',
+default: true
+},
+field: {
+name: Lampa.Lang.translate('clock_only')
+}
+});
+// Переключатель: Календарь
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: {
+name: 'head_filter_calendar_mode',
+type: 'select',
+values: {
+yes: Lampa.Lang.translate('cal_yes'),
+no: Lampa.Lang.translate('cal_no'),
+ddmmyy: Lampa.Lang.translate('cal_ddmmyy'),
+mmddyy: Lampa.Lang.translate('cal_mmddyy'),
+no_year_weekday: Lampa.Lang.translate('cal_no_year_weekday'),
+no_weekday: Lampa.Lang.translate('cal_no_weekday')
+},
+default: 'yes'
+},
+field: {
+name: Lampa.Lang.translate('calendar_mode')
+}
+});
+// Переключатель: Источник
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -438,6 +610,7 @@ field: {
 name: Lampa.Lang.translate('source_title')
 }
 });
+// Переключатель: Увеличенное название раздела
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -449,6 +622,7 @@ field: {
 name: Lampa.Lang.translate('big_title')
 }
 });
+// Переключатель с выбором: Уведомления ByLampa
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
