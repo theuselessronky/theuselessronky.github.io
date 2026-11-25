@@ -61,7 +61,7 @@
 		try {
 			if (Lampa.Manifest) {
 				var self = {
-					type: 'other', version: '2.7.0',
+					type: 'other', version: '2.8.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
@@ -93,7 +93,6 @@
 			head_filter_show_clock: true, head_filter_show_calendar: true,
 			head_filter_show_source: true, head_filter_big_title: true,
 			head_filter_show_network: true,
-			head_filter_show_fullscreen: true,
 			head_filter_show_premium: true,
 			head_filter_show_profile: true,
 			head_filter_show_feed: true,
@@ -156,6 +155,21 @@
 				for (var j = 0; j < ls.length; j++) if ((ls[j].href || '').toLowerCase().indexOf('bylampa') !== -1) { envCache = true; return true; }
 			} catch (e) {}
 			envCache = false; return false;
+		}
+
+		var webCache = null;
+		function isWebBrowser() {
+			if (webCache !== null) return webCache;
+			try {
+				if (typeof document.fullscreenEnabled === 'boolean' && document.fullscreenEnabled) { webCache = true; return true; }
+				if (window.screenfull && window.screenfull.enabled) { webCache = true; return true; }
+				if (typeof window.CSS !== 'undefined' && typeof window.CSS.supports === 'function') {
+					if (window.CSS.supports('selector(:fullscreen)')) { webCache = true; return true; }
+					if (window.CSS.supports('(-webkit-full-screen-enter: none)')) { webCache = true; return true; }
+				}
+				if (window.innerWidth > 0 && window.innerHeight > 0 && typeof window.screen !== 'undefined') { webCache = true; return true; }
+			} catch (e) {}
+			webCache = false; return false;
 		}
 
 		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
@@ -545,6 +559,10 @@
 		function isAvailable(name) {
 			if (name in alwaysVisible) return true;
 			if (name === 'head_filter_bylampa_notice_v2') return hasByLampaBtn();
+			if (name === 'head_filter_show_fullscreen') {
+				if (!isWebBrowser()) return false;
+				return true;
+			}
 			if (name in topHead) return document.querySelector(topHead[name].s) !== null;
 			if (name in standardHead) return document.querySelector(standardHead[name].s) !== null;
 			return true;
