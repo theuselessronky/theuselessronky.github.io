@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.3.5',
+			version: '0.3.6',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -183,7 +183,6 @@
 			}
 		}
 
-		// Обработка заголовка: скрытие источника (" - TMDB") и стиль заглавных букв
 		function updateHeadTitle() {
 			var titleEl = $('.head__title');
 			if (!titleEl.length) return;
@@ -221,7 +220,6 @@
 			}
 		}
 
-		// Поиск кнопки уведомлений ByLampa (исключая стандартные кнопки Lampa)
 		function getByLampaNoticeBtn() {
 			var standardClasses = [
 				'open--search', 'open--settings', 'open--premium', 'open--profile',
@@ -234,13 +232,13 @@
 				if (el.hasClass('head__split') || el.hasClass('head__time')) return false;
 				
 				for (var i = 0; i < standardClasses.length; i++) {
-					if (el.hasClass(standardClasses.at(i))) return false;
+					var cls = standardClasses.slice(i, i + 1).shift();
+					if (el.hasClass(cls)) return false;
 				}
 				return true;
 			});
 		}
 
-		// Принудительное скрытие / показ кнопки ByLampa
 		function toggleByLampaBtn(show) {
 			var btn = getByLampaNoticeBtn();
 			if (!btn.length) return;
@@ -257,7 +255,6 @@
 			});
 		}
 
-		// Открытие окна уведомлений ByLampa
 		function openByLampaNoticeModal() {
 			var btn = getByLampaNoticeBtn();
 			var domBtn = btn.get(0);
@@ -288,7 +285,6 @@
 			}
 		}
 
-		// Управление кнопкой ByLampa и пунктом "Изменения" в боковом меню
 		function updateByLampaNotice() {
 			var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
 
@@ -355,7 +351,6 @@
 			updateByLampaNotice();
 		}
 
-		// Следим за изменением заголовка шапки
 		var headTitleNode = document.querySelector('.head__title');
 		if (headTitleNode && window.MutationObserver) {
 			var titleObserver = new MutationObserver(function() {
@@ -364,16 +359,16 @@
 			titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
 		}
 
-		// Следим за добавлением кнопки ByLampa в блок действий шапки
 		var headActionsNode = document.querySelector('.head__actions');
-if (headActionsNode && window.MutationObserver) {
-var actionsObserver = new MutationObserver(function() {
-var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
-toggleByLampaBtn(mode === 'yes');
-});
-actionsObserver.observe(headActionsNode, { childList: true, subtree: true });
-}
-Lampa.Storage.listener.follow('change', function(event) {
+		if (headActionsNode && window.MutationObserver) {
+			var actionsObserver = new MutationObserver(function() {
+				var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
+				toggleByLampaBtn(mode === 'yes');
+			});
+			actionsObserver.observe(headActionsNode, { childList: true, subtree: true });
+		}
+
+		Lampa.Storage.listener.follow('change', function(event) {
 if (event.name == 'activity') {
 setTimeout(applyAll, 300);
 setTimeout(applyAll, 1000);
@@ -397,6 +392,7 @@ name: Lampa.Lang.translate('name_plugin'),
 description: Lampa.Lang.translate('plugin_description')
 },
 onChange: function() {
+Lampa.Template.add('settings_head_filter', '');
 Lampa.Settings.create('head_filter', {
 onBack: function() {
 Lampa.Settings.create('interface');
@@ -413,7 +409,6 @@ field: {
 name: Lampa.Lang.translate('name_menu')
 }
 });
-// Стандартные переключатели элементов
 Object.keys(head).forEach(function(key) {
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
@@ -427,7 +422,6 @@ name: head[key].name
 }
 });
 });
-// Переключатель: Источник
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -439,7 +433,6 @@ field: {
 name: Lampa.Lang.translate('source_title')
 }
 });
-// Переключатель: Увеличенное название раздела
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -451,7 +444,6 @@ field: {
 name: Lampa.Lang.translate('big_title')
 }
 });
-// Переключатель с выбором: Уведомления ByLampa
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
@@ -468,7 +460,6 @@ field: {
 name: Lampa.Lang.translate('bylampa_notice')
 }
 });
-// Первичная инициализация
 setTimeout(applyAll, 500);
 setTimeout(applyAll, 1500);
 setTimeout(applyAll, 3000);
