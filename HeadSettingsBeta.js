@@ -23,7 +23,6 @@
 		notice: { ru: 'Уведомления', en: 'Notifications', uk: 'Сповіщення', zh: '通知' },
 		broadcast: { ru: 'Вещание', en: 'Broadcast', uk: 'Мовлення', zh: '广播' },
 		fullscreen: { ru: 'Полноэкранный режим', en: 'Fullscreen mode', uk: 'Повноэкранний режим', zh: '全屏模式' },
-		reload: { ru: 'Обновление страницы', en: 'Page reload', uk: 'Оновлення сторінки', zh: '页面重新加载' },
 		blackfriday: { ru: 'Черная пятница', en: 'Black Friday', uk: 'Чорна п’ятниця', zh: '黑色星期五' },
 		name_menu: { ru: 'Отображать в шапке', en: 'Display in header', uk: 'Відображати у шапці', zh: '在标题中显示' },
 		name_plugin: { ru: 'Настройка шапки+', en: 'Header settings+', uk: 'Налаштування шапки+', zh: '标题设置+' },
@@ -51,11 +50,17 @@
 		var splitting = false;
 		var rafPending = false;
 		var tick = null;
+		var pending = {};
+
+		function markPending(key, v) {
+			pending[key] = v;
+			setTimeout(function() { delete pending[key]; }, 600);
+		}
 
 		try {
 			if (Lampa.Manifest) {
 				var self = {
-					type: 'other', version: '2.1.0',
+					type: 'other', version: '2.3.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
@@ -76,7 +81,6 @@
 			head_filter_show_notice:     { l: 'notice',     f: 'Уведомления',         s: '.notice--icon' },
 			head_filter_show_broadcast:  { l: 'broadcast',  f: 'Вещание',             s: '.open--broadcast, [data-action="broadcast"]' },
 			head_filter_show_fullscreen: { l: 'fullscreen', f: 'Полноэкранный режим', s: '.full-screen, .fullscreen, .head__fullscreen, [data-action="fullscreen"], [data-action="full-screen"]' },
-			head_filter_show_reload:     { l: 'reload',     f: 'Обновление страницы', s: '.m-reload-screen, [data-action="reload"]' },
 			head_filter_show_blackfriday:{ l: 'blackfriday',f: 'Черная пятница',      s: '.black-friday__button' }
 		};
 		var topHead = {
@@ -88,7 +92,6 @@
 			head_filter_show_source: true, head_filter_big_title: true,
 			head_filter_show_network: true,
 			head_filter_show_fullscreen: true,
-			head_filter_show_reload: true,
 			head_filter_show_premium: true,
 			head_filter_show_profile: true,
 			head_filter_show_feed: true,
@@ -96,6 +99,7 @@
 		};
 
 		function getBool(key, def) {
+			if (key in pending) return pending[key];
 			try {
 				if (!Lampa.Storage || typeof Lampa.Storage.get !== 'function') return def;
 				var v = Lampa.Storage.get(key, def);
@@ -109,21 +113,24 @@
 		function setVisible(el, show) {
 			if (!el || !el.style) return;
 			try {
+				var hidden = el.getAttribute && el.getAttribute('data-hf-hidden') === '1';
 				if (show) {
-					if (el.getAttribute && el.getAttribute('data-hf-hidden') === '1') {
+					if (hidden) {
 						var o = el.getAttribute('data-hf-orig-display');
 						if (o && o !== 'none') el.style.setProperty('display', o, 'important');
 						else el.style.removeProperty('display');
 						el.removeAttribute('data-hf-hidden');
 						el.removeAttribute('data-hf-orig-display');
-					} else if (el.style.display === 'none' && !el.getAttribute('data-hf-hidden')) {
+					} else if (el.style.display === 'none') {
 						el.style.removeProperty('display');
 					}
-				} else if (el.style.display !== 'none' || el.getAttribute('data-hf-hidden') !== '1') {
-					var cur = el.style.getPropertyValue('display');
-					if (cur && cur !== 'none') el.setAttribute('data-hf-orig-display', cur);
-					el.style.setProperty('display', 'none', 'important');
-					if (el.setAttribute) el.setAttribute('data-hf-hidden', '1');
+				} else {
+					if (!hidden) {
+						var curD = el.style.getPropertyValue('display');
+						if (curD && curD !== 'none') el.setAttribute('data-hf-orig-display', curD);
+						el.style.setProperty('display', 'none', 'important');
+						if (el.setAttribute) el.setAttribute('data-hf-hidden', '1');
+					}
 				}
 			} catch (e) {}
 		}
@@ -299,7 +306,13 @@
 		}
 
 		function collectNet() {
-			if (tick && tick.net && tick.net.length) return tick.net;
+			if (tick && tick.net && tick.net.length) {
+				var allLive = true;
+				for (var z = 0; z < tick.net.length; z++) {
+					if (!tick.net[z] || !tick.net[z].isConnected) { allLive = false; break; }
+				}
+				if (allLive) return tick.net;
+			}
 			var out = [];
 			try {
 				var sel = [
@@ -344,7 +357,11 @@
 		}
 
 		function collectClocks() {
-			if (tick && tick.clock) return tick.clock;
+			if (tick && tick.clock) {
+				var ok = true;
+				for (var z = 0; z < tick.clock.length; z++) { if (!tick.clock[z] || !tick.clock[z].isConnected) { ok = false; break; } }
+				if (ok) return tick.clock;
+			}
 			var out = [];
 			try {
 				maybeSplit();
@@ -375,7 +392,11 @@
 		}
 
 		function collectDates() {
-			if (tick && tick.cal) return tick.cal;
+			if (tick && tick.cal) {
+				var ok = true;
+				for (var z = 0; z < tick.cal.length; z++) { if (!tick.cal[z] || !tick.cal[z].isConnected) { ok = false; break; } }
+				if (ok) return tick.cal;
+			}
 			var out = [];
 			try {
 				maybeSplit();
@@ -410,11 +431,11 @@
 			return out;
 		}
 
-		function refreshTimeSection() {
+		function refreshTimeSection(override) {
 			try {
-				var showClock = getBool('head_filter_show_clock', true);
-				var showCal = getBool('head_filter_show_calendar', true);
-				var showNet = getBool('head_filter_show_network', true);
+				var showClock = (override && typeof override.clock === 'boolean') ? override.clock : getBool('head_filter_show_clock', true);
+				var showCal = (override && typeof override.cal === 'boolean') ? override.cal : getBool('head_filter_show_calendar', true);
+				var showNet = (override && typeof override.net === 'boolean') ? override.net : getBool('head_filter_show_network', true);
 				var clocks = collectClocks();
 				var dates = collectDates();
 				var net = collectNet();
@@ -702,9 +723,9 @@
 				}
 				if (e.name === 'head_filter_show_source' || e.name === 'head_filter_big_title') { refreshTitle(); return; }
 				if (e.name === 'head_filter_bylampa_notice_v2') { setTimeout(function() { refreshByLampa(); refreshByLampaRow(); }, 30); return; }
-				if (e.name === 'head_filter_show_clock' || e.name === 'head_filter_show_calendar' || e.name === 'head_filter_show_network') {
-					tick = {}; refreshTimeSection();
-				}
+				if (e.name === 'head_filter_show_clock') { tick = {}; refreshTimeSection({ clock: getBool(e.name, true) }); return; }
+				if (e.name === 'head_filter_show_calendar') { tick = {}; refreshTimeSection({ cal: getBool(e.name, true) }); return; }
+				if (e.name === 'head_filter_show_network') { tick = {}; refreshTimeSection({ net: getBool(e.name, true) }); return; }
 			});
 		}
 
@@ -727,20 +748,47 @@
 					component: 'head_filter',
 					param: { name: key, type: 'trigger', default: key !== 'head_filter_big_title' },
 					field: { name: label },
-					onChange: function() { setTimeout(onChange, 15); }
+					onChange: function(value) {
+						var v;
+						if (typeof value === 'boolean') v = value;
+						else {
+							try {
+								var raw = (Lampa.Storage && typeof Lampa.Storage.get === 'function') ? Lampa.Storage.get(key) : undefined;
+								if (raw === false || raw === 'false' || raw === 0 || raw === '0') v = false;
+								else if (raw === true || raw === 'true' || raw === 1 || raw === '1') v = true;
+								else v = !getBool(key, true);
+							} catch (err) { v = !getBool(key, true); }
+						}
+						markPending(key, v);
+						onChange(v);
+					}
 				});
 			}
-			addToggle('head_filter_bylampa_notice_v2', t('bylampa_notice', 'Уведомления ByLampa'), function() { refreshByLampa(); refreshByLampaRow(); });
-			addToggle('head_filter_show_clock', t('clock_only', 'Часы'), function() { tick = {}; refreshTimeSection(); });
-			addToggle('head_filter_show_calendar', t('calendar_only', 'Календарь'), function() { tick = {}; refreshTimeSection(); });
-			addToggle('head_filter_show_network', t('network_indicator', 'Сеть'), function() { tick = {}; refreshTimeSection(); });
-			addToggle('head_filter_show_source', t('source_title', 'Источник'), refreshTitle);
-			addToggle('head_filter_big_title', t('big_title', 'Увеличенное название раздела'), refreshTitle);
+			addToggle('head_filter_bylampa_notice_v2', t('bylampa_notice', 'Уведомления ByLampa'), function() {
+				refreshByLampa(); refreshByLampaRow();
+			});
+			addToggle('head_filter_show_clock', t('clock_only', 'Часы'), function(v) {
+				tick = {}; refreshTimeSection({ clock: v });
+			});
+			addToggle('head_filter_show_calendar', t('calendar_only', 'Календарь'), function(v) {
+				tick = {}; refreshTimeSection({ cal: v });
+			});
+			addToggle('head_filter_show_network', t('network_indicator', 'Сеть'), function(v) {
+				tick = {}; refreshTimeSection({ net: v });
+			});
+			addToggle('head_filter_show_source', t('source_title', 'Источник'), function() { refreshTitle(); });
+			addToggle('head_filter_big_title', t('big_title', 'Увеличенное название раздела'), function() { refreshTitle(); });
 			Object.keys(topHead).forEach(function(k) {
-				addToggle(k, t(topHead[k].l, topHead[k].f), function() { setVisible(document.querySelector(topHead[k].s), getBool(k, true)); });
+				addToggle(k, t(topHead[k].l, topHead[k].f), function(v) {
+					var els = document.querySelectorAll(topHead[k].s);
+					for (var i = 0; i < els.length; i++) setVisible(els[i], v);
+				});
 			});
 			Object.keys(standardHead).forEach(function(k) {
-				addToggle(k, t(standardHead[k].l, standardHead[k].f), function() { setVisible(document.querySelector(standardHead[k].s), getBool(k, true)); });
+				addToggle(k, t(standardHead[k].l, standardHead[k].f), function(v) {
+					var els = document.querySelectorAll(standardHead[k].s);
+					for (var i = 0; i < els.length; i++) setVisible(els[i], v);
+				});
 			});
 		}
 
