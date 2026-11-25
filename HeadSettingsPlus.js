@@ -32,6 +32,18 @@
 			uk: 'Сповіщення ByLampa',
 			zh: 'ByLampa 通知'
 		},
+		bylampa_notice_yes: {
+			ru: 'Да',
+			en: 'Yes',
+			uk: 'Так',
+			zh: '是'
+		},
+		bylampa_notice_moved: {
+			ru: 'Перенесено в боковое меню',
+			en: 'Moved to side menu',
+			uk: 'Перенесено в бічне меню',
+			zh: '移至侧边菜单'
+		},
 		menu_changes: {
 			ru: 'Изменения',
 			en: 'Changes',
@@ -139,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.9.3',
+			version: '1.0.2',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -185,21 +197,11 @@
 			});
 		}
 
-		// Проверка статуса Уведомлений ByLampa и очистка старого строкового значения из Storage
 		function isByLampaNoticeInHeader() {
-			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
-			if (val === 'no' || val === 'false') {
-				Lampa.Storage.set('head_filter_show_bylampa_notice', false);
-				return false;
-			}
-			if (val === 'yes' || val === 'true') {
-				Lampa.Storage.set('head_filter_show_bylampa_notice', true);
-				return true;
-			}
-			return val !== false;
+			var val = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
+			return val === 'yes';
 		}
 
-		// Управление индикатором Сети возле часов
 		function updateNetworkIndicator() {
 			var showNet = Lampa.Storage.get('head_filter_show_network', true);
 
@@ -222,24 +224,9 @@
 						setElementVisible(target, showNet);
 					}
 				}
-
-				var parent = timeContainer.parentElement;
-				if (parent) {
-					var siblings = parent.children;
-					for (var s = 0; s < siblings.length; s++) {
-						var sib = siblings.item(s);
-						if (!sib || sib === timeContainer) continue;
-						var cls = (sib.className || '').toString();
-						if (/head__(backward|menu-icon|title|actions|split|time)|open--|notice--|full-screen|m-reload-screen|black-friday/.test(cls)) continue;
-						if (!sib.classList.contains('selector') && !sib.classList.contains('head__action')) {
-							setElementVisible(sib, showNet);
-						}
-					}
-				}
 			}
 		}
 
-		// Управление Часами и Календарём
 		function updateClockAndCalendar() {
 			var timeContainer = $('.head__time').get(0);
 			if (!timeContainer) return;
@@ -276,7 +263,6 @@
 			updateNetworkIndicator();
 		}
 
-		// Управление заголовком и источником
 		function updateHeadTitle() {
 			var titleEl = $('.head__title');
 			if (!titleEl.length) return;
@@ -314,7 +300,6 @@
 			}
 		}
 
-		// Поиск кнопки уведомлений ByLampa в шапке
 		function getByLampaNoticeBtn() {
 			var standardClasses = [
 				'open--search', 'open--settings', 'open--premium', 'open--profile',
@@ -344,33 +329,38 @@
 			});
 		}
 
-function openByLampaNoticeModal() {
-var btn = getByLampaNoticeBtn();
-var domBtn = btn.get(0);
-if (domBtn) {
-var wasHidden = domBtn.style && domBtn.style.display === 'none';
-if (wasHidden) {
-domBtn.style.setProperty('display', 'flex', 'important');
-}
-btn.trigger('hover:enter');
-btn.trigger('click');
-if (typeof domBtn.click === 'function') {
-domBtn.click();
-}
-setTimeout(function() {
-if (!isByLampaNoticeInHeader()) {
-setElementVisible(domBtn, false);
-}
-}, 50);
-return;
-}
-if (window.ByLampa) {
-if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-}
-}
-// Уведомления ByLampa: строго ОДИН пункт "Изменения" под "Консоль"
-function updateByLampaNotice() {
+		function openByLampaNoticeModal() {
+			var btn = getByLampaNoticeBtn();
+			var domBtn = btn.get(0);
+
+			if (domBtn) {
+				var wasHidden = domBtn.style && domBtn.style.display === 'none';
+				if (wasHidden) {
+					domBtn.style.setProperty('display', 'flex', 'important');
+				}
+
+				btn.trigger('hover:enter');
+				btn.trigger('click');
+				if (typeof domBtn.click === 'function') {
+					domBtn.click();
+				}
+
+				setTimeout(function() {
+					if (!isByLampaNoticeInHeader()) {
+						setElementVisible(domBtn, false);
+					}
+				}, 50);
+				return;
+			}
+
+			if (window.ByLampa) {
+				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
+				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+			}
+		}
+
+		// Гарантированная вставка ровно ОДНОГО пункта "Изменения" под "Консоль" в боковом меню
+		function updateByLampaNotice() {
 var showInHeader = isByLampaNoticeInHeader();
 toggleByLampaBtn(showInHeader);
 var menuContainer = $('.menu');
@@ -396,7 +386,6 @@ itemHtml.on('hover:enter click', function(e) {
 if (e && e.preventDefault) e.preventDefault();
 openByLampaNoticeModal();
 });
-// Ищем раздел "Консоль" во всех списках левого меню
 var consoleItem = menuContainer.find('.menu__item[data-action="console"]');
 if (!consoleItem.length) {
 consoleItem = menuContainer.find('.menu__item').filter(function() {
@@ -426,12 +415,29 @@ Lampa.Menu.update();
 }
 }
 }
-// Позиционирование раздела "Настройка шапки+" строго под "Интерфейс"
+// Безусловная подстановка иконки с пункта "Остальное" и сортировка под "Интерфейс"
 function positionSettingsComponent() {
 var interfaceItem = $('[data-component="interface"]');
+var moreItem = $('[data-component="more"]');
 var headFilterItem = $('[data-component="head_filter"]');
-if (interfaceItem.length && headFilterItem.length) {
-if (interfaceItem.next().attr('data-component') !== 'head_filter') {
+if (headFilterItem.length) {
+if (!headFilterItem.hasClass('hf-icon-fixed') && moreItem.length) {
+var moreIconEl = moreItem.find('.settings-folder__icon, .settings__icon').first();
+if (!moreIconEl.length) {
+moreIconEl = moreItem.children().first();
+}
+if (moreIconEl.length) {
+var clonedIcon = moreIconEl.clone();
+var targetIconEl = headFilterItem.find('.settings-folder__icon, .settings__icon').first();
+if (targetIconEl.length) {
+targetIconEl.replaceWith(clonedIcon);
+} else {
+headFilterItem.prepend(clonedIcon);
+}
+headFilterItem.addClass('hf-icon-fixed');
+}
+}
+if (interfaceItem.length && interfaceItem.next().attr('data-component') !== 'head_filter') {
 interfaceItem.after(headFilterItem);
 }
 }
@@ -466,6 +472,19 @@ updateClockAndCalendar();
 });
 headObserver.observe(headNode, { childList: true, subtree: true });
 }
+if (Lampa.Controller && Lampa.Controller.listener) {
+Lampa.Controller.listener.follow('toggle', function(e) {
+if (e.name === 'menu') {
+updateByLampaNotice();
+} else if (e.name === 'settings_component') {
+positionSettingsComponent();
+setTimeout(positionSettingsComponent, 30);
+}
+});
+}
+$(document).on('click hover:enter', '.head__menu-icon', function() {
+setTimeout(updateByLampaNotice, 50);
+});
 Lampa.Storage.listener.follow('change', function(event) {
 if (event.name == 'activity') {
 setTimeout(applyAll, 300);
@@ -478,31 +497,26 @@ var show_std = Lampa.Storage.get(event.name, true);
 showHideElement(standardHead[event.name].element, show_std);
 } else if (event.name === 'head_filter_show_source' || event.name === 'head_filter_big_title') {
 updateHeadTitle();
-} else if (event.name === 'head_filter_show_bylampa_notice') {
+} else if (event.name === 'head_filter_bylampa_notice_mode') {
 updateByLampaNotice();
 } else if (event.name === 'head_filter_show_clock' || event.name === 'head_filter_show_calendar' || event.name === 'head_filter_show_network') {
 updateClockAndCalendar();
 }
 });
-// Оригинальная иконка раздела "Остальное" из меню настроек Lampa
-var moreIcon = '' +
-'' +
-'' +
-'' +
-'';
 if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
 Lampa.SettingsApi.addComponent({
 component: 'head_filter',
 name: Lampa.Lang.translate('name_plugin'),
-icon: moreIcon,
+icon: '',
 after: 'interface'
 });
 }
 if (Lampa.Settings && Lampa.Settings.listener) {
 Lampa.Settings.listener.follow('open', function(e) {
 if (e.name === 'main') {
-setTimeout(positionSettingsComponent, 10);
-setTimeout(positionSettingsComponent, 100);
+positionSettingsComponent();
+setTimeout(positionSettingsComponent, 50);
+setTimeout(positionSettingsComponent, 200);
 }
 });
 }
@@ -516,13 +530,17 @@ name: Lampa.Lang.translate('name_menu')
 }
 });
 // === НОВЫЕ ПЕРЕКЛЮЧАТЕЛИ (В НАЧАЛЕ СПИСКА) ===
-// 1. Уведомления ByLampa
+// 1. Уведомления ByLampa ("Да" / "Перенесено в боковое меню")
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
-name: 'head_filter_show_bylampa_notice',
-type: 'trigger',
-default: true
+name: 'head_filter_bylampa_notice_mode',
+type: 'select',
+values: {
+yes: Lampa.Lang.translate('bylampa_notice_yes'),
+moved: Lampa.Lang.translate('bylampa_notice_moved')
+},
+default: 'yes'
 },
 field: {
 name: Lampa.Lang.translate('bylampa_notice')
