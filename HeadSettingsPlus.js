@@ -151,14 +151,13 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.9.0',
+			version: '0.9.1',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
 		};
 		Lampa.Manifest.plugins = manifest;
 
-		// Стандартные элементы шапки (идут в списке ниже новых)
 		var standardHead = {
 			'head_filter_show_search': {name: Lampa.Lang.translate('search'), element: '.open--search'},
 			'head_filter_show_settings': {name: Lampa.Lang.translate('settings'), element: '.open--settings'}, 
@@ -172,7 +171,6 @@
 			'head_filter_show_blackfriday': {name: Lampa.Lang.translate('blackfriday'), element: '.black-friday__button'}
 		};
 
-		// Новые элементы из верхней части списка с прямыми селекторами
 		var topHead = {
 			'head_filter_show_arrow': {name: Lampa.Lang.translate('arrow'), element: '.head__backward'},
 			'head_filter_show_menu': {name: Lampa.Lang.translate('menu_btn'), element: '.head__menu-icon'}
@@ -199,17 +197,15 @@
 			});
 		}
 
-		// Проверка статуса Уведомлений ByLampa (поддерживает и 'yes'/'no', и старые true/false)
 		function isByLampaNoticeInHeader() {
 			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', 'yes');
 			return val === 'yes' || val === true || val === 'true';
 		}
 
-		// Управление индикатором Сети возле часов в правом верхнем углу
+		// Управление индикатором Сети возле часов
 		function updateNetworkIndicator() {
 			var showNet = Lampa.Storage.get('head_filter_show_network', true);
 
-			// 1. Поиск по известным классам индикатора сети / Wi-Fi / скорости в шапке ByLampa и Lampa
 			var netSelectors = [
 				'.head__network',
 				'.head__wifi',
@@ -223,12 +219,10 @@
 				'.head__time-wifi'
 			];
 
-			var found = $(netSelectors.join(', '));
-			found.each(function() {
+			$(netSelectors.join(', ')).each(function() {
 				setElementVisible(this, showNet);
 			});
 
-			// 2. Поиск SVG-иконки Wi-Fi / сети внутри .head__time или рядом с часами
 			var timeContainer = $('.head__time').get(0);
 			if (timeContainer) {
 				var svgs = timeContainer.querySelectorAll('svg');
@@ -238,7 +232,6 @@
 					setElementVisible(target, showNet);
 				}
 
-				// Проверяем соседние элементы сразу перед или после .head__time (если индикатор стоит вплотную к часам)
 				var siblings = [timeContainer.previousElementSibling, timeContainer.nextElementSibling];
 				for (var s = 0; s < siblings.length; s++) {
 					var sib = siblings.slice(s, s + 1).shift();
@@ -251,7 +244,7 @@
 			}
 		}
 
-		// Точное разделение Часов (формат ЧЧ:ММ) и Календаря (дата, месяц, год, день недели)
+		// Управление Часами и Календарём
 		function updateClockAndCalendar() {
 			var timeContainer = $('.head__time').get(0);
 			if (!timeContainer) return;
@@ -273,7 +266,6 @@
 				if (!child) continue;
 
 				var cls = (child.className || '').toString().toLowerCase();
-				// Пропускаем индикатор сети, если он внутри .head__time (им управляет updateNetworkIndicator)
 				if (cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 || cls.indexOf('conn') !== -1 || child.tagName.toLowerCase() === 'svg') {
 					continue;
 				}
@@ -289,7 +281,7 @@
 			updateNetworkIndicator();
 		}
 
-		// Управление заголовком и источником (" - TMDB")
+		// Управление заголовком и источником
 		function updateHeadTitle() {
 			var titleEl = $('.head__title');
 			if (!titleEl.length) return;
@@ -351,31 +343,36 @@
 			var btn = getByLampaNoticeBtn();
 			if (!btn.length) return;
 
-btn.each(function() {
-setElementVisible(this, show);
-});
-}
-function openByLampaNoticeModal() {
-var btn = getByLampaNoticeBtn();
-var domBtn = btn.get(0);
-if (domBtn) {
-var wasHidden = domBtn.style && domBtn.style.display === 'none';
-if (wasHidden) {
-domBtn.style.setProperty('display', 'flex', 'important');
-}
-btn.trigger('hover:enter');
-btn.trigger('click');
-if (typeof domBtn.click === 'function') {
-domBtn.click();
-}
-setTimeout(function() {
-if (!isByLampaNoticeInHeader()) {
-setElementVisible(domBtn, false);
-}
-}, 50);
-return;
-}
-if (window.ByLampa) {
+			btn.each(function() {
+				setElementVisible(this, show);
+			});
+		}
+
+		function openByLampaNoticeModal() {
+			var btn = getByLampaNoticeBtn();
+			var domBtn = btn.get(0);
+
+			if (domBtn) {
+				var wasHidden = domBtn.style && domBtn.style.display === 'none';
+				if (wasHidden) {
+					domBtn.style.setProperty('display', 'flex', 'important');
+				}
+
+				btn.trigger('hover:enter');
+				btn.trigger('click');
+				if (typeof domBtn.click === 'function') {
+					domBtn.click();
+				}
+
+				setTimeout(function() {
+					if (!isByLampaNoticeInHeader()) {
+						setElementVisible(domBtn, false);
+					}
+				}, 50);
+				return;
+			}
+
+			if (window.ByLampa) {
 if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
 else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
 }
@@ -431,44 +428,12 @@ Lampa.Menu.update();
 }
 }
 }
-// Оригинальная иконка раздела "Каталог" из бокового меню Lampa
-var catalogIcon = '' +
-'' +
-'' +
-'' +
-'' +
-'';
-// Позиционирование раздела "Настройка шапки+" строго под "Интерфейс" и принудительная вставка иконки
+// Позиционирование раздела "Настройка шапки+" строго под "Интерфейс"
 function positionSettingsComponent() {
 var interfaceItem = $('[data-component="interface"]');
 var headFilterItem = $('[data-component="head_filter"]');
-if (!headFilterItem.length) {
-var targetName = Lampa.Lang.translate('name_plugin');
-headFilterItem = $('.settings-folder, .settings__item, .selector').filter(function() {
-return $(this).text().trim() === targetName;
-});
-}
-if (headFilterItem.length) {
-// Копируем структуру иконки с соседнего пункта "Интерфейс", чтобы стили на 100% совпали с темой ByLampa
-if (!headFilterItem.find('svg').length) {
-var existingIconWrap = headFilterItem.find('.settings-folder__icon, .settings__icon, .menu__ico').first();
-if (existingIconWrap.length) {
-existingIconWrap.html(catalogIcon);
-} else if (interfaceItem.length) {
-var refIconWrap = interfaceItem.find('div').filter(function() {
-return $(this).find('svg').length > 0;
-}).first();
-if (refIconWrap.length) {
-var clonedWrap = refIconWrap.clone().empty().html(catalogIcon);
-headFilterItem.prepend(clonedWrap);
-} else {
-headFilterItem.prepend('' + catalogIcon + '');
-}
-} else {
-headFilterItem.prepend('' + catalogIcon + '');
-}
-}
-if (interfaceItem.length && interfaceItem.next().attr('data-component') !== 'head_filter') {
+if (interfaceItem.length && headFilterItem.length) {
+if (interfaceItem.next().attr('data-component') !== 'head_filter') {
 interfaceItem.after(headFilterItem);
 }
 }
@@ -485,7 +450,6 @@ showHideElement(standardHead[key].element, show_element);
 updateHeadTitle();
 updateByLampaNotice();
 updateClockAndCalendar();
-positionSettingsComponent();
 }
 var headTitleNode = document.querySelector('.head__title');
 if (headTitleNode && window.MutationObserver) {
@@ -503,15 +467,6 @@ if (!showBF) showHideElement('.black-friday__button', false);
 updateClockAndCalendar();
 });
 headObserver.observe(headNode, { childList: true, subtree: true });
-}
-// Наблюдатель за появлением меню настроек (гарантирует мгновенную отрисовку иконки и сортировку)
-if (window.MutationObserver) {
-var settingsObserver = new MutationObserver(function() {
-if ($('[data-component="head_filter"]').length) {
-positionSettingsComponent();
-}
-});
-settingsObserver.observe(document.body, { childList: true, subtree: true });
 }
 Lampa.Storage.listener.follow('change', function(event) {
 if (event.name == 'activity') {
@@ -531,11 +486,13 @@ updateByLampaNotice();
 updateClockAndCalendar();
 }
 });
+// Символ "+" в стиле bold вместо иконки
+var plusIcon = '+';
 if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
 Lampa.SettingsApi.addComponent({
 component: 'head_filter',
 name: Lampa.Lang.translate('name_plugin'),
-icon: catalogIcon,
+icon: plusIcon,
 after: 'interface'
 });
 }
@@ -597,7 +554,7 @@ field: {
 name: Lampa.Lang.translate('calendar_only')
 }
 });
-// 4. Сеть (вместо Разделителя)
+// 4. Сеть
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
