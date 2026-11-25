@@ -40,7 +40,7 @@
 
 		Lampa.Manifest.plugins = {
 			type: 'other',
-			version: '0.5.0',
+			version: '0.5.1',
 			name: Lampa.Lang.translate('name_plugin'),
 			component: 'head_filter'
 		};
@@ -82,8 +82,9 @@
 			if (explicit) return explicit;
 
 			var actions = document.querySelectorAll('.head__actions .head__action');
-			for (var i = 0; i < actions.length; i++) {
-				var btn = actions[i];
+			var found = null;
+			Array.prototype.forEach.call(actions, function(btn) {
+				if (found) return;
 				if (
 					btn.classList.contains('open--search') ||
 					btn.classList.contains('open--settings') ||
@@ -95,10 +96,10 @@
 					btn.classList.contains('full-screen') ||
 					btn.classList.contains('m-reload-screen') ||
 					btn.classList.contains('black-friday__button')
-				) continue;
-				return btn;
-			}
-			return null;
+				) return;
+				found = btn;
+			});
+			return found;
 		}
 
 		function syncSideMenuItem(showInMenu) {
@@ -107,14 +108,13 @@
 				if (existingItem) existingItem.remove();
 				return;
 			}
-
 			if (existingItem) return;
 
 			var menuLists = document.querySelectorAll('.menu__list');
 			if (!menuLists || !menuLists.length) return;
 
-			// Добавляем в нижний блок системного меню (рядом с Настройками/Расширениями) или в основной список
-			var targetList = menuLists[menuLists.length - 1];
+			var targetList = menuLists.item(menuLists.length - 1);
+			if (!targetList) return;
 
 			var item = document.createElement('li');
 			item.className = 'menu__item selector hf-menu-bylampa-changes';
@@ -130,18 +130,13 @@
 			$(item).on('hover:enter click', function() {
 				var originBtn = findByLampaNoticeBtn();
 				if (originBtn) {
-					var prevDisplay = originBtn.style.display;
 					originBtn.style.display = '';
 					$(originBtn).trigger('hover:enter');
 					if (typeof originBtn.click === 'function') originBtn.click();
 					setTimeout(function() {
 						var mode = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
-						if (mode === 'menu' || mode === 'no') {
-							originBtn.style.display = 'none';
-						} else {
-							originBtn.style.display = prevDisplay;
-						}
-					}, 50);
+						if (mode === 'menu' || mode === 'no') originBtn.style.display = 'none';
+					}, 60);
 				}
 			});
 
@@ -154,14 +149,12 @@
 			var showInMenu = (mode === 'menu');
 
 			var known = document.querySelectorAll('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
-			for (var k = 0; k < known.length; k++) {
-				known[k].style.display = showInHeader ? '' : 'none';
-			}
+			Array.prototype.forEach.call(known, function(el) {
+				el.style.display = showInHeader ? '' : 'none';
+			});
 
 			var btn = findByLampaNoticeBtn();
-			if (btn) {
-				btn.style.display = showInHeader ? '' : 'none';
-			}
+			if (btn) btn.style.display = showInHeader ? '' : 'none';
 
 			syncSideMenuItem(showInMenu);
 		}
@@ -177,10 +170,10 @@
 			}
 
 			var rawText = titleEl.textContent || '';
-			if (rawText.indexOf(' - ') !== -1 && !titleEl.querySelector('.hf-wrapped-source')) {
-				var parts = rawText.split(' - ');
-				var mainPart = parts[0];
-				var sourcePart = ' - ' + parts.slice(1).join(' - ');
+			var dashPos = rawText.indexOf(' - ');
+			if (dashPos !== -1 && !titleEl.querySelector('.hf-wrapped-source')) {
+				var mainPart = rawText.slice(0, dashPos);
+				var sourcePart = rawText.slice(dashPos);
 				titleEl.innerHTML = '<span class="hf-wrapped-main">' + mainPart + '</span><span class="hf-wrapped-source">' + sourcePart + '</span>';
 			}
 
@@ -193,87 +186,9 @@
 			if (!timeContainer) return;
 
 			var showClock = Lampa.Storage.get('head_filter_show_clock', true);
-if (dateEl.dataset.hfLastFormatted !== plainCheck) {
-dateEl.dataset.hfLastFormatted = plainCheck;
-dateEl.dataset.hfRendered = '1';
-dateEl.innerHTML = formattedHtml;
-}
-}
-}
-function applyAll() {
-try {
-Object.keys(triggers).forEach(function(key) {
-var val = Lampa.Storage.get(key, triggers[key].default);
-if (key === 'head_filter_show_arrow') {
-document.body.classList.toggle('hf-hide-arrow', !val);
-} else if (key === 'head_filter_show_menu') {
-document.body.classList.toggle('hf-hide-menu', !val);
-} else if (key === 'head_filter_show_source') {
-document.body.classList.toggle('hf-hide-source', !val);
-updateTitleAndSource(val);
-} else if (key === 'head_filter_big_title') {
-document.body.classList.toggle('hf-big-title', Boolean(val));
-} else if (key === 'head_filter_show_clock') {
-updateClockAndCalendar();
-} else if (triggers[key].element) {
-if (val) $(triggers[key].element).show();
-else $(triggers[key].element).hide();
-}
-});
-updateByLampaNotice();
-updateClockAndCalendar();
-} catch (e) {}
-}
-Lampa.Storage.listener.follow('change', function(event) {
-if (event.name === 'activity') {
-applyAll();
-setTimeout(applyAll, 400);
-setTimeout(applyAll, 1200);
-} else if (
-event.name in triggers ||
-event.name === 'head_filter_bylampa_notice_mode' ||
-event.name === 'head_filter_calendar_mode'
-) {
-applyAll();
-}
-});
-setInterval(function() {
-try {
-updateTitleAndSource(Lampa.Storage.get('head_filter_show_source', true));
-updateByLampaNotice();
-updateClockAndCalendar();
-} catch (e) {}
-}, 2000);
-Lampa.Template.add('settings_head_filter', '');
-Lampa.SettingsApi.addParam({
-component: 'interface',
-param: { type: 'button' },
-field: { name: Lampa.Lang.translate('name_plugin') },
-onChange: function() {
-Lampa.Settings.create('head_filter', {
-onBack: function() { Lampa.Settings.create('interface'); }
-});
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: { type: 'title' },
-field: { name: Lampa.Lang.translate('name_menu') }
-});
-[
-'head_filter_show_arrow',
-'head_filter_show_menu',
-'head_filter_show_source',
-'head_filter_big_title'
-].forEach(function(key) {
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: { name: key, type: 'trigger', default: triggers[key].default },
-field: { name: triggers[key].name }
-});
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
+			var calMode = Lampa.Storage.get('head_filter_calendar_mode', 'yes');
+
+			document.body.classList.toggle('hf-hide-clock', !showClock);
 param: {
 name: 'head_filter_bylampa_notice_mode',
 type: 'select',
