@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '1.3.0',
+			version: '1.5.2',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -199,109 +199,8 @@
 
 		// true = "Да" (кнопка в шапке), false = "Перенесено в боковое меню"
 		function isByLampaNoticeInHeader() {
-			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
-			if (val === false || val === 'false' || val === 'no' || val === 'moved' || val === 0 || val === '0') {
-				return false;
-			}
-			return true;
-		}
-
-		function updateNetworkIndicator() {
-			var showNet = Lampa.Storage.get('head_filter_show_network', true);
-
-			$('.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]').each(function() {
-				if ($(this).hasClass('head') || $(this).hasClass('head__body') || $(this).hasClass('head__actions')) return;
-				setElementVisible(this, showNet);
-			});
-
-			var timeContainer = $('.head__time').get(0);
-			if (timeContainer) {
-				var allTimeChildren = timeContainer.querySelectorAll('*');
-				for (var i = 0; i < allTimeChildren.length; i++) {
-					var node = allTimeChildren.item(i);
-					if (!node) continue;
-					var tag = node.tagName.toLowerCase();
-					var txt = (node.textContent || '').trim();
-
-					if (tag === 'svg' || /мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(txt)) {
-						var target = (tag === 'svg' && node.parentElement && node.parentElement !== timeContainer && node.parentElement.children.length === 1) ? node.parentElement : node;
-						setElementVisible(target, showNet);
-					}
-				}
-			}
-		}
-
-		function updateClockAndCalendar() {
-			var timeContainer = $('.head__time').get(0);
-			if (!timeContainer) return;
-
-			var showClock = Lampa.Storage.get('head_filter_show_clock', true);
-			var showCalendar = Lampa.Storage.get('head_filter_show_calendar', true);
-			var showNet = Lampa.Storage.get('head_filter_show_network', true);
-
-			if (!showClock && !showCalendar && !showNet) {
-				setElementVisible(timeContainer, false);
-				return;
-			} else {
-				setElementVisible(timeContainer, true);
-			}
-
-			var children = timeContainer.children;
-			for (var i = 0; i < children.length; i++) {
-				var child = children.item(i);
-				if (!child) continue;
-
-				var cls = (child.className || '').toString().toLowerCase();
-				if (cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 || cls.indexOf('conn') !== -1 || child.tagName.toLowerCase() === 'svg') {
-					continue;
-				}
-
-				var txt = (child.textContent || '').trim();
-				if (txt.indexOf(':') !== -1 || child.classList.contains('head__time-now') || child.classList.contains('time--clock')) {
-					setElementVisible(child, showClock);
-				} else if (txt.length > 0 && !/мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(txt)) {
-					setElementVisible(child, showCalendar);
-				}
-			}
-
-			updateNetworkIndicator();
-		}
-
-		function updateHeadTitle() {
-			var titleEl = $('.head__title');
-			if (!titleEl.length) return;
-
-			var showSource = Lampa.Storage.get('head_filter_show_source', true);
-			var bigTitle = Lampa.Storage.get('head_filter_big_title', false);
-
-			var currentText = titleEl.text();
-			var origText = titleEl.data('hf-orig');
-
-			if (!origText || (currentText && currentText !== origText.split(' - ').shift() && currentText !== origText)) {
-				origText = currentText;
-				titleEl.data('hf-orig', origText);
-			}
-
-			if (origText) {
-				if (showSource) {
-					if (titleEl.text() !== origText) titleEl.text(origText);
-				} else {
-					var cleanText = origText.split(' - ').shift();
-					if (titleEl.text() !== cleanText) titleEl.text(cleanText);
-				}
-			}
-
-			if (bigTitle) {
-				titleEl.css({
-					'font-weight': 'bold',
-					'text-transform': 'uppercase'
-				});
-			} else {
-				titleEl.css({
-					'font-weight': '',
-					'text-transform': ''
-				});
-			}
+			var val = Lampa.Storage.get('head_filter_bylampa_notice_v2', true);
+			return val !== false && val !== 'false' && val !== 0 && val !== '0';
 		}
 
 		function getByLampaNoticeBtn() {
@@ -359,73 +258,198 @@
 
 			if (window.ByLampa) {
 				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+			}
+		}
+
+		// Управление пунктом "Изменения" в боковом меню строго под "Консоль" (1 шт.)
+		function updateByLampaNotice() {
+			var showInHeader = isByLampaNoticeInHeader();
+
+			toggleByLampaBtn(showInHeader);
+
+			var existingItems = $('.hf-bylampa-changes');
+
+			if (!showInHeader) {
+				if (existingItems.length > 1) {
+					existingItems.slice(1).remove();
+				}
+				if (existingItems.length === 1) return;
+
+				var consoleItem = $('.menu__item[data-action="console"]');
+				if (!consoleItem.length) {
+					consoleItem = $('.menu__item').filter(function() {
+						var txt = $(this).find('.menu__text').text().trim();
+						return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
+					});
+				}
+
+				if (!consoleItem.length && !$('.menu__list').length) return;
+
+				var bellSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+					'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
+					'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
+				'</svg>';
+
+				var itemHtml;
+				if (consoleItem.length) {
+					// Клонируем структуру элемента "Консоль", чтобы тег и классы 100% совпали с темой
+					itemHtml = consoleItem.first().clone(false);
+					itemHtml.removeClass('focus active select');
+					itemHtml.addClass('hf-bylampa-changes');
+					itemHtml.attr('data-action', 'hf_bylampa_changes');
+					itemHtml.find('.menu__ico').html(bellSvg);
+					itemHtml.find('.menu__text').text(Lampa.Lang.translate('menu_changes'));
+					itemHtml.find('.menu__counter, .menu__badge').remove();
+				} else {
+					itemHtml = $(
+						'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
+							'<div class="menu__ico">' + bellSvg + '</div>' +
+							'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
+						'</li>'
+					);
+				}
+
+				itemHtml.on('hover:enter click', function(e) {
+					if (e && e.preventDefault) e.preventDefault();
+					openByLampaNoticeModal();
+				});
+
+				if (consoleItem.length) {
+					consoleItem.first().after(itemHtml);
+				} else {
+					var lists = $('.menu__list');
+					if (lists.length > 1) {
+						lists.last().prepend(itemHtml);
+					} else {
+						lists.first().append(itemHtml);
+					}
+				}
+
+				if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
+					Lampa.Menu.update();
+				}
+				if (Lampa.Controller && Lampa.Controller.enabled().name === 'menu') {
+					Lampa.Controller.collectionSet($('.menu'));
+				}
+			} else {
+				if (existingItems.length) {
+					existingItems.remove();
+					if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
+						Lampa.Menu.update();
+					}
+					if (Lampa.Controller && Lampa.Controller.enabled().name === 'menu') {
+						Lampa.Controller.collectionSet($('.menu'));
+					}
+				}
+			}
+		}
+
+		// Защита текста "Да" / "Перенесено в боковое меню" от перезаписи движком Lampa
+		function refreshByLampaSettingRow() {
+			var label = isByLampaNoticeInHeader() ? Lampa.Lang.translate('bylampa_notice_yes') : Lampa.Lang.translate('bylampa_notice_moved');
+			var row = $('.settings-param[data-name="head_filter_bylampa_notice_v2"]');
+			if (!row.length) {
+				var titleText = Lampa.Lang.translate('bylampa_notice');
+				row = $('.settings-param').filter(function() {
+					return $(this).find('.settings-param__name').text().trim() === titleText;
+				});
+			}
+			if (row.length) {
+var valEl = row.find('.settings-param__value');
+if (valEl.text() !== label) {
+valEl.text(label);
 }
-}
-// Точная вставка ОДНОГО пункта "Изменения" под "Консоль" (как в рабочей версии 0.8.0)
-function updateByLampaNotice() {
-var showInHeader = isByLampaNoticeInHeader();
-toggleByLampaBtn(showInHeader);
-var menuContainer = $('.menu');
-if (!menuContainer.length) menuContainer = $('body');
-var existingItems = menuContainer.find('.hf-bylampa-changes');
-if (!showInHeader) {
-if (existingItems.length > 1) {
-existingItems.slice(1).remove();
-}
-if (existingItems.length === 1) return;
-var itemHtml = $(
-'' +
-'' +
-'' +
-'' +
-'' +
-'' +
-'' +
-'' + Lampa.Lang.translate('menu_changes') + '' +
-''
-);
-itemHtml.on('hover:enter click', function(e) {
-if (e && e.preventDefault) e.preventDefault();
-openByLampaNoticeModal();
+if (!row.data('hf-bound')) {
+row.data('hf-bound', true);
+row.on('hover:enter click', function() {
+setTimeout(function() {
+updateByLampaNotice();
+refreshByLampaSettingRow();
+}, 60);
 });
-// Точный поиск "Консоль" по .menu__text (как в v0.8.0!)
-var consoleItem = menuContainer.find('.menu__item[data-action="console"]');
-if (!consoleItem.length) {
-consoleItem = menuContainer.find('.menu__item').filter(function() {
-var txt = $(this).find('.menu__text').text().trim();
-return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
-});
 }
-if (consoleItem.length) {
-consoleItem.first().after(itemHtml);
+}
+}
+function updateNetworkIndicator() {
+var showNet = Lampa.Storage.get('head_filter_show_network', true);
+$('.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]').each(function() {
+if ($(this).hasClass('head') || $(this).hasClass('head__body') || $(this).hasClass('head__actions')) return;
+setElementVisible(this, showNet);
+});
+var timeContainer = $('.head__time').get(0);
+if (timeContainer) {
+var allTimeChildren = timeContainer.querySelectorAll('*');
+for (var i = 0; i < allTimeChildren.length; i++) {
+var node = allTimeChildren.item(i);
+if (!node) continue;
+var tag = node.tagName.toLowerCase();
+var txt = (node.textContent || '').trim();
+if (tag === 'svg' || /мбит|mbps|kbps|kb/s|ping|мс|ms/i.test(txt)) {
+var target = (tag === 'svg' && node.parentElement && node.parentElement !== timeContainer && node.parentElement.children.length === 1) ? node.parentElement : node;
+setElementVisible(target, showNet);
+}
+}
+}
+}
+function updateClockAndCalendar() {
+var timeContainer = $('.head__time').get(0);
+if (!timeContainer) return;
+var showClock = Lampa.Storage.get('head_filter_show_clock', true);
+var showCalendar = Lampa.Storage.get('head_filter_show_calendar', true);
+var showNet = Lampa.Storage.get('head_filter_show_network', true);
+if (!showClock && !showCalendar && !showNet) {
+setElementVisible(timeContainer, false);
+return;
 } else {
-var firstList = menuContainer.find('.menu__list').first();
-if (firstList.length) firstList.append(itemHtml);
+setElementVisible(timeContainer, true);
 }
-if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-Lampa.Menu.update();
+var children = timeContainer.children;
+for (var i = 0; i < children.length; i++) {
+var child = children.item(i);
+if (!child) continue;
+var cls = (child.className || '').toString().toLowerCase();
+if (cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 || cls.indexOf('conn') !== -1 || child.tagName.toLowerCase() === 'svg') {
+continue;
 }
+var txt = (child.textContent || '').trim();
+if (txt.indexOf(':') !== -1 || child.classList.contains('head__time-now') || child.classList.contains('time--clock')) {
+setElementVisible(child, showClock);
+} else if (txt.length > 0 && !/мбит|mbps|kbps|kb/s|ping|мс|ms/i.test(txt)) {
+setElementVisible(child, showCalendar);
+}
+}
+updateNetworkIndicator();
+}
+function updateHeadTitle() {
+var titleEl = $('.head__title');
+if (!titleEl.length) return;
+var showSource = Lampa.Storage.get('head_filter_show_source', true);
+var bigTitle = Lampa.Storage.get('head_filter_big_title', false);
+var currentText = titleEl.text();
+var origText = titleEl.data('hf-orig');
+if (!origText || (currentText && currentText !== origText.split(' - ').shift() && currentText !== origText)) {
+origText = currentText;
+titleEl.data('hf-orig', origText);
+}
+if (origText) {
+if (showSource) {
+if (titleEl.text() !== origText) titleEl.text(origText);
 } else {
-if (existingItems.length) {
-existingItems.remove();
-if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
-Lampa.Menu.update();
+var cleanText = origText.split(' - ').shift();
+if (titleEl.text() !== cleanText) titleEl.text(cleanText);
 }
 }
-}
-}
-function refreshByLampaSettingRow() {
-var label = isByLampaNoticeInHeader() ? Lampa.Lang.translate('bylampa_notice_yes') : Lampa.Lang.translate('bylampa_notice_moved');
-var row = $('.settings-param[data-name="head_filter_show_bylampa_notice"]');
-if (!row.length) {
-var titleText = Lampa.Lang.translate('bylampa_notice');
-row = $('.settings-param').filter(function() {
-return $(this).find('.settings-param__name').text().trim() === titleText;
+if (bigTitle) {
+titleEl.css({
+'font-weight': 'bold',
+'text-transform': 'uppercase'
 });
-}
-if (row.length) {
-row.find('.settings-param__value').text(label);
+} else {
+titleEl.css({
+'font-weight': '',
+'text-transform': ''
+});
 }
 }
 function positionSettingsComponent() {
@@ -484,12 +508,12 @@ updateClockAndCalendar();
 });
 headObserver.observe(headNode, { childList: true, subtree: true });
 }
-// Проверка при смене контроллера и раз в секунду, чтобы пункт "Изменения" никогда не пропадал
 setInterval(function() {
-if (!isByLampaNoticeInHeader() && $('.menu__item').length && !$('.hf-bylampa-changes').length) {
+if (!isByLampaNoticeInHeader() && !$('.hf-bylampa-changes').length) {
 updateByLampaNotice();
 }
-}, 1000);
+refreshByLampaSettingRow();
+}, 700);
 if (Lampa.Controller && Lampa.Controller.listener) {
 Lampa.Controller.listener.follow('toggle', function(e) {
 if (e.name === 'menu') {
@@ -514,7 +538,7 @@ var show_std = Lampa.Storage.get(event.name, true);
 showHideElement(standardHead[event.name].element, show_std);
 } else if (event.name === 'head_filter_show_source' || event.name === 'head_filter_big_title') {
 updateHeadTitle();
-} else if (event.name === 'head_filter_show_bylampa_notice') {
+} else if (event.name === 'head_filter_bylampa_notice_v2') {
 setTimeout(function() {
 updateByLampaNotice();
 refreshByLampaSettingRow();
@@ -553,11 +577,11 @@ field: {
 name: Lampa.Lang.translate('name_menu')
 }
 });
-// 1. Уведомления ByLampa
+// 1. Уведомления ByLampa ("Да" / "Перенесено в боковое меню")
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
-name: 'head_filter_show_bylampa_notice',
+name: 'head_filter_bylampa_notice_v2',
 type: 'trigger',
 default: true
 },
