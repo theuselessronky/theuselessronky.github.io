@@ -41,7 +41,7 @@
 
 		Lampa.Manifest.plugins = {
 			type: 'other',
-			version: '0.4.1',
+			version: '0.4.2',
 			name: Lampa.Lang.translate('name_plugin'),
 			component: 'head_filter'
 		};
@@ -81,6 +81,8 @@
 			'.hf-notice-tab.focus, .hf-notice-tab.active { background: #fff; color: #000; font-weight: 600; }';
 		document.head.appendChild(style);
 
+		var isUpdating = false;
+
 		function findByLampaNoticeBtn() {
 			var explicit = document.querySelector('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
 			if (explicit) return explicit;
@@ -118,7 +120,9 @@
 			var rawText = titleEl.textContent || '';
 			if (rawText.indexOf(' - ') !== -1 && !titleEl.querySelector('.hf-wrapped-source')) {
 				var parts = rawText.split(' - ');
-				titleEl.innerHTML = '<span class="hf-wrapped-main">' + parts[0] + '</span><span class="hf-wrapped-source"> - ' + parts.slice(1).join(' - ') + '</span>';
+				var mainPart = parts[0];
+				var sourcePart = ' - ' + parts.slice(1).join(' - ');
+				titleEl.innerHTML = '<span class="hf-wrapped-main">' + mainPart + '</span><span class="hf-wrapped-source">' + sourcePart + '</span>';
 			}
 
 			var wrappedSource = titleEl.querySelector('.hf-wrapped-source');
@@ -156,8 +160,8 @@
 			if (!clockEl && !dateEl) {
 				var fullText = (timeContainer.textContent || '').trim();
 				var timeMatch = fullText.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s*(.*)$/);
-				if (timeMatch) {
-					timeContainer.innerHTML = '<div class="hf-clock-node">' + timeMatch[1] + '</div><div class="hf-calendar-node">' + timeMatch[2] + '</div>';
+				if (timeMatch && timeMatch[1]) {
+					timeContainer.innerHTML = '<div class="hf-clock-node">' + timeMatch[1] + '</div><div class="hf-calendar-node">' + (timeMatch[2] || '') + '</div>';
 					clockEl = timeContainer.querySelector('.hf-clock-node');
 					dateEl = timeContainer.querySelector('.hf-calendar-node');
 				}
@@ -167,21 +171,57 @@
 
 			var currentText = (dateEl.textContent || '').trim();
 			if (!dateEl.dataset.hfRaw || (!dateEl.dataset.hfRendered && currentText !== dateEl.dataset.hfRaw)) {
-				if (currentText !== dateEl.dataset.hfLastFormatted) {
+				if (currentText && currentText !== dateEl.dataset.hfLastFormatted) {
 					dateEl.dataset.hfRaw = currentText;
 				}
 			}
 
 			var rawCal = dateEl.dataset.hfRaw || currentText;
 			if (!rawCal) return;
-
-			if (calMode === 'no') {
-				dateEl.style.display = 'none';
-				return;
-			} else {
-				dateEl.style.display = '';
-			}
-
+param: {
+name: 'head_filter_bylampa_notice_mode',
+type: 'select',
+values: {
+yes: Lampa.Lang.translate('opt_yes'),
+moved: Lampa.Lang.translate('opt_moved_notice'),
+no: Lampa.Lang.translate('opt_no')
+},
+default: 'yes'
+},
+field: { name: Lampa.Lang.translate('bylampa_notice') }
+});
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: { name: 'head_filter_show_clock', type: 'trigger', default: true },
+field: { name: Lampa.Lang.translate('clock') }
+});
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: {
+name: 'head_filter_calendar_mode',
+type: 'select',
+values: {
+yes: Lampa.Lang.translate('cal_yes'),
+no_weekday: Lampa.Lang.translate('cal_no_weekday'),
+no_month: Lampa.Lang.translate('cal_no_month'),
+no_year: Lampa.Lang.translate('cal_no_year'),
+no_year_weekday: Lampa.Lang.translate('cal_no_year_weekday'),
+no: Lampa.Lang.translate('cal_no')
+},
+default: 'yes'
+},
+field: { name: Lampa.Lang.translate('calendar') }
+});
+[
+'head_filter_show_search',
+'head_filter_show_settings',
+'head_filter_show_premium',
+'head_filter_show_profile',
+'head_filter_show_feed',
+'head_filter_show_notice',
+'head_filter_show_broadcast',
+'head_filter_show_fullscreen',
+'head_filter_show_reload',
 'head_filter_show_blackfriday',
 'head_filter_show_split'
 ].forEach(function(key) {
