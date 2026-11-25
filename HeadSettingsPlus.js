@@ -1,308 +1,431 @@
 (function() {
 	'use strict';
 
-	function initPlugin() {
-		try {
-			if (window.hfp_loaded) return;
-			window.hfp_loaded = true;
+	// Adding multi-language support
+	Lampa.Lang.add({
+		arrow: {
+			ru: 'Стрелка',
+			en: 'Back arrow',
+			uk: 'Стрілка',
+			zh: '返回箭头'
+		},
+		menu_btn: {
+			ru: 'Меню',
+			en: 'Menu',
+			uk: 'Меню',
+			zh: '菜单'
+		},
+		source_title: {
+			ru: 'Источник',
+			en: 'Source',
+			uk: 'Джерело',
+			zh: '来源'
+		},
+		big_title: {
+			ru: 'Увеличенное название раздела',
+			en: 'Enlarged section title',
+			uk: 'Збільшена назва розділу',
+			zh: '放大标题'
+		},
+		bylampa_notice: {
+			ru: 'Уведомления ByLampa',
+			en: 'ByLampa Notifications',
+			uk: 'Сповіщення ByLampa',
+			zh: 'ByLampa 通知'
+		},
+		bylampa_notice_yes: {
+			ru: 'Да',
+			en: 'Yes',
+			uk: 'Так',
+			zh: '是'
+		},
+		bylampa_notice_no: {
+			ru: 'Нет',
+			en: 'No',
+			uk: 'Ні',
+			zh: '否'
+		},
+		bylampa_notice_menu: {
+			ru: 'Да, перенесено в боковое меню',
+			en: 'Yes, moved to side menu',
+			uk: 'Так, перенесено в бічне меню',
+			zh: '是，移至侧边菜单'
+		},
+		menu_changes: {
+			ru: 'Изменения',
+			en: 'Changes',
+			uk: 'Зміни',
+			zh: '更新日志'
+		},
+		search: {
+			ru: 'Поиск',
+			en: 'Search',
+			uk: 'Пошук',
+			zh: '搜索'
+		},
+		settings: {
+			ru: 'Настройки',
+			en: 'Settings',
+			uk: 'Налаштування',
+			zh: '设置'
+		},
+		premium: {
+			ru: 'Премиум',
+			en: 'Premium',
+			uk: 'Преміум',
+			zh: '高级'
+		},
+		profile: {
+			ru: 'Профиль',
+			en: 'Profile',
+			uk: 'Профіль',
+			zh: '个人资料'
+		},
+		feed: {
+			ru: 'Новости',
+			en: 'Feed',
+			uk: 'Новини',
+			zh: '饲料'
+		},
+		notice: {
+			ru: 'Уведомления',
+			en: 'Notifications',
+			uk: 'Сповіщення',
+			zh: '通知'
+		},
+		broadcast: {
+			ru: 'Вещание', 
+			en: 'Broadcast',
+			uk: 'Мовлення',
+			zh: '广播'
+		},
+		fullscreen: {
+			ru: 'Полноэкранный режим',
+			en: 'Fullscreen mode',
+			uk: 'Повноекранний режим',
+			zh: '全屏模式'
+		},
+		reload: {
+			ru: 'Обновление страницы',
+			en: 'Page reload',
+			uk: 'Оновлення сторінки',
+			zh: '页面重新加载'
+		},
+		blackfriday: {
+			ru: 'Черная пятница',
+			en: 'Black Friday',
+			uk: 'Чорна п’ятниця',
+			zh: '黑色星期五'
+		},
+		split: {
+			ru: 'Разделитель',
+			en: 'Divider',
+			uk: 'Розділювач',
+			zh: '分隔符'
+		},
+		time: {
+			ru: 'Время',
+			en: 'Time',
+			uk: 'Годинник',
+			zh: '时间'
+		},
+		name_menu: {
+			ru: 'Отображать в шапке',
+			en: 'Display in header',
+			uk: 'Відображати у шапці',
+			zh: '在标题中显示'
+		},
+		name_plugin: {
+			ru: 'Настройка шапки+',
+			en: 'Header settings+',
+			uk: 'Налаштування шапки+',
+			zh: '标题设置+'
+		},
+		plugin_description: {
+			ru: 'Плагин для настройки шапки',
+			en: 'Plugin for customizing the header',
+			uk: 'Плагін для налаштування шапки',
+			zh: '用于配置上限的插件'
+		}
+	});
 
-			Lampa.Lang.add({
-				hfp_name: { ru: 'Настройка шапки+', en: 'Header settings+' },
-				hfp_menu_title: { ru: 'Отображать в шапке', en: 'Display in header' },
-				hfp_arrow: { ru: 'Стрелка', en: 'Back arrow' },
-				hfp_menu_icon: { ru: 'Меню', en: 'Menu icon' },
-				hfp_source: { ru: 'Источник', en: 'Source' },
-				hfp_big_title: { ru: 'Увеличенное название раздела', en: 'Enlarged section title' },
-				hfp_bylampa_notice: { ru: 'Уведомления ByLampa', en: 'ByLampa notifications' },
-				hfp_bylampa_menu: { ru: 'Уведомления ByLampa в боковом меню', en: 'ByLampa notifications in side menu' },
-				hfp_changes: { ru: 'Изменения', en: 'Changes' },
-				hfp_clock: { ru: 'Часы', en: 'Clock' },
-				hfp_cal_show: { ru: 'Календарь', en: 'Calendar' },
-				hfp_cal_hide_wd: { ru: 'Календарь: скрыть день недели', en: 'Calendar: hide weekday' },
-				hfp_cal_hide_m: { ru: 'Календарь: скрыть месяц', en: 'Calendar: hide month' },
-				hfp_cal_hide_y: { ru: 'Календарь: скрыть год', en: 'Calendar: hide year' },
-				hfp_search: { ru: 'Поиск', en: 'Search' },
-				hfp_settings: { ru: 'Настройки', en: 'Settings' },
-				hfp_premium: { ru: 'Премиум', en: 'Premium' },
-				hfp_profile: { ru: 'Профиль', en: 'Profile' },
-				hfp_feed: { ru: 'Новости', en: 'Feed' },
-				hfp_notice: { ru: 'Уведомления', en: 'Notifications' },
-				hfp_broadcast: { ru: 'Вещание', en: 'Broadcast' },
-				hfp_fullscreen: { ru: 'Полноэкранный режим', en: 'Fullscreen mode' },
-				hfp_reload: { ru: 'Обновление страницы', en: 'Page reload' },
-				hfp_blackfriday: { ru: 'Черная пятница', en: 'Black Friday' },
-				hfp_split: { ru: 'Разделитель', en: 'Divider' }
-			});
+	function startPlugin() {
+		var manifest = {
+			type: 'other',
+			version: '0.3.0',
+			name: Lampa.Lang.translate('name_plugin'),
+			description: Lampa.Lang.translate('plugin_description'),
+			component: 'head_filter',
+		};
+		Lampa.Manifest.plugins = manifest;
 
-			Lampa.Manifest.plugins = {
-				type: 'other',
-				version: '0.7.0',
-				name: Lampa.Lang.translate('hfp_name'),
-				component: 'hfp_settings'
-			};
+		var head = {
+			'head_filter_show_arrow': {name: Lampa.Lang.translate('arrow'), element: '.head__backward'},
+			'head_filter_show_menu': {name: Lampa.Lang.translate('menu_btn'), element: '.head__menu-icon'},
+			'head_filter_show_search': {name: Lampa.Lang.translate('search'), element: '.open--search'},
+			'head_filter_show_settings': {name: Lampa.Lang.translate('settings'), element: '.open--settings'}, 
+			'head_filter_show_premium': {name: Lampa.Lang.translate('premium'), element: '.open--premium'}, 
+			'head_filter_show_profile': {name: Lampa.Lang.translate('profile'), element: '.open--profile'}, 
+			'head_filter_show_feed': {name: Lampa.Lang.translate('feed'), element: '.open--feed'}, 
+			'head_filter_show_notice': {name: Lampa.Lang.translate('notice'), element: '.notice--icon'},
+			'head_filter_show_broadcast': {name: Lampa.Lang.translate('broadcast'), element: '.open--broadcast'},
+			'head_filter_show_fullscreen': {name: Lampa.Lang.translate('fullscreen'), element: '.full-screen'}, 
+			'head_filter_show_reload': {name: Lampa.Lang.translate('reload'), element: '.m-reload-screen'},
+			'head_filter_show_blackfriday': {name: Lampa.Lang.translate('blackfriday'), element: '.black-friday__button'}, 
+			'head_filter_show_split': {name: Lampa.Lang.translate('split'), element: '.head__split'}, 
+			'head_filter_show_time': {name: Lampa.Lang.translate('time'), element: '.head__time'}, 
+		};
 
-			var style = document.createElement('style');
-			style.type = 'text/css';
-			style.textContent = '' +
-				'body.hfp-no-arrow .head__backward { display: none !important; }' +
-				'body.hfp-no-menu .head__menu-icon { display: none !important; }' +
-				'body.hfp-no-src .head__title-source, body.hfp-no-src .head__source, body.hfp-no-src .hfp-src-span { display: none !important; }' +
-				'body.hfp-big-title .head__title { text-transform: uppercase !important; font-weight: 700 !important; font-size: 1.35em !important; }' +
-				'body.hfp-no-clock .hfp-clock-part { display: none !important; }' +
-				'body.hfp-no-cal .hfp-cal-part { display: none !important; }' +
-				'body.hfp-cal-center .hfp-cal-part { display: block !important; text-align: center !important; width: 100% !important; }' +
-				'.hfp-cal-year-br { display: block !important; text-align: right; line-height: 1.1; }';
-			document.head.appendChild(style);
+		function showHideElement(element, show) {
+			if (show == true) {
+				$(element).show();
+			} else {
+				$(element).hide();
+			}
+		}
 
-			var items = [
-				{ key: 'hfp_search', lang: 'hfp_search', sel: '.open--search' },
-				{ key: 'hfp_settings', lang: 'hfp_settings', sel: '.open--settings' },
-				{ key: 'hfp_premium', lang: 'hfp_premium', sel: '.open--premium' },
-				{ key: 'hfp_profile', lang: 'hfp_profile', sel: '.open--profile' },
-				{ key: 'hfp_feed', lang: 'hfp_feed', sel: '.open--feed' },
-				{ key: 'hfp_notice', lang: 'hfp_notice', sel: '.notice--icon' },
-				{ key: 'hfp_broadcast', lang: 'hfp_broadcast', sel: '.open--broadcast' },
-				{ key: 'hfp_fullscreen', lang: 'hfp_fullscreen', sel: '.full-screen' },
-				{ key: 'hfp_reload', lang: 'hfp_reload', sel: '.m-reload-screen' },
-				{ key: 'hfp_blackfriday', lang: 'hfp_blackfriday', sel: '.black-friday__button' },
-				{ key: 'hfp_split', lang: 'hfp_split', sel: '.head__split' }
-			];
+		// Обработка заголовка: скрытие источника (" - TMDB") и стиль заглавных букв
+		function updateHeadTitle() {
+			var titleEl = $('.head__title');
+			if (!titleEl.length) return;
 
-			function findByLampaBtn() {
-				var known = document.querySelector('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
-				if (known) return known;
+			var showSource = Lampa.Storage.get('head_filter_show_source', true);
+			var bigTitle = Lampa.Storage.get('head_filter_big_title', false);
 
-				var actions = document.querySelectorAll('.head__actions .head__action');
-				var res = null;
-				Array.prototype.forEach.call(actions, function(el) {
-					if (res) return;
-					if (
-						!el.classList.contains('open--search') &&
-						!el.classList.contains('open--settings') &&
-						!el.classList.contains('open--premium') &&
-						!el.classList.contains('open--profile') &&
-						!el.classList.contains('open--feed') &&
-						!el.classList.contains('notice--icon') &&
-						!el.classList.contains('open--broadcast') &&
-						!el.classList.contains('full-screen') &&
-						!el.classList.contains('m-reload-screen') &&
-						!el.classList.contains('black-friday__button')
-					) {
-						res = el;
-					}
-				});
-				return res;
+			var currentText = titleEl.text();
+			var origText = titleEl.data('hf-orig');
+
+			// Сохраняем оригинальный текст, если он обновился самой Лампой
+			if (!origText || (currentText && currentText !== origText.split(' - ')[0] && currentText !== origText)) {
+				origText = currentText;
+				titleEl.data('hf-orig', origText);
 			}
 
-			function syncSideMenu(enable) {
-				var old = document.querySelector('.hfp-side-changes');
-				if (!enable) {
-					if (old && old.parentNode) old.parentNode.removeChild(old);
-					return;
+			if (origText) {
+				if (showSource) {
+					if (titleEl.text() !== origText) titleEl.text(origText);
+				} else {
+					var cleanText = origText.split(' - ')[0];
+					if (titleEl.text() !== cleanText) titleEl.text(cleanText);
 				}
-				if (old) return;
-
-				var menus = document.querySelectorAll('.menu__list');
-				if (!menus || !menus.length) return;
-				var target = menus.item(menus.length - 1);
-				if (!target) return;
-
-				var li = document.createElement('li');
-				li.className = 'menu__item selector hfp-side-changes';
-				li.innerHTML = '<div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div><div class="menu__text">' + Lampa.Lang.translate('hfp_changes') + '</div>';
-
-				$(li).on('hover:enter click', function() {
-					try {
-						var btn = findByLampaBtn();
-						if (btn) {
-							btn.style.display = '';
-							$(btn).trigger('hover:enter');
-							setTimeout(function() {
-								if (!Lampa.Storage.get('hfp_bylampa_notice', true)) {
-									btn.style.display = 'none';
-								}
-							}, 100);
-						}
-					} catch (err) {}
-				});
-
-				target.appendChild(li);
 			}
 
-			function updateHeader() {
-				try {
-					var showArrow = Lampa.Storage.get('hfp_arrow', true);
-					var showMenu = Lampa.Storage.get('hfp_menu_icon', true);
-					var showSrc = Lampa.Storage.get('hfp_source', true);
-					var bigTitle = Lampa.Storage.get('hfp_big_title', false);
-					var showByNotice = Lampa.Storage.get('hfp_bylampa_notice', true);
-					var showByMenu = Lampa.Storage.get('hfp_bylampa_menu', false);
-					var showClock = Lampa.Storage.get('hfp_clock', true);
-					var showCal = Lampa.Storage.get('hfp_cal_show', true);
-					var hideWd = Lampa.Storage.get('hfp_cal_hide_wd', false);
-					var hideM = Lampa.Storage.get('hfp_cal_hide_m', false);
-					var hideY = Lampa.Storage.get('hfp_cal_hide_y', false);
+			if (bigTitle) {
+				titleEl.css({
+					'font-weight': 'bold',
+					'text-transform': 'uppercase'
+				});
+			} else {
+				titleEl.css({
+					'font-weight': '',
+					'text-transform': ''
+				});
+			}
+		}
 
-					document.body.classList.toggle('hfp-no-arrow', !showArrow);
-					document.body.classList.toggle('hfp-no-menu', !showMenu);
-					document.body.classList.toggle('hfp-no-src', !showSrc);
-					document.body.classList.toggle('hfp-big-title', Boolean(bigTitle));
-					document.body.classList.toggle('hfp-no-clock', !showClock);
-					document.body.classList.toggle('hfp-no-cal', !showCal);
-					document.body.classList.toggle('hfp-cal-center', Boolean(showCal && hideY && hideWd && !hideM));
+		// Поиск кнопки уведомлений ByLampa в шапке
+		function getByLampaNoticeBtn() {
+			return $('.head__actions .head__action').filter(function() {
+				var el = $(this);
+				if (el.hasClass('notice--icon')) return false;
+				return el.hasClass('bylampa-notice') || 
+				       el.hasClass('open--bylampa-notice') || 
+				       el.attr('data-action') === 'bylampa_notice' ||
+				       el.find('svg use[xlink\\:href*="bell"], svg use[href*="bell"]').length > 0;
+			});
+		}
 
-					var btn = findByLampaBtn();
-					if (btn) btn.style.display = showByNotice ? '' : 'none';
-					syncSideMenu(Boolean(showByMenu));
+		// Управление отображением кнопки ByLampa и пункта "Изменения" в боковом меню
+		function updateByLampaNotice() {
+			var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
+			var btn = getByLampaNoticeBtn();
 
-					var title = document.querySelector('.head__title');
-					if (title) {
-						var nativeSrc = title.querySelector('.head__title-source');
-						if (nativeSrc) {
-							nativeSrc.style.display = showSrc ? '' : 'none';
-						} else {
-							var txt = title.textContent || '';
-							var pos = txt.indexOf(' - ');
-							if (pos !== -1 && !title.querySelector('.hfp-src-span')) {
-								title.innerHTML = '<span>' + txt.slice(0, pos) + '</span><span class="hfp-src-span">' + txt.slice(pos) + '</span>';
-							}
-							var sp = title.querySelector('.hfp-src-span');
-							if (sp) sp.style.display = showSrc ? '' : 'none';
+			if (mode === 'yes') {
+				btn.show();
+			} else {
+				btn.hide();
+			}
+
+			var menuList = $('.menu .menu__list').first();
+			if (!menuList.length) return;
+
+			var customItem = menuList.find('.hf-bylampa-changes');
+
+			if (mode === 'menu') {
+				if (!customItem.length) {
+					var itemHtml = $(
+						'<li class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes">' +
+							'<div class="menu__ico">' +
+								'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+									'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
+									'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
+								'</svg>' +
+							'</div>' +
+							'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>' +
+						'</li>'
+					);
+
+					itemHtml.on('hover:enter', function() {
+						var targetBtn = getByLampaNoticeBtn();
+						if (targetBtn.length) {
+							targetBtn.trigger('hover:enter');
+							targetBtn.trigger('click');
+						} else if (window.ByLampa && typeof window.ByLampa.showNotice === 'function') {
+							window.ByLampa.showNotice();
 						}
+					});
+
+					// Ищем раздел "Консоль", чтобы вставить "Изменения" строго под ним
+					var consoleItem = menuList.find('.menu__item[data-action="console"]');
+					if (!consoleItem.length) {
+						consoleItem = menuList.find('.menu__item').filter(function() {
+							var txt = $(this).find('.menu__text').text().trim();
+							return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
+						});
 					}
 
-					var box = document.querySelector('.head__time');
-					if (box) {
-						var clockEl = box.querySelector('.head__time-now, .time--clock, .hfp-clock-part');
-						var calEl = box.querySelector('.head__time-date, .time--date, .hfp-cal-part');
+					if (consoleItem.length) {
+						consoleItem.after(itemHtml);
+					} else {
+						menuList.append(itemHtml);
+					}
+				}
+			} else {
+				if (customItem.length) {
+					customItem.remove();
+				}
+			}
+		}
 
-						if (!clockEl || !calEl) {
-							Array.prototype.forEach.call(box.children, function(kid) {
-								var t = (kid.textContent || '').trim();
-								if (/^\d{1,2}:\d{2}/.test(t)) {
-									kid.classList.add('hfp-clock-part');
-									clockEl = kid;
-								} else if (t.length > 0) {
-									kid.classList.add('hfp-cal-part');
-									calEl = kid;
-								}
-							});
-						}
+		function applyAll() {
+			Object.keys(head).forEach(function(key) {
+				var show_element = Lampa.Storage.get(key, true); 
+				showHideElement(head[key].element, show_element);     
+			});
+			updateHeadTitle();
+			updateByLampaNotice();
+		}
 
-						if (!clockEl && !calEl) {
-							var all = (box.textContent || '').trim();
-							var spIdx = all.indexOf(' ');
-							if (spIdx !== -1 && /^\d{1,2}:\d{2}/.test(all.slice(0, spIdx))) {
-								box.innerHTML = '<div class="hfp-clock-part">' + all.slice(0, spIdx) + '</div><div class="hfp-cal-part">' + all.slice(spIdx + 1).trim() + '</div>';
-								calEl = box.querySelector('.hfp-cal-part');
-							}
-						}
+		// Следим за изменением заголовка шапки самой Лампой при навигации
+		var headTitleNode = document.querySelector('.head__title');
+		if (headTitleNode && window.MutationObserver) {
+			var titleObserver = new MutationObserver(function() {
+				updateHeadTitle();
+			});
+			titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
+		}
 
-						if (calEl && showCal) {
-							var cur = (calEl.textContent || '').trim();
-							if (!calEl.getAttribute('data-raw') || (!calEl.getAttribute('data-done') && cur !== calEl.getAttribute('data-raw'))) {
-								if (cur && cur !== calEl.getAttribute('data-last')) {
-									calEl.setAttribute('data-raw', cur);
-								}
-							}
+		Lampa.Storage.listener.follow('change', function(event) {
+			if (event.name == 'activity') {
+				setTimeout(applyAll, 300);
+				setTimeout(applyAll, 1000);
+			} else if (event.name in head) {
+				var show_element = Lampa.Storage.get(event.name, true); 
+				showHideElement(head[event.name].element, show_element);     
+			} else if (event.name === 'head_filter_show_source' || event.name === 'head_filter_big_title') {
+				updateHeadTitle();
+			} else if (event.name === 'head_filter_bylampa_notice') {
+				updateByLampaNotice();
+			}
+		});
 
-							var raw = calEl.getAttribute('data-raw') || cur;
-							var parts = raw.replace(/,/g, ' ').replace(/\s+/g, ' ').trim().split(' ');
-							if (parts.length >= 4) {
-								var d = parts.shift();
-								var m = parts.shift();
-								var y = parts.shift();
-								var w = parts.join(' ');
+		// https://github.com
+		Lampa.Template.add('settings_head_filter', `<div></div>`);
 
-								if (/^\d{1,2}$/.test(d) && /^\d{4}$/.test(y)) {
-									var out = d;
-									if (!hideM) out += ' ' + m;
-									if (hideM && !hideWd) {
-										out += ' ' + w;
-										if (!hideY) {
-											var wrap = (out + ' ' + y).length > 16 || box.offsetWidth < 155;
-											out += wrap ? ('<span class="hfp-cal-year-br">' + y + '</span>') : (' ' + y);
-										}
-									} else {
-										if (!hideY) out += ' ' + y;
-										if (!hideWd) out += ' ' + w;
+		Lampa.SettingsApi.addParam({
+			component: 'interface',
+			param: {
+				type: 'button'
+			},
+			field: {
+				name: Lampa.Lang.translate('name_plugin'),
+				description: Lampa.Lang.translate('plugin_description')
+			},
+			onChange: () => {
+				Lampa.Settings.create('head_filter', {
+					onBack: () => {
+						Lampa.Settings.create('interface');
+					}
+				});
+			}
+		});   
+
+		Lampa.SettingsApi.addParam({
+			component: 'head_filter',
+			param: {
+				type: 'title'
+			},
+			field: {
+				name: Lampa.Lang.translate('name_menu'),
+			}
+		});   
+
+		// Стандартные переключатели элементов
+		Object.keys(head).forEach(function(key) {
+			Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: {
+name: key,
+type: 'trigger',
+default: true
+},
+field: {
+name: head[key].name,
 }
-if (calEl.getAttribute('data-last') !== out) {
-calEl.setAttribute('data-last', out);
-calEl.setAttribute('data-done', '1');
-calEl.innerHTML = out;
-}
-}
-}
-}
-}
-items.forEach(function(it) {
-if (Lampa.Storage.get(it.key, true)) $(it.sel).show();
-else $(it.sel).hide();
 });
-} catch (err) {}
-}
-Lampa.Template.add('settings_hfp_settings', '');
+});
+// Переключатель: Источник
 Lampa.SettingsApi.addParam({
-component: 'interface',
-param: { type: 'button' },
-field: { name: Lampa.Lang.translate('hfp_name') },
-onChange: function() {
-Lampa.Settings.create('hfp_settings', {
-onBack: function() { Lampa.Settings.create('interface'); }
-});
+component: 'head_filter',
+param: {
+name: 'head_filter_show_source',
+type: 'trigger',
+default: true
+},
+field: {
+name: Lampa.Lang.translate('source_title')
 }
 });
+// Переключатель: Увеличенное название раздела
 Lampa.SettingsApi.addParam({
-component: 'hfp_settings',
-param: { type: 'title' },
-field: { name: Lampa.Lang.translate('hfp_menu_title') }
-});
-var customTriggers = [
-{ key: 'hfp_arrow', lang: 'hfp_arrow', def: true },
-{ key: 'hfp_menu_icon', lang: 'hfp_menu_icon', def: true },
-{ key: 'hfp_source', lang: 'hfp_source', def: true },
-{ key: 'hfp_big_title', lang: 'hfp_big_title', def: false },
-{ key: 'hfp_bylampa_notice', lang: 'hfp_bylampa_notice', def: true },
-{ key: 'hfp_bylampa_menu', lang: 'hfp_bylampa_menu', def: false },
-{ key: 'hfp_clock', lang: 'hfp_clock', def: true },
-{ key: 'hfp_cal_show', lang: 'hfp_cal_show', def: true },
-{ key: 'hfp_cal_hide_wd', lang: 'hfp_cal_hide_wd', def: false },
-{ key: 'hfp_cal_hide_m', lang: 'hfp_cal_hide_m', def: false },
-{ key: 'hfp_cal_hide_y', lang: 'hfp_cal_hide_y', def: false }
-];
-customTriggers.forEach(function(t) {
-Lampa.SettingsApi.addParam({
-component: 'hfp_settings',
-param: { name: t.key, type: 'trigger', default: t.def },
-field: { name: Lampa.Lang.translate(t.lang) }
-});
-});
-items.forEach(function(it) {
-Lampa.SettingsApi.addParam({
-component: 'hfp_settings',
-param: { name: it.key, type: 'trigger', default: true },
-field: { name: Lampa.Lang.translate(it.lang) }
-});
-});
-Lampa.Storage.listener.follow('change', function(e) {
-if (e.name === 'activity') {
-updateHeader();
-setTimeout(updateHeader, 500);
-} else if (e.name && e.name.indexOf('hfp_') === 0) {
-updateHeader();
+component: 'head_filter',
+param: {
+name: 'head_filter_big_title',
+type: 'trigger',
+default: false
+},
+field: {
+name: Lampa.Lang.translate('big_title')
 }
 });
-setInterval(updateHeader, 2000);
-updateHeader();
-setTimeout(updateHeader, 800);
-} catch (e) {}
+// Переключатель с выбором: Уведомления ByLampa
+Lampa.SettingsApi.addParam({
+component: 'head_filter',
+param: {
+name: 'head_filter_bylampa_notice',
+type: 'select',
+values: {
+yes: Lampa.Lang.translate('bylampa_notice_yes'),
+no: Lampa.Lang.translate('bylampa_notice_no'),
+menu: Lampa.Lang.translate('bylampa_notice_menu')
+},
+default: 'yes'
+},
+field: {
+name: Lampa.Lang.translate('bylampa_notice')
+}
+});
+// Первичная инициализация (с небольшой задержкой, чтобы ByLampa успел отрисовать свою иконку)
+setTimeout(applyAll, 500);
+setTimeout(applyAll, 1500);
 }
 if (window.appready) {
-initPlugin();
+startPlugin();
 } else {
 Lampa.Listener.follow('app', function(e) {
-if (e.type === 'ready') initPlugin();
+if (e.type == 'ready') {
+startPlugin();
+}
 });
 }
 })();
