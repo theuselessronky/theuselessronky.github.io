@@ -1,7 +1,6 @@
 (function() {
 	'use strict';
 
-	// Adding multi-language support
 	Lampa.Lang.add({
 		arrow: {
 			ru: 'Стрелка',
@@ -152,10 +151,10 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.3.1',
+			version: '0.3.5',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
-			component: 'head_filter',
+			component: 'head_filter'
 		};
 		Lampa.Manifest.plugins = manifest;
 
@@ -173,7 +172,7 @@
 			'head_filter_show_reload': {name: Lampa.Lang.translate('reload'), element: '.m-reload-screen'},
 			'head_filter_show_blackfriday': {name: Lampa.Lang.translate('blackfriday'), element: '.black-friday__button'}, 
 			'head_filter_show_split': {name: Lampa.Lang.translate('split'), element: '.head__split'}, 
-			'head_filter_show_time': {name: Lampa.Lang.translate('time'), element: '.head__time'}, 
+			'head_filter_show_time': {name: Lampa.Lang.translate('time'), element: '.head__time'}
 		};
 
 		function showHideElement(element, show) {
@@ -195,7 +194,7 @@
 			var currentText = titleEl.text();
 			var origText = titleEl.data('hf-orig');
 
-			if (!origText || (currentText && currentText !== origText.split(' - ') && currentText !== origText)) {
+			if (!origText || (currentText && currentText !== origText.split(' - ').shift() && currentText !== origText)) {
 				origText = currentText;
 				titleEl.data('hf-orig', origText);
 			}
@@ -204,7 +203,7 @@
 				if (showSource) {
 					if (titleEl.text() !== origText) titleEl.text(origText);
 				} else {
-					var cleanText = origText.split(' - ');
+					var cleanText = origText.split(' - ').shift();
 					if (titleEl.text() !== cleanText) titleEl.text(cleanText);
 				}
 			}
@@ -222,7 +221,7 @@
 			}
 		}
 
-		// Точный поиск кнопки уведомлений ByLampa (исключая все стандартные кнопки Lampa)
+		// Поиск кнопки уведомлений ByLampa (исключая стандартные кнопки Lampa)
 		function getByLampaNoticeBtn() {
 			var standardClasses = [
 				'open--search', 'open--settings', 'open--premium', 'open--profile',
@@ -230,17 +229,15 @@
 				'm-reload-screen', 'black-friday__button'
 			];
 
-			var btn = $('.head__actions .head__action, .head__actions > div, .head__actions > button').filter(function() {
+			return $('.head__actions .head__action, .head__actions > div, .head__actions > button').filter(function() {
 				var el = $(this);
 				if (el.hasClass('head__split') || el.hasClass('head__time')) return false;
 				
 				for (var i = 0; i < standardClasses.length; i++) {
-					if (el.hasClass(standardClasses[i])) return false;
+					if (el.hasClass(standardClasses.at(i))) return false;
 				}
 				return true;
 			});
-
-			return btn;
 		}
 
 		// Принудительное скрытие / показ кнопки ByLampa
@@ -249,11 +246,13 @@
 			if (!btn.length) return;
 
 			btn.each(function() {
-				if (show) {
-					this.style.removeProperty('display');
-					$(this).show();
-				} else {
-					this.style.setProperty('display', 'none', 'important');
+				if (this && this.style) {
+					if (show) {
+						this.style.removeProperty('display');
+						$(this).show();
+					} else {
+						this.style.setProperty('display', 'none', 'important');
+					}
 				}
 			});
 		}
@@ -261,37 +260,35 @@
 		// Открытие окна уведомлений ByLampa
 		function openByLampaNoticeModal() {
 			var btn = getByLampaNoticeBtn();
-			if (btn.length) {
-				var domBtn = btn[0];
-				// Временно убираем скрытие, если Lampa проверяет видимость при клике
-				var prevDisplay = domBtn.style.getPropertyValue('display');
-				if (prevDisplay === 'none') {
+			var domBtn = btn.get(0);
+
+			if (domBtn) {
+				if (domBtn.style && domBtn.style.getPropertyValue('display') === 'none') {
 					domBtn.style.setProperty('display', 'flex', 'important');
 				}
 
-				// Запускаем все типы событий, на которые может быть подписан скрипт ByLampa
 				btn.trigger('hover:enter');
 				btn.trigger('click');
-				if (typeof domBtn.click === 'function') domBtn.click();
+				if (typeof domBtn.click === 'function') {
+					domBtn.click();
+				}
 
-				// Возвращаем скрытие обратно
 				setTimeout(function() {
 					var currentMode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
-					if (currentMode !== 'yes') {
+					if (currentMode !== 'yes' && domBtn.style) {
 						domBtn.style.setProperty('display', 'none', 'important');
 					}
 				}, 50);
 				return;
 			}
 
-			// Резервный вызов, если кнопка не найдена в DOM
 			if (window.ByLampa) {
 				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
 				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
 			}
 		}
 
-		// Управление отображением кнопки ByLampa и пункта "Изменения" в боковом меню
+		// Управление кнопкой ByLampa и пунктом "Изменения" в боковом меню
 		function updateByLampaNotice() {
 			var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
 
@@ -317,11 +314,10 @@
 					);
 
 					itemHtml.on('hover:enter click', function(e) {
-						e.preventDefault();
+						if (e && e.preventDefault) e.preventDefault();
 						openByLampaNoticeModal();
 					});
 
-					// Ищем раздел "Консоль", чтобы вставить "Изменения" строго под ним
 					var consoleItem = menuList.find('.menu__item[data-action="console"]');
 					if (!consoleItem.length) {
 						consoleItem = menuList.find('.menu__item').filter(function() {
@@ -336,7 +332,6 @@
 						menuList.append(itemHtml);
 					}
 
-					// Обновляем контроллер бокового меню Lampa, чтобы пульт видел новый пункт
 					if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
 						Lampa.Menu.update();
 					}
@@ -361,15 +356,16 @@
 		}
 
 		// Следим за изменением заголовка шапки
-var headTitleNode = document.querySelector('.head__title');
-if (headTitleNode && window.MutationObserver) {
-var titleObserver = new MutationObserver(function() {
-updateHeadTitle();
-});
-titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
-}
-// Следим за добавлением кнопки ByLampa в блок действий шапки (если она грузится с задержкой)
-var headActionsNode = document.querySelector('.head__actions');
+		var headTitleNode = document.querySelector('.head__title');
+		if (headTitleNode && window.MutationObserver) {
+			var titleObserver = new MutationObserver(function() {
+				updateHeadTitle();
+			});
+			titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
+		}
+
+		// Следим за добавлением кнопки ByLampa в блок действий шапки
+		var headActionsNode = document.querySelector('.head__actions');
 if (headActionsNode && window.MutationObserver) {
 var actionsObserver = new MutationObserver(function() {
 var mode = Lampa.Storage.get('head_filter_bylampa_notice', 'yes');
@@ -390,8 +386,7 @@ updateHeadTitle();
 updateByLampaNotice();
 }
 });
-// github.com
-Lampa.Template.add('settings_head_filter', <div></div>);
+Lampa.Template.add('settings_head_filter', '');
 Lampa.SettingsApi.addParam({
 component: 'interface',
 param: {
@@ -401,9 +396,9 @@ field: {
 name: Lampa.Lang.translate('name_plugin'),
 description: Lampa.Lang.translate('plugin_description')
 },
-onChange: () => {
+onChange: function() {
 Lampa.Settings.create('head_filter', {
-onBack: () => {
+onBack: function() {
 Lampa.Settings.create('interface');
 }
 });
@@ -415,7 +410,7 @@ param: {
 type: 'title'
 },
 field: {
-name: Lampa.Lang.translate('name_menu'),
+name: Lampa.Lang.translate('name_menu')
 }
 });
 // Стандартные переключатели элементов
@@ -428,7 +423,7 @@ type: 'trigger',
 default: true
 },
 field: {
-name: head[key].name,
+name: head[key].name
 }
 });
 });
