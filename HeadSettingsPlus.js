@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.3.6',
+			version: '0.3.7',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -381,7 +381,11 @@ updateHeadTitle();
 updateByLampaNotice();
 }
 });
-Lampa.Template.add('settings_head_filter', '');
+function ensureTemplate() {
+var baseTpl = (Lampa.Template && typeof Lampa.Template.string === 'function') ? Lampa.Template.string('settings_more') : '';
+Lampa.Template.add('settings_head_filter', baseTpl || '');
+}
+ensureTemplate();
 Lampa.SettingsApi.addParam({
 component: 'interface',
 param: {
@@ -392,8 +396,9 @@ name: Lampa.Lang.translate('name_plugin'),
 description: Lampa.Lang.translate('plugin_description')
 },
 onChange: function() {
-Lampa.Template.add('settings_head_filter', '');
+ensureTemplate();
 Lampa.Settings.create('head_filter', {
+template: 'settings_more',
 onBack: function() {
 Lampa.Settings.create('interface');
 }
