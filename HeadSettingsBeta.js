@@ -61,7 +61,7 @@
 		try {
 			if (Lampa.Manifest) {
 				var self = {
-					type: 'other', version: '2.5.0',
+					type: 'other', version: '2.7.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
@@ -94,7 +94,6 @@
 			head_filter_show_source: true, head_filter_big_title: true,
 			head_filter_show_network: true,
 			head_filter_show_fullscreen: true,
-			head_filter_show_secured: true,
 			head_filter_show_premium: true,
 			head_filter_show_profile: true,
 			head_filter_show_feed: true,
@@ -444,38 +443,25 @@
 
 		function applyNetGap(showNet) {
 			try {
+				var existing = document.querySelector('.hf-net-gap');
+				if (existing && !existing.isConnected) existing = null;
 				var markers = document.querySelector('.head__markers');
-				var targets = [];
-				if (markers && markers.parentElement) {
-					var sib = markers.nextElementSibling;
-					while (sib) {
-						if (sib.style.display !== 'none' && sib.getAttribute('data-hf-hidden') !== '1') targets.push(sib);
-						sib = sib.nextElementSibling;
-					}
+				if (showNet || !markers) {
+					if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+					return;
 				}
-				var t = document.querySelector('.head__time');
-				if (t && !(markers && markers.contains(t)) && t !== markers) {
-					if (targets.indexOf(t) === -1) targets.push(t);
-				}
-				for (var i = 0; i < targets.length; i++) {
-					var el = targets[i];
-					if (!showNet) {
-						if (el.getAttribute('data-hf-gap') !== '1') {
-							var curM = el.style.getPropertyValue('margin-left');
-							if (!el.getAttribute('data-hf-gap-orig')) el.setAttribute('data-hf-gap-orig', curM || '');
-							el.setAttribute('data-hf-gap', '1');
-							el.style.setProperty('margin-left', '10px', 'important');
-						}
-					} else {
-						if (el.getAttribute('data-hf-gap') === '1') {
-							var orig = el.getAttribute('data-hf-gap-orig');
-							if (orig) el.style.setProperty('margin-left', orig);
-							else el.style.removeProperty('margin-left');
-							el.removeAttribute('data-hf-gap');
-							el.removeAttribute('data-hf-gap-orig');
-						}
-					}
-				}
+				var parent = markers.parentNode;
+				if (!parent) return;
+				if (existing && existing.parentNode === parent) return;
+				if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+				var gap = document.createElement('span');
+				gap.className = 'hf-net-gap';
+				gap.style.display = 'inline-block';
+				gap.style.width = '12px';
+				gap.style.flex = '0 0 auto';
+				gap.style.pointerEvents = 'none';
+				if (markers.nextSibling) parent.insertBefore(gap, markers.nextSibling);
+				else parent.appendChild(gap);
 			} catch (e) {}
 		}
 
@@ -484,13 +470,13 @@
 				var showClock = (override && typeof override.clock === 'boolean') ? override.clock : getBool('head_filter_show_clock', true);
 				var showCal = (override && typeof override.cal === 'boolean') ? override.cal : getBool('head_filter_show_calendar', true);
 				var showNet = (override && typeof override.net === 'boolean') ? override.net : getBool('head_filter_show_network', true);
+				applyNetGap(showNet);
 				var clocks = collectClocks();
 				var dates = collectDates();
 				var net = collectNet();
 				for (var i = 0; i < clocks.length; i++) setVisible(clocks[i], showClock);
 				for (var j = 0; j < dates.length; j++) setVisible(dates[j], showCal);
 				for (var k = 0; k < net.length; k++) setVisible(net[k], showNet);
-				applyNetGap(showNet);
 				var c = document.querySelector('.head__time');
 				if (!c || typeof c.contains !== 'function') return;
 				if (clocks.indexOf(c) !== -1 || dates.indexOf(c) !== -1) return;
