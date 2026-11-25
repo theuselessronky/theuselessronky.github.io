@@ -1,255 +1,308 @@
 (function() {
 	'use strict';
 
-	Lampa.Lang.add({
-		name_plugin: { ru: 'Настройка шапки+', en: 'Header settings+', uk: 'Налаштування шапки+', zh: '页眉设置+' },
-		name_menu: { ru: 'Отображать в шапке', en: 'Display in header', uk: 'Відображати у шапці', zh: '在标题中显示' },
-		arrow: { ru: 'Стрелка', en: 'Back arrow', uk: 'Стрілка', zh: '返回箭头' },
-		menu_icon: { ru: 'Меню', en: 'Menu icon', uk: 'Меню', zh: '菜单图标' },
-		source_title: { ru: 'Источник', en: 'Source', uk: 'Джерело', zh: '来源' },
-		big_title: { ru: 'Увеличенное название раздела', en: 'Enlarged section title', uk: 'Збільшена назва розділу', zh: '放大版块标题' },
-		bylampa_notice: { ru: 'Уведомления ByLampa', en: 'ByLampa notifications', uk: 'Сповіщення ByLampa', zh: 'ByLampa 通知' },
-		opt_yes: { ru: 'Да', en: 'Yes', uk: 'Так', zh: '是' },
-		opt_menu: { ru: 'Перенесено в боковое меню', en: 'Moved to side menu', uk: 'Перенесено в бічне меню', zh: '已移至侧边菜单' },
-		opt_no: { ru: 'Нет', en: 'No', uk: 'Ні', zh: '否' },
-		menu_changes: { ru: 'Изменения', en: 'Changes', uk: 'Зміни', zh: '更新日志' },
-		clock: { ru: 'Часы', en: 'Clock', uk: 'Годинник', zh: '时钟' },
-		calendar: { ru: 'Календарь', en: 'Calendar', uk: 'Календар', zh: '日历' },
-		cal_yes: { ru: 'Да', en: 'Yes', uk: 'Так', zh: '是' },
-		cal_no_weekday: { ru: 'Скрывает день недели', en: 'Hides weekday', uk: 'Приховує день тижня', zh: '隐藏星期' },
-		cal_no_month: { ru: 'Скрывает месяц', en: 'Hides month', uk: 'Приховує місяць', zh: '隐藏月份' },
-		cal_no_year: { ru: 'Скрывает год', en: 'Hides year', uk: 'Приховує рік', zh: '隐藏年份' },
-		cal_no_year_weekday: { ru: 'Скрывает год и день недели', en: 'Hides year and weekday', uk: 'Приховує рік і день тижня', zh: '隐藏年份和星期' },
-		cal_no: { ru: 'Нет', en: 'No', uk: 'Ні', zh: '否' },
-		search: { ru: 'Поиск', en: 'Search', uk: 'Пошук', zh: '搜索' },
-		settings: { ru: 'Настройки', en: 'Settings', uk: 'Налаштування', zh: '设置' },
-		premium: { ru: 'Премиум', en: 'Premium', uk: 'Преміум', zh: '高级' },
-		profile: { ru: 'Профиль', en: 'Profile', uk: 'Профіль', zh: '个人资料' },
-		feed: { ru: 'Новости', en: 'Feed', uk: 'Новини', zh: '饲料' },
-		notice: { ru: 'Уведомления', en: 'Notifications', uk: 'Сповіщення', zh: '通知' },
-		broadcast: { ru: 'Вещание', en: 'Broadcast', uk: 'Мовлення', zh: '广播' },
-		fullscreen: { ru: 'Полноэкранный режим', en: 'Fullscreen mode', uk: 'Повноекранний режим', zh: '全屏模式' },
-		reload: { ru: 'Обновление страницы', en: 'Page reload', uk: 'Оновлення сторінки', zh: '页面重新加载' },
-		blackfriday: { ru: 'Черная пятница', en: 'Black Friday', uk: 'Чорна п’ятниця', zh: '黑色星期五' },
-		split: { ru: 'Разделитель', en: 'Divider', uk: 'Розділювач', zh: '分隔符' }
-	});
+	function initPlugin() {
+		try {
+			if (window.hfp_loaded) return;
+			window.hfp_loaded = true;
 
-	function startPlugin() {
-		if (window.head_filter_plus_ready) return;
-		window.head_filter_plus_ready = true;
-
-		Lampa.Manifest.plugins = {
-			type: 'other',
-			version: '0.5.1',
-			name: Lampa.Lang.translate('name_plugin'),
-			component: 'head_filter'
-		};
-
-		var triggers = {
-			'head_filter_show_arrow': { name: Lampa.Lang.translate('arrow'), default: true },
-			'head_filter_show_menu': { name: Lampa.Lang.translate('menu_icon'), default: true },
-			'head_filter_show_source': { name: Lampa.Lang.translate('source_title'), default: true },
-			'head_filter_big_title': { name: Lampa.Lang.translate('big_title'), default: false },
-			'head_filter_show_clock': { name: Lampa.Lang.translate('clock'), default: true },
-			'head_filter_show_search': { name: Lampa.Lang.translate('search'), element: '.open--search', default: true },
-			'head_filter_show_settings': { name: Lampa.Lang.translate('settings'), element: '.open--settings', default: true },
-			'head_filter_show_premium': { name: Lampa.Lang.translate('premium'), element: '.open--premium', default: true },
-			'head_filter_show_profile': { name: Lampa.Lang.translate('profile'), element: '.open--profile', default: true },
-			'head_filter_show_feed': { name: Lampa.Lang.translate('feed'), element: '.open--feed', default: true },
-			'head_filter_show_notice': { name: Lampa.Lang.translate('notice'), element: '.notice--icon', default: true },
-			'head_filter_show_broadcast': { name: Lampa.Lang.translate('broadcast'), element: '.open--broadcast', default: true },
-			'head_filter_show_fullscreen': { name: Lampa.Lang.translate('fullscreen'), element: '.full-screen', default: true },
-			'head_filter_show_reload': { name: Lampa.Lang.translate('reload'), element: '.m-reload-screen', default: true },
-			'head_filter_show_blackfriday': { name: Lampa.Lang.translate('blackfriday'), element: '.black-friday__button', default: true },
-			'head_filter_show_split': { name: Lampa.Lang.translate('split'), element: '.head__split', default: true }
-		};
-
-		var style = document.createElement('style');
-		style.id = 'head-filter-plus-style';
-		style.textContent = '' +
-			'body.hf-hide-arrow .head__backward { display: none !important; }' +
-			'body.hf-hide-menu .head__menu-icon { display: none !important; }' +
-			'body.hf-hide-source .head__title-source, body.hf-hide-source .head__source, body.hf-hide-source .hf-wrapped-source { display: none !important; }' +
-			'body.hf-big-title .head__title { text-transform: uppercase !important; font-weight: 700 !important; font-size: 1.35em !important; letter-spacing: 0.03em !important; }' +
-			'body.hf-hide-clock .hf-clock-node { display: none !important; }' +
-			'body.hf-hide-calendar .hf-calendar-node { display: none !important; }' +
-			'body.hf-cal-center .hf-calendar-node { display: flex !important; justify-content: center !important; align-items: center !important; text-align: center !important; width: 100% !important; }' +
-			'.hf-cal-year-newline { display: block !important; width: 100%; text-align: right; line-height: 1.1; margin-top: 0.1em; }';
-		document.head.appendChild(style);
-
-		function findByLampaNoticeBtn() {
-			var explicit = document.querySelector('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
-			if (explicit) return explicit;
-
-			var actions = document.querySelectorAll('.head__actions .head__action');
-			var found = null;
-			Array.prototype.forEach.call(actions, function(btn) {
-				if (found) return;
-				if (
-					btn.classList.contains('open--search') ||
-					btn.classList.contains('open--settings') ||
-					btn.classList.contains('open--premium') ||
-					btn.classList.contains('open--profile') ||
-					btn.classList.contains('open--feed') ||
-					btn.classList.contains('notice--icon') ||
-					btn.classList.contains('open--broadcast') ||
-					btn.classList.contains('full-screen') ||
-					btn.classList.contains('m-reload-screen') ||
-					btn.classList.contains('black-friday__button')
-				) return;
-				found = btn;
+			Lampa.Lang.add({
+				hfp_name: { ru: 'Настройка шапки+', en: 'Header settings+' },
+				hfp_menu_title: { ru: 'Отображать в шапке', en: 'Display in header' },
+				hfp_arrow: { ru: 'Стрелка', en: 'Back arrow' },
+				hfp_menu_icon: { ru: 'Меню', en: 'Menu icon' },
+				hfp_source: { ru: 'Источник', en: 'Source' },
+				hfp_big_title: { ru: 'Увеличенное название раздела', en: 'Enlarged section title' },
+				hfp_bylampa_notice: { ru: 'Уведомления ByLampa', en: 'ByLampa notifications' },
+				hfp_bylampa_menu: { ru: 'Уведомления ByLampa в боковом меню', en: 'ByLampa notifications in side menu' },
+				hfp_changes: { ru: 'Изменения', en: 'Changes' },
+				hfp_clock: { ru: 'Часы', en: 'Clock' },
+				hfp_cal_show: { ru: 'Календарь', en: 'Calendar' },
+				hfp_cal_hide_wd: { ru: 'Календарь: скрыть день недели', en: 'Calendar: hide weekday' },
+				hfp_cal_hide_m: { ru: 'Календарь: скрыть месяц', en: 'Calendar: hide month' },
+				hfp_cal_hide_y: { ru: 'Календарь: скрыть год', en: 'Calendar: hide year' },
+				hfp_search: { ru: 'Поиск', en: 'Search' },
+				hfp_settings: { ru: 'Настройки', en: 'Settings' },
+				hfp_premium: { ru: 'Премиум', en: 'Premium' },
+				hfp_profile: { ru: 'Профиль', en: 'Profile' },
+				hfp_feed: { ru: 'Новости', en: 'Feed' },
+				hfp_notice: { ru: 'Уведомления', en: 'Notifications' },
+				hfp_broadcast: { ru: 'Вещание', en: 'Broadcast' },
+				hfp_fullscreen: { ru: 'Полноэкранный режим', en: 'Fullscreen mode' },
+				hfp_reload: { ru: 'Обновление страницы', en: 'Page reload' },
+				hfp_blackfriday: { ru: 'Черная пятница', en: 'Black Friday' },
+				hfp_split: { ru: 'Разделитель', en: 'Divider' }
 			});
-			return found;
-		}
 
-		function syncSideMenuItem(showInMenu) {
-			var existingItem = document.querySelector('.hf-menu-bylampa-changes');
-			if (!showInMenu) {
-				if (existingItem) existingItem.remove();
-				return;
+			Lampa.Manifest.plugins = {
+				type: 'other',
+				version: '0.7.0',
+				name: Lampa.Lang.translate('hfp_name'),
+				component: 'hfp_settings'
+			};
+
+			var style = document.createElement('style');
+			style.type = 'text/css';
+			style.textContent = '' +
+				'body.hfp-no-arrow .head__backward { display: none !important; }' +
+				'body.hfp-no-menu .head__menu-icon { display: none !important; }' +
+				'body.hfp-no-src .head__title-source, body.hfp-no-src .head__source, body.hfp-no-src .hfp-src-span { display: none !important; }' +
+				'body.hfp-big-title .head__title { text-transform: uppercase !important; font-weight: 700 !important; font-size: 1.35em !important; }' +
+				'body.hfp-no-clock .hfp-clock-part { display: none !important; }' +
+				'body.hfp-no-cal .hfp-cal-part { display: none !important; }' +
+				'body.hfp-cal-center .hfp-cal-part { display: block !important; text-align: center !important; width: 100% !important; }' +
+				'.hfp-cal-year-br { display: block !important; text-align: right; line-height: 1.1; }';
+			document.head.appendChild(style);
+
+			var items = [
+				{ key: 'hfp_search', lang: 'hfp_search', sel: '.open--search' },
+				{ key: 'hfp_settings', lang: 'hfp_settings', sel: '.open--settings' },
+				{ key: 'hfp_premium', lang: 'hfp_premium', sel: '.open--premium' },
+				{ key: 'hfp_profile', lang: 'hfp_profile', sel: '.open--profile' },
+				{ key: 'hfp_feed', lang: 'hfp_feed', sel: '.open--feed' },
+				{ key: 'hfp_notice', lang: 'hfp_notice', sel: '.notice--icon' },
+				{ key: 'hfp_broadcast', lang: 'hfp_broadcast', sel: '.open--broadcast' },
+				{ key: 'hfp_fullscreen', lang: 'hfp_fullscreen', sel: '.full-screen' },
+				{ key: 'hfp_reload', lang: 'hfp_reload', sel: '.m-reload-screen' },
+				{ key: 'hfp_blackfriday', lang: 'hfp_blackfriday', sel: '.black-friday__button' },
+				{ key: 'hfp_split', lang: 'hfp_split', sel: '.head__split' }
+			];
+
+			function findByLampaBtn() {
+				var known = document.querySelector('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
+				if (known) return known;
+
+				var actions = document.querySelectorAll('.head__actions .head__action');
+				var res = null;
+				Array.prototype.forEach.call(actions, function(el) {
+					if (res) return;
+					if (
+						!el.classList.contains('open--search') &&
+						!el.classList.contains('open--settings') &&
+						!el.classList.contains('open--premium') &&
+						!el.classList.contains('open--profile') &&
+						!el.classList.contains('open--feed') &&
+						!el.classList.contains('notice--icon') &&
+						!el.classList.contains('open--broadcast') &&
+						!el.classList.contains('full-screen') &&
+						!el.classList.contains('m-reload-screen') &&
+						!el.classList.contains('black-friday__button')
+					) {
+						res = el;
+					}
+				});
+				return res;
 			}
-			if (existingItem) return;
 
-			var menuLists = document.querySelectorAll('.menu__list');
-			if (!menuLists || !menuLists.length) return;
-
-			var targetList = menuLists.item(menuLists.length - 1);
-			if (!targetList) return;
-
-			var item = document.createElement('li');
-			item.className = 'menu__item selector hf-menu-bylampa-changes';
-			item.innerHTML = '' +
-				'<div class="menu__ico">' +
-					'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-						'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
-						'<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
-					'</svg>' +
-				'</div>' +
-				'<div class="menu__text">' + Lampa.Lang.translate('menu_changes') + '</div>';
-
-			$(item).on('hover:enter click', function() {
-				var originBtn = findByLampaNoticeBtn();
-				if (originBtn) {
-					originBtn.style.display = '';
-					$(originBtn).trigger('hover:enter');
-					if (typeof originBtn.click === 'function') originBtn.click();
-					setTimeout(function() {
-						var mode = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
-						if (mode === 'menu' || mode === 'no') originBtn.style.display = 'none';
-					}, 60);
+			function syncSideMenu(enable) {
+				var old = document.querySelector('.hfp-side-changes');
+				if (!enable) {
+					if (old && old.parentNode) old.parentNode.removeChild(old);
+					return;
 				}
-			});
+				if (old) return;
 
-			targetList.appendChild(item);
-		}
+				var menus = document.querySelectorAll('.menu__list');
+				if (!menus || !menus.length) return;
+				var target = menus.item(menus.length - 1);
+				if (!target) return;
 
-		function updateByLampaNotice() {
-			var mode = Lampa.Storage.get('head_filter_bylampa_notice_mode', 'yes');
-			var showInHeader = (mode === 'yes');
-			var showInMenu = (mode === 'menu');
+				var li = document.createElement('li');
+				li.className = 'menu__item selector hfp-side-changes';
+				li.innerHTML = '<div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div><div class="menu__text">' + Lampa.Lang.translate('hfp_changes') + '</div>';
 
-			var known = document.querySelectorAll('.bylampa-notice, .bylampa__notice, .open--bylampa-notice, .head__action--changelog, .bylampa-changelog');
-			Array.prototype.forEach.call(known, function(el) {
-				el.style.display = showInHeader ? '' : 'none';
-			});
+				$(li).on('hover:enter click', function() {
+					try {
+						var btn = findByLampaBtn();
+						if (btn) {
+							btn.style.display = '';
+							$(btn).trigger('hover:enter');
+							setTimeout(function() {
+								if (!Lampa.Storage.get('hfp_bylampa_notice', true)) {
+									btn.style.display = 'none';
+								}
+							}, 100);
+						}
+					} catch (err) {}
+				});
 
-			var btn = findByLampaNoticeBtn();
-			if (btn) btn.style.display = showInHeader ? '' : 'none';
-
-			syncSideMenuItem(showInMenu);
-		}
-
-		function updateTitleAndSource(showSource) {
-			var titleEl = document.querySelector('.head__title');
-			if (!titleEl) return;
-
-			var sepSource = titleEl.querySelector('.head__title-source');
-			if (sepSource) {
-				sepSource.style.display = showSource ? '' : 'none';
-				return;
+				target.appendChild(li);
 			}
 
-			var rawText = titleEl.textContent || '';
-			var dashPos = rawText.indexOf(' - ');
-			if (dashPos !== -1 && !titleEl.querySelector('.hf-wrapped-source')) {
-				var mainPart = rawText.slice(0, dashPos);
-				var sourcePart = rawText.slice(dashPos);
-				titleEl.innerHTML = '<span class="hf-wrapped-main">' + mainPart + '</span><span class="hf-wrapped-source">' + sourcePart + '</span>';
-			}
+			function updateHeader() {
+				try {
+					var showArrow = Lampa.Storage.get('hfp_arrow', true);
+					var showMenu = Lampa.Storage.get('hfp_menu_icon', true);
+					var showSrc = Lampa.Storage.get('hfp_source', true);
+					var bigTitle = Lampa.Storage.get('hfp_big_title', false);
+					var showByNotice = Lampa.Storage.get('hfp_bylampa_notice', true);
+					var showByMenu = Lampa.Storage.get('hfp_bylampa_menu', false);
+					var showClock = Lampa.Storage.get('hfp_clock', true);
+					var showCal = Lampa.Storage.get('hfp_cal_show', true);
+					var hideWd = Lampa.Storage.get('hfp_cal_hide_wd', false);
+					var hideM = Lampa.Storage.get('hfp_cal_hide_m', false);
+					var hideY = Lampa.Storage.get('hfp_cal_hide_y', false);
 
-			var wrappedSource = titleEl.querySelector('.hf-wrapped-source');
-			if (wrappedSource) wrappedSource.style.display = showSource ? '' : 'none';
-		}
+					document.body.classList.toggle('hfp-no-arrow', !showArrow);
+					document.body.classList.toggle('hfp-no-menu', !showMenu);
+					document.body.classList.toggle('hfp-no-src', !showSrc);
+					document.body.classList.toggle('hfp-big-title', Boolean(bigTitle));
+					document.body.classList.toggle('hfp-no-clock', !showClock);
+					document.body.classList.toggle('hfp-no-cal', !showCal);
+					document.body.classList.toggle('hfp-cal-center', Boolean(showCal && hideY && hideWd && !hideM));
 
-		function updateClockAndCalendar() {
-			var timeContainer = document.querySelector('.head__time');
-			if (!timeContainer) return;
+					var btn = findByLampaBtn();
+					if (btn) btn.style.display = showByNotice ? '' : 'none';
+					syncSideMenu(Boolean(showByMenu));
 
-			var showClock = Lampa.Storage.get('head_filter_show_clock', true);
-			var calMode = Lampa.Storage.get('head_filter_calendar_mode', 'yes');
+					var title = document.querySelector('.head__title');
+					if (title) {
+						var nativeSrc = title.querySelector('.head__title-source');
+						if (nativeSrc) {
+							nativeSrc.style.display = showSrc ? '' : 'none';
+						} else {
+							var txt = title.textContent || '';
+							var pos = txt.indexOf(' - ');
+							if (pos !== -1 && !title.querySelector('.hfp-src-span')) {
+								title.innerHTML = '<span>' + txt.slice(0, pos) + '</span><span class="hfp-src-span">' + txt.slice(pos) + '</span>';
+							}
+							var sp = title.querySelector('.hfp-src-span');
+							if (sp) sp.style.display = showSrc ? '' : 'none';
+						}
+					}
 
-			document.body.classList.toggle('hf-hide-clock', !showClock);
-param: {
-name: 'head_filter_bylampa_notice_mode',
-type: 'select',
-values: {
-yes: Lampa.Lang.translate('opt_yes'),
-menu: Lampa.Lang.translate('opt_menu'),
-no: Lampa.Lang.translate('opt_no')
-},
-default: 'yes'
-},
-field: { name: Lampa.Lang.translate('bylampa_notice') }
+					var box = document.querySelector('.head__time');
+					if (box) {
+						var clockEl = box.querySelector('.head__time-now, .time--clock, .hfp-clock-part');
+						var calEl = box.querySelector('.head__time-date, .time--date, .hfp-cal-part');
+
+						if (!clockEl || !calEl) {
+							Array.prototype.forEach.call(box.children, function(kid) {
+								var t = (kid.textContent || '').trim();
+								if (/^\d{1,2}:\d{2}/.test(t)) {
+									kid.classList.add('hfp-clock-part');
+									clockEl = kid;
+								} else if (t.length > 0) {
+									kid.classList.add('hfp-cal-part');
+									calEl = kid;
+								}
+							});
+						}
+
+						if (!clockEl && !calEl) {
+							var all = (box.textContent || '').trim();
+							var spIdx = all.indexOf(' ');
+							if (spIdx !== -1 && /^\d{1,2}:\d{2}/.test(all.slice(0, spIdx))) {
+								box.innerHTML = '<div class="hfp-clock-part">' + all.slice(0, spIdx) + '</div><div class="hfp-cal-part">' + all.slice(spIdx + 1).trim() + '</div>';
+								calEl = box.querySelector('.hfp-cal-part');
+							}
+						}
+
+						if (calEl && showCal) {
+							var cur = (calEl.textContent || '').trim();
+							if (!calEl.getAttribute('data-raw') || (!calEl.getAttribute('data-done') && cur !== calEl.getAttribute('data-raw'))) {
+								if (cur && cur !== calEl.getAttribute('data-last')) {
+									calEl.setAttribute('data-raw', cur);
+								}
+							}
+
+							var raw = calEl.getAttribute('data-raw') || cur;
+							var parts = raw.replace(/,/g, ' ').replace(/\s+/g, ' ').trim().split(' ');
+							if (parts.length >= 4) {
+								var d = parts.shift();
+								var m = parts.shift();
+								var y = parts.shift();
+								var w = parts.join(' ');
+
+								if (/^\d{1,2}$/.test(d) && /^\d{4}$/.test(y)) {
+									var out = d;
+									if (!hideM) out += ' ' + m;
+									if (hideM && !hideWd) {
+										out += ' ' + w;
+										if (!hideY) {
+											var wrap = (out + ' ' + y).length > 16 || box.offsetWidth < 155;
+											out += wrap ? ('<span class="hfp-cal-year-br">' + y + '</span>') : (' ' + y);
+										}
+									} else {
+										if (!hideY) out += ' ' + y;
+										if (!hideWd) out += ' ' + w;
+}
+if (calEl.getAttribute('data-last') !== out) {
+calEl.setAttribute('data-last', out);
+calEl.setAttribute('data-done', '1');
+calEl.innerHTML = out;
+}
+}
+}
+}
+}
+items.forEach(function(it) {
+if (Lampa.Storage.get(it.key, true)) $(it.sel).show();
+else $(it.sel).hide();
+});
+} catch (err) {}
+}
+Lampa.Template.add('settings_hfp_settings', '');
+Lampa.SettingsApi.addParam({
+component: 'interface',
+param: { type: 'button' },
+field: { name: Lampa.Lang.translate('hfp_name') },
+onChange: function() {
+Lampa.Settings.create('hfp_settings', {
+onBack: function() { Lampa.Settings.create('interface'); }
+});
+}
 });
 Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: { name: 'head_filter_show_clock', type: 'trigger', default: true },
-field: { name: Lampa.Lang.translate('clock') }
+component: 'hfp_settings',
+param: { type: 'title' },
+field: { name: Lampa.Lang.translate('hfp_menu_title') }
 });
+var customTriggers = [
+{ key: 'hfp_arrow', lang: 'hfp_arrow', def: true },
+{ key: 'hfp_menu_icon', lang: 'hfp_menu_icon', def: true },
+{ key: 'hfp_source', lang: 'hfp_source', def: true },
+{ key: 'hfp_big_title', lang: 'hfp_big_title', def: false },
+{ key: 'hfp_bylampa_notice', lang: 'hfp_bylampa_notice', def: true },
+{ key: 'hfp_bylampa_menu', lang: 'hfp_bylampa_menu', def: false },
+{ key: 'hfp_clock', lang: 'hfp_clock', def: true },
+{ key: 'hfp_cal_show', lang: 'hfp_cal_show', def: true },
+{ key: 'hfp_cal_hide_wd', lang: 'hfp_cal_hide_wd', def: false },
+{ key: 'hfp_cal_hide_m', lang: 'hfp_cal_hide_m', def: false },
+{ key: 'hfp_cal_hide_y', lang: 'hfp_cal_hide_y', def: false }
+];
+customTriggers.forEach(function(t) {
 Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_calendar_mode',
-type: 'select',
-values: {
-yes: Lampa.Lang.translate('cal_yes'),
-no_weekday: Lampa.Lang.translate('cal_no_weekday'),
-no_month: Lampa.Lang.translate('cal_no_month'),
-no_year: Lampa.Lang.translate('cal_no_year'),
-no_year_weekday: Lampa.Lang.translate('cal_no_year_weekday'),
-no: Lampa.Lang.translate('cal_no')
-},
-default: 'yes'
-},
-field: { name: Lampa.Lang.translate('calendar') }
+component: 'hfp_settings',
+param: { name: t.key, type: 'trigger', default: t.def },
+field: { name: Lampa.Lang.translate(t.lang) }
 });
-[
-'head_filter_show_search',
-'head_filter_show_settings',
-'head_filter_show_premium',
-'head_filter_show_profile',
-'head_filter_show_feed',
-'head_filter_show_notice',
-'head_filter_show_broadcast',
-'head_filter_show_fullscreen',
-'head_filter_show_reload',
-'head_filter_show_blackfriday',
-'head_filter_show_split'
-].forEach(function(key) {
+});
+items.forEach(function(it) {
 Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: { name: key, type: 'trigger', default: triggers[key].default },
-field: { name: triggers[key].name }
+component: 'hfp_settings',
+param: { name: it.key, type: 'trigger', default: true },
+field: { name: Lampa.Lang.translate(it.lang) }
 });
 });
-applyAll();
-setTimeout(applyAll, 1000);
+Lampa.Storage.listener.follow('change', function(e) {
+if (e.name === 'activity') {
+updateHeader();
+setTimeout(updateHeader, 500);
+} else if (e.name && e.name.indexOf('hfp_') === 0) {
+updateHeader();
+}
+});
+setInterval(updateHeader, 2000);
+updateHeader();
+setTimeout(updateHeader, 800);
+} catch (e) {}
 }
 if (window.appready) {
-startPlugin();
+initPlugin();
 } else {
 Lampa.Listener.follow('app', function(e) {
-if (e.type == 'ready') startPlugin();
+if (e.type === 'ready') initPlugin();
 });
 }
 })();
