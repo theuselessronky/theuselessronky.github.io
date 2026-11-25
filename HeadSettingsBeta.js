@@ -55,7 +55,7 @@
 		try {
 			if (Lampa.Manifest) {
 				var self = {
-					type: 'other', version: '2.0.0',
+					type: 'other', version: '2.1.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
@@ -68,16 +68,16 @@
 		} catch (e) {}
 
 		var standardHead = {
-			head_filter_show_search:    { l: 'search',     f: 'Поиск',                 s: '.open--search' },
-			head_filter_show_settings:  { l: 'settings',   f: 'Настройки',             s: '.open--settings' },
-			head_filter_show_premium:   { l: 'premium',    f: 'Премиум',               s: '.open--premium' },
-			head_filter_show_profile:   { l: 'profile',    f: 'Профиль',               s: '.open--profile' },
-			head_filter_show_feed:      { l: 'feed',       f: 'Новости',               s: '.open--feed' },
-			head_filter_show_notice:    { l: 'notice',     f: 'Уведомления',           s: '.notice--icon' },
-			head_filter_show_broadcast: { l: 'broadcast',  f: 'Вещание',               s: '.open--broadcast' },
-			head_filter_show_fullscreen:{ l: 'fullscreen', f: 'Полноэкранный режим',   s: '.full-screen' },
-			head_filter_show_reload:    { l: 'reload',     f: 'Обновление страницы',   s: '.m-reload-screen' },
-			head_filter_show_blackfriday:{l: 'blackfriday',f: 'Черная пятница',        s: '.black-friday__button' }
+			head_filter_show_search:     { l: 'search',     f: 'Поиск',               s: '.open--search' },
+			head_filter_show_settings:   { l: 'settings',   f: 'Настройки',           s: '.open--settings' },
+			head_filter_show_premium:    { l: 'premium',    f: 'Премиум',             s: '.open--premium, [data-action="premium"]' },
+			head_filter_show_profile:    { l: 'profile',    f: 'Профиль',             s: '.open--profile, [data-action="profile"]' },
+			head_filter_show_feed:       { l: 'feed',       f: 'Новости',             s: '.open--feed, [data-action="feed"]' },
+			head_filter_show_notice:     { l: 'notice',     f: 'Уведомления',         s: '.notice--icon' },
+			head_filter_show_broadcast:  { l: 'broadcast',  f: 'Вещание',             s: '.open--broadcast, [data-action="broadcast"]' },
+			head_filter_show_fullscreen: { l: 'fullscreen', f: 'Полноэкранный режим', s: '.full-screen, .fullscreen, .head__fullscreen, [data-action="fullscreen"], [data-action="full-screen"]' },
+			head_filter_show_reload:     { l: 'reload',     f: 'Обновление страницы', s: '.m-reload-screen, [data-action="reload"]' },
+			head_filter_show_blackfriday:{ l: 'blackfriday',f: 'Черная пятница',      s: '.black-friday__button' }
 		};
 		var topHead = {
 			head_filter_show_arrow: { l: 'arrow',    f: 'Стрелка', s: '.head__backward' },
@@ -86,11 +86,15 @@
 		var alwaysVisible = {
 			head_filter_show_clock: true, head_filter_show_calendar: true,
 			head_filter_show_source: true, head_filter_big_title: true,
-			head_filter_show_network: true
+			head_filter_show_network: true,
+			head_filter_show_fullscreen: true,
+			head_filter_show_reload: true,
+			head_filter_show_premium: true,
+			head_filter_show_profile: true,
+			head_filter_show_feed: true,
+			head_filter_show_broadcast: true
 		};
-		var allHeadKeys = Object.keys(topHead).concat(Object.keys(standardHead));
 
-		// -------- storage --------
 		function getBool(key, def) {
 			try {
 				if (!Lampa.Storage || typeof Lampa.Storage.get !== 'function') return def;
@@ -102,7 +106,6 @@
 		}
 		function isByLampaInHeader() { return getBool('head_filter_bylampa_notice_v2', true); }
 
-		// -------- видимость --------
 		function setVisible(el, show) {
 			if (!el || !el.style) return;
 			try {
@@ -133,7 +136,6 @@
 		}
 		function applyStatic() { hideShowAll(topHead); hideShowAll(standardHead); }
 
-		// -------- окружение ByLampa --------
 		var envCache = null;
 		function hasByLampaEnv() {
 			if (envCache !== null) return envCache;
@@ -169,11 +171,12 @@
 
 		function openByLampa() {
 			try {
-				var b = findByLampaBtn().get(0);
+				var $b = findByLampaBtn();
+				var b = $b.get(0);
 				if (b) {
 					if (b.style && b.style.display === 'none') b.style.setProperty('display', 'flex', 'important');
-					try { $(b).trigger('hover:enter'); } catch (e1) {}
-					try { $(b).trigger('click'); } catch (e2) {}
+					try { $b.trigger('hover:enter'); } catch (e1) {}
+					try { $b.trigger('click'); } catch (e2) {}
 					setTimeout(function() { if (b && b.parentNode && !isByLampaInHeader()) setVisible(b, false); }, 50);
 					return;
 				}
@@ -243,7 +246,6 @@
 			} catch (e) {}
 		}
 
-		// -------- время / сеть --------
 		function isNetworkLike(cls, tag) {
 			return cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 ||
 				cls.indexOf('conn') !== -1 || cls.indexOf('signal') !== -1 || cls.indexOf('lan') !== -1 || tag === 'svg';
@@ -254,7 +256,8 @@
 		function isTimeString(x) { return /^\d{1,2}:\d{2}(:\d{2})?$/.test(x); }
 
 		function ensureSpan(container, cls, txt) {
-			var span = container.querySelector(':scope > .' + cls.split(' ').pop()) || container.querySelector('.' + cls.split(' ').pop());
+			var last = cls.split(' ').pop();
+			var span = container.querySelector(':scope > .' + last) || container.querySelector('.' + last);
 			if (!span) { span = document.createElement('div'); span.className = cls; container.appendChild(span); }
 			if (span.textContent !== txt) span.textContent = txt;
 			return span;
@@ -284,7 +287,7 @@
 			if (splitting) return;
 			splitting = true;
 			try {
-				var c = $('.head__time').get(0);
+				var c = document.querySelector('.head__time');
 				if (!c) return;
 				splitText(c, c);
 				var inner = c.querySelector('.head__time-now:not(.hf-clock-wrap)');
@@ -296,16 +299,30 @@
 		}
 
 		function collectNet() {
-			if (tick && tick.net) return tick.net;
+			if (tick && tick.net && tick.net.length) return tick.net;
 			var out = [];
 			try {
-				var sel = '.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]';
+				var sel = [
+					'.head [class*="network"]', '.head [class*="wifi"]', '.head [class*="speed"]',
+					'.head [class*="online"]', '.head [class*="conn"]', '.head [class*="signal"]',
+					'.head [class*="lan"]', '.head [id*="net"]', '.head [id*="wifi"]',
+					'.head__network', '.head__wifi', '.head__speed', '.head__online', '.head__connection'
+				].join(',');
 				var els = document.querySelectorAll(sel);
 				for (var i = 0; i < els.length; i++) {
 					var el = els[i];
 					if (el.classList.contains('head') || el.classList.contains('head__body') || el.classList.contains('head__actions')) continue;
-					if (el.closest('.head__action, .head__title')) continue;
-					out.push(el);
+					if (el.classList.contains('head__action') || el.classList.contains('selector')) {
+						if (out.indexOf(el) === -1) out.push(el);
+						continue;
+					}
+					var parent = el.closest('.head__action');
+					if (parent) {
+						if (out.indexOf(parent) === -1) out.push(parent);
+						continue;
+					}
+					if (el.closest('.head__title')) continue;
+					if (out.indexOf(el) === -1) out.push(el);
 				}
 				var tc = document.querySelector('.head__time');
 				if (tc) {
@@ -405,19 +422,20 @@
 				for (var j = 0; j < dates.length; j++) setVisible(dates[j], showCal);
 				for (var k = 0; k < net.length; k++) setVisible(net[k], showNet);
 				var c = document.querySelector('.head__time');
-				if (!c) return;
+				if (!c || typeof c.contains !== 'function') return;
 				if (clocks.indexOf(c) !== -1 || dates.indexOf(c) !== -1) return;
 				var hasC = clocks.some(function(x) { return c.contains(x); });
 				var hasD = dates.some(function(x) { return c.contains(x); });
 				var hasN = net.some(function(x) { return c.contains(x); });
 				var kids = c.children;
-				for (var s = 0; s < kids.length; s++) if (/^[•|\-\/]$/.test((kids[s].textContent || '').trim())) setVisible(kids[s], showClock && showCal);
+				for (var s = 0; s < kids.length; s++) {
+					if (/^[•|\-\/]$/.test((kids[s].textContent || '').trim())) setVisible(kids[s], showClock && showCal);
+				}
 				if (!hasC && !hasD && !hasN) return;
 				setVisible(c, (hasC && showClock) || (hasD && showCal) || (hasN && showNet));
 			} catch (e) {}
 		}
 
-		// -------- заголовок --------
 		function refreshTitle() {
 			try {
 				var el = $('.head__title');
@@ -425,8 +443,22 @@
 				var cur = el.text();
 				var orig = el.attr('data-hf-orig');
 				var stripped = el.attr('data-hf-stripped');
-				if (!orig) { orig = cur; el.attr('data-hf-orig', orig); stripped = orig.split(' - ').length === 2 ? orig.split(' - ')[0] : orig; el.attr('data-hf-stripped', stripped); }
-				else if (cur !== orig && cur !== stripped) { orig = cur; el.attr('data-hf-orig', orig); stripped = orig.split(' - ').length === 2 ? orig.split(' - ')[0] : orig; el.attr('data-hf-stripped', stripped); }
+				if (!orig) {
+					orig = cur;
+					el.attr('data-hf-orig', orig);
+				}
+				if (!stripped) {
+					var parts = orig.split(' - ');
+					stripped = parts.length === 2 ? parts[0] : orig;
+					el.attr('data-hf-stripped', stripped);
+				}
+				if (cur !== orig && cur !== stripped) {
+					orig = cur;
+					el.attr('data-hf-orig', orig);
+					var p2 = orig.split(' - ');
+					stripped = p2.length === 2 ? p2[0] : orig;
+					el.attr('data-hf-stripped', stripped);
+				}
 				var target = getBool('head_filter_show_source', true) ? orig : stripped;
 				if (el.text() !== target) el.text(target);
 				if (getBool('head_filter_big_title', false)) el.css({ 'font-weight': 'bold', 'text-transform': 'uppercase' });
@@ -434,7 +466,6 @@
 			} catch (e) {}
 		}
 
-		// -------- меню настроек --------
 		var labelCache = null;
 		function labels() {
 			if (labelCache) return labelCache;
@@ -551,22 +582,37 @@
 					var nm = hf.find('.settings-folder__name, .settings__name').first();
 					var want = t('name_plugin', 'Настройка шапки+');
 					if (nm.length && nm.text().trim() !== want) nm.text(want);
-					if (!hf.hasClass('hf-icon-fixed')) {
+
+					var iconEl = hf.find('.settings-folder__icon, .settings__icon').first();
+					var hasSvg = iconEl.length && iconEl.find('svg').length > 0;
+					if (!hasSvg) {
 						var clone = null;
 						if (more.length) {
-							var mi = more.find('.settings-folder__icon, .settings__icon').first();
-							if (!mi.length) {
-								more.children().each(function() { if ($(this).find('svg').length) { mi = $(this); return false; } });
+							more.children().each(function() {
+								if (clone) return false;
+								var $c = $(this);
+								if ($c.find('svg').length) clone = $c.find('svg').first().parent().clone();
+							});
+							if (!clone) {
+								var mi = more.find('.settings-folder__icon, .settings__icon').first();
+								if (mi.length && mi.find('svg').length) clone = mi.clone();
 							}
-							if (mi.length && mi.find('svg').length) clone = mi.clone();
 						}
-						if (clone) {
-							var ti = hf.find('.settings-folder__icon, .settings__icon').first();
-							if (ti.length) ti.replaceWith(clone); else hf.prepend(clone);
+						if (!clone) {
+							var fallbackSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>';
+							clone = $('<div class="settings-folder__icon">' + fallbackSvg + '</div>');
 						}
+						if (iconEl.length) iconEl.replaceWith(clone);
+						else hf.prepend(clone);
+						if (hf.find('svg').length > 0) hf.addClass('hf-icon-fixed');
+					} else {
 						hf.addClass('hf-icon-fixed');
 					}
-					if (iface.length && iface.next().attr('data-component') !== 'head_filter') { iface.after(hf); moved = true; }
+
+					if (iface.length && iface.next().attr('data-component') !== 'head_filter') {
+						iface.after(hf);
+						moved = true;
+					}
 				}
 				if (moved && Lampa.Controller && typeof Lampa.Controller.enabled === 'function') {
 					var c = Lampa.Controller.enabled();
@@ -591,7 +637,6 @@
 			withTick(function() { applyStatic(); refreshTitle(); refreshByLampa(); refreshTimeSection(); });
 		}
 
-		// -------- наблюдатели --------
 		try {
 			var tn = document.querySelector('.head__title');
 			if (tn && window.MutationObserver) new MutationObserver(function() {
@@ -608,7 +653,11 @@
 				rafPending = true;
 				var run = function() {
 					rafPending = false;
-					withTick(function() { applyStatic(); if (hasByLampaBtn() && !isByLampaInHeader()) findByLampaBtn().each(function() { setVisible(this, false); }); refreshTimeSection(); });
+					withTick(function() {
+						applyStatic();
+						if (hasByLampaBtn() && !isByLampaInHeader()) findByLampaBtn().each(function() { setVisible(this, false); });
+						refreshTimeSection();
+					});
 				};
 				if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
 			}).observe(hn, { childList: true, subtree: true });
@@ -638,9 +687,19 @@
 			Lampa.Storage.listener.follow('change', function(e) {
 				if (!e) return;
 				if (e.name == 'activity') { setTimeout(applyAll, 300); setTimeout(applyAll, 1000); return; }
-				if (e.name === 'language') { labelCache = null; }
-				if (e.name in topHead) { setVisible(document.querySelector(topHead[e.name].s), getBool(e.name, true)); return; }
-				if (e.name in standardHead) { setVisible(document.querySelector(standardHead[e.name].s), getBool(e.name, true)); return; }
+				if (e.name === 'language' || e.name === 'lang') { labelCache = null; return; }
+				if (e.name in topHead) {
+					var showT = getBool(e.name, true);
+					var elsT = document.querySelectorAll(topHead[e.name].s);
+					for (var i = 0; i < elsT.length; i++) setVisible(elsT[i], showT);
+					return;
+				}
+				if (e.name in standardHead) {
+					var showS = getBool(e.name, true);
+					var elsS = document.querySelectorAll(standardHead[e.name].s);
+					for (var j = 0; j < elsS.length; j++) setVisible(elsS[j], showS);
+					return;
+				}
 				if (e.name === 'head_filter_show_source' || e.name === 'head_filter_big_title') { refreshTitle(); return; }
 				if (e.name === 'head_filter_bylampa_notice_v2') { setTimeout(function() { refreshByLampa(); refreshByLampaRow(); }, 30); return; }
 				if (e.name === 'head_filter_show_clock' || e.name === 'head_filter_show_calendar' || e.name === 'head_filter_show_network') {
