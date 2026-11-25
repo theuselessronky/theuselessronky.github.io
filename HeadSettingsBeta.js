@@ -60,7 +60,7 @@
 		try {
 			if (Lampa.Manifest) {
 				var self = {
-					type: 'other', version: '2.3.0',
+					type: 'other', version: '2.4.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
@@ -80,7 +80,7 @@
 			head_filter_show_feed:       { l: 'feed',       f: 'Новости',             s: '.open--feed, [data-action="feed"]' },
 			head_filter_show_notice:     { l: 'notice',     f: 'Уведомления',         s: '.notice--icon' },
 			head_filter_show_broadcast:  { l: 'broadcast',  f: 'Вещание',             s: '.open--broadcast, [data-action="broadcast"]' },
-			head_filter_show_fullscreen: { l: 'fullscreen', f: 'Полноэкранный режим', s: '.full-screen, .fullscreen, .head__fullscreen, [data-action="fullscreen"], [data-action="full-screen"]' },
+			head_filter_show_fullscreen: { l: 'fullscreen', f: 'Полноэкранный режим', s: '.full--screen, .full-screen, .fullscreen, .head__fullscreen, [data-action="fullscreen"], [data-action="full-screen"]' },
 			head_filter_show_blackfriday:{ l: 'blackfriday',f: 'Черная пятница',      s: '.black-friday__button' }
 		};
 		var topHead = {
@@ -156,7 +156,7 @@
 			envCache = false; return false;
 		}
 
-		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
+		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
 		function findByLampaBtn() {
 			try {
 				var ex = $('.head .bylampa--notice, .head .bylampa-notice, .head [data-action="bylampa_notice"], .head [data-bylampa-notice]');
@@ -255,7 +255,8 @@
 
 		function isNetworkLike(cls, tag) {
 			return cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 ||
-				cls.indexOf('conn') !== -1 || cls.indexOf('signal') !== -1 || cls.indexOf('lan') !== -1 || tag === 'svg';
+				cls.indexOf('conn') !== -1 || cls.indexOf('signal') !== -1 || cls.indexOf('lan') !== -1 ||
+				cls.indexOf('marker') !== -1 || tag === 'svg';
 		}
 		function isDateString(x) {
 			return !!x && /\d{1,2}[./-]\d{1,2}|янв|фев|мар|апр|мая|июн|июл|авг|сен|окт|ноя|дек|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|\b(май|may)\b|понедельник|вторник|среда|четверг|пятница|суббота|воскресенье|\b(пн|вт|ср|чт|пт|сб|вс|mon|tue|wed|thu|fri|sat|sun)\b/i.test(x);
@@ -315,11 +316,17 @@
 			}
 			var out = [];
 			try {
+				var markers = document.querySelectorAll('.head__markers, .head .head__markers');
+				for (var m = 0; m < markers.length; m++) {
+					if (markers[m] && out.indexOf(markers[m]) === -1) out.push(markers[m]);
+				}
 				var sel = [
 					'.head [class*="network"]', '.head [class*="wifi"]', '.head [class*="speed"]',
 					'.head [class*="online"]', '.head [class*="conn"]', '.head [class*="signal"]',
-					'.head [class*="lan"]', '.head [id*="net"]', '.head [id*="wifi"]',
-					'.head__network', '.head__wifi', '.head__speed', '.head__online', '.head__connection'
+					'.head [class*="lan"]', '.head [class*="markers"]',
+					'.head [id*="net"]', '.head [id*="wifi"]',
+					'.head__network', '.head__wifi', '.head__speed', '.head__online', '.head__connection',
+					'.head__markers'
 				].join(',');
 				var els = document.querySelectorAll(sel);
 				for (var i = 0; i < els.length; i++) {
@@ -329,7 +336,7 @@
 						if (out.indexOf(el) === -1) out.push(el);
 						continue;
 					}
-					var parent = el.closest('.head__action');
+					var parent = el.closest('.head__action, .head__markers');
 					if (parent) {
 						if (out.indexOf(parent) === -1) out.push(parent);
 						continue;
