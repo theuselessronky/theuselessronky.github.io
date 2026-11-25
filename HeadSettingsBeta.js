@@ -1,1258 +1,707 @@
 (function() {
 	'use strict';
-
 	if (window.plugin_head_filter_plus_ready) return;
 	window.plugin_head_filter_plus_ready = true;
 
-	function initLang() {
-		if (!window.Lampa || !Lampa.Lang || typeof Lampa.Lang.add !== 'function') return;
-		Lampa.Lang.add({
-			arrow: {
-				ru: 'Стрелка',
-				en: 'Back arrow',
-				uk: 'Стрілка',
-				zh: '返回箭头'
-			},
-			menu_btn: {
-				ru: 'Меню',
-				en: 'Menu',
-				uk: 'Меню',
-				zh: '菜单'
-			},
-			source_title: {
-				ru: 'Источник',
-				en: 'Source',
-				uk: 'Джерело',
-				zh: '来源'
-			},
-			big_title: {
-				ru: 'Увеличенное название раздела',
-				en: 'Enlarged section title',
-				uk: 'Збільшена назва розділу',
-				zh: '放大标题'
-			},
-			bylampa_notice: {
-				ru: 'Уведомления ByLampa',
-				en: 'ByLampa Notifications',
-				uk: 'Сповіщення ByLampa',
-				zh: 'ByLampa 通知'
-			},
-			bylampa_notice_yes: {
-				ru: 'Да',
-				en: 'Yes',
-				uk: 'Так',
-				zh: '是'
-			},
-			bylampa_notice_moved: {
-				ru: 'Перенесено в боковое меню',
-				en: 'Moved to side menu',
-				uk: 'Перенесено в бічне меню',
-				zh: '移至侧边菜单'
-			},
-			menu_changes: {
-				ru: 'Изменения',
-				en: 'Changes',
-				uk: 'Зміни',
-				zh: '更新日志'
-			},
-			clock_only: {
-				ru: 'Часы',
-				en: 'Clock',
-				uk: 'Годинник',
-				zh: '时钟'
-			},
-			calendar_only: {
-				ru: 'Календарь',
-				en: 'Calendar',
-				uk: 'Календар',
-				zh: '日历'
-			},
-			network_indicator: {
-				ru: 'Сеть',
-				en: 'Network',
-				uk: 'Мережа',
-				zh: '网络'
-			},
-			search: {
-				ru: 'Поиск',
-				en: 'Search',
-				uk: 'Пошук',
-				zh: '搜索'
-			},
-			settings: {
-				ru: 'Настройки',
-				en: 'Settings',
-				uk: 'Налаштування',
-				zh: '设置'
-			},
-			premium: {
-				ru: 'Премиум',
-				en: 'Premium',
-				uk: 'Преміум',
-				zh: '高级'
-			},
-			profile: {
-				ru: 'Профиль',
-				en: 'Profile',
-				uk: 'Профіль',
-				zh: '个人资料'
-			},
-			feed: {
-				ru: 'Новости',
-				en: 'Feed',
-				uk: 'Новини',
-				zh: '饲料'
-			},
-			notice: {
-				ru: 'Уведомления',
-				en: 'Notifications',
-				uk: 'Сповіщення',
-				zh: '通知'
-			},
-			broadcast: {
-				ru: 'Вещание',
-				en: 'Broadcast',
-				uk: 'Мовлення',
-				zh: '广播'
-			},
-			fullscreen: {
-				ru: 'Полноэкранный режим',
-				en: 'Fullscreen mode',
-				uk: 'Повноекранний режим',
-				zh: '全屏模式'
-			},
-			reload: {
-				ru: 'Обновление страницы',
-				en: 'Page reload',
-				uk: 'Оновлення сторінки',
-				zh: '页面重新加载'
-			},
-			blackfriday: {
-				ru: 'Черная пятница',
-				en: 'Black Friday',
-				uk: 'Чорна п’ятниця',
-				zh: '黑色星期五'
-			},
-			name_menu: {
-				ru: 'Отображать в шапке',
-				en: 'Display in header',
-				uk: 'Відображати у шапці',
-				zh: '在标题中显示'
-			},
-			name_plugin: {
-				ru: 'Настройка шапки+',
-				en: 'Header settings+',
-				uk: 'Налаштування шапки+',
-				zh: '标题设置+'
-			},
-			plugin_description: {
-				ru: 'Плагин для настройки шапки',
-				en: 'Plugin for customizing the header',
-				uk: 'Плагін для налаштування шапки',
-				zh: '用于配置上限的插件'
-			}
-		});
-	}
+	var LANG = {
+		arrow: { ru: 'Стрелка', en: 'Back arrow', uk: 'Стрілка', zh: '返回箭头' },
+		menu_btn: { ru: 'Меню', en: 'Menu', uk: 'Меню', zh: '菜单' },
+		source_title: { ru: 'Источник', en: 'Source', uk: 'Джерело', zh: '来源' },
+		big_title: { ru: 'Увеличенное название раздела', en: 'Enlarged section title', uk: 'Збільшена назва розділу', zh: '放大标题' },
+		bylampa_notice: { ru: 'Уведомления ByLampa', en: 'ByLampa Notifications', uk: 'Сповіщення ByLampa', zh: 'ByLampa 通知' },
+		bylampa_notice_yes: { ru: 'Да', en: 'Yes', uk: 'Так', zh: '是' },
+		bylampa_notice_moved: { ru: 'Перенесено в боковое меню', en: 'Moved to side menu', uk: 'Перенесено в бічне меню', zh: '移至侧边菜单' },
+		menu_changes: { ru: 'Изменения', en: 'Changes', uk: 'Зміни', zh: '更新日志' },
+		clock_only: { ru: 'Часы', en: 'Clock', uk: 'Годинник', zh: '时钟' },
+		calendar_only: { ru: 'Календарь', en: 'Calendar', uk: 'Календар', zh: '日历' },
+		network_indicator: { ru: 'Сеть', en: 'Network', uk: 'Мережа', zh: '网络' },
+		search: { ru: 'Поиск', en: 'Search', uk: 'Пошук', zh: '搜索' },
+		settings: { ru: 'Настройки', en: 'Settings', uk: 'Налаштування', zh: '设置' },
+		premium: { ru: 'Премиум', en: 'Premium', uk: 'Преміум', zh: '高级' },
+		profile: { ru: 'Профиль', en: 'Profile', uk: 'Профіль', zh: '个人资料' },
+		feed: { ru: 'Новости', en: 'Feed', uk: 'Новини', zh: '饲料' },
+		notice: { ru: 'Уведомления', en: 'Notifications', uk: 'Сповіщення', zh: '通知' },
+		broadcast: { ru: 'Вещание', en: 'Broadcast', uk: 'Мовлення', zh: '广播' },
+		fullscreen: { ru: 'Полноэкранный режим', en: 'Fullscreen mode', uk: 'Повноэкранний режим', zh: '全屏模式' },
+		reload: { ru: 'Обновление страницы', en: 'Page reload', uk: 'Оновлення сторінки', zh: '页面重新加载' },
+		blackfriday: { ru: 'Черная пятница', en: 'Black Friday', uk: 'Чорна п’ятниця', zh: '黑色星期五' },
+		name_menu: { ru: 'Отображать в шапке', en: 'Display in header', uk: 'Відображати у шапці', zh: '在标题中显示' },
+		name_plugin: { ru: 'Настройка шапки+', en: 'Header settings+', uk: 'Налаштування шапки+', zh: '标题设置+' },
+		plugin_description: { ru: 'Плагин для настройки шапки', en: 'Plugin for customizing the header', uk: 'Плагін для налаштування шапки', zh: '用于配置上限的插件' }
+	};
 
 	function t(key, fallback) {
 		try {
 			if (window.Lampa && Lampa.Lang && typeof Lampa.Lang.translate === 'function') {
-				var res = Lampa.Lang.translate(key);
-				if (res && res !== key) return res;
+				var r = Lampa.Lang.translate(key);
+				if (r && r !== key) return r;
 			}
-		} catch (err) {}
+		} catch (e) {}
 		return fallback || key;
 	}
 
 	function startPlugin() {
 		if (!window.Lampa || !window.$) return;
+		if (window.plugin_head_filter_plus_lang_ready !== true && Lampa.Lang && typeof Lampa.Lang.add === 'function') {
+			window.plugin_head_filter_plus_lang_ready = true;
+			try { Lampa.Lang.add(LANG); } catch (e) {}
+		}
 
-		initLang();
-
-		var isUpdatingHead = false;
+		var busy = false;
+		var splitting = false;
+		var rafPending = false;
+		var tick = null;
 
 		try {
 			if (Lampa.Manifest) {
-				Lampa.Manifest.plugins = {
-					type: 'other',
-					version: '1.8.1',
+				var self = {
+					type: 'other', version: '2.0.0',
 					name: t('name_plugin', 'Настройка шапки+'),
 					description: t('plugin_description', 'Плагин для настройки шапки'),
 					component: 'head_filter'
 				};
+				var cur = Lampa.Manifest.plugins;
+				if (Array.isArray(cur)) Lampa.Manifest.plugins = cur.concat([self]);
+				else if (cur && typeof cur === 'object') Lampa.Manifest.plugins = Object.assign({}, cur, { head_filter: self });
+				else Lampa.Manifest.plugins = self;
 			}
-		} catch (err) {}
+		} catch (e) {}
 
 		var standardHead = {
-			'head_filter_show_search': {langKey: 'search', fallback: 'Поиск', element: '.open--search'},
-			'head_filter_show_settings': {langKey: 'settings', fallback: 'Настройки', element: '.open--settings'},
-			'head_filter_show_premium': {langKey: 'premium', fallback: 'Премиум', element: '.open--premium'},
-			'head_filter_show_profile': {langKey: 'profile', fallback: 'Профиль', element: '.open--profile'},
-			'head_filter_show_feed': {langKey: 'feed', fallback: 'Новости', element: '.open--feed'},
-			'head_filter_show_notice': {langKey: 'notice', fallback: 'Уведомления', element: '.notice--icon'},
-			'head_filter_show_broadcast': {langKey: 'broadcast', fallback: 'Вещание', element: '.open--broadcast'},
-			'head_filter_show_fullscreen': {langKey: 'fullscreen', fallback: 'Полноэкранный режим', element: '.full-screen'},
-			'head_filter_show_reload': {langKey: 'reload', fallback: 'Обновление страницы', element: '.m-reload-screen'},
-			'head_filter_show_blackfriday': {langKey: 'blackfriday', fallback: 'Черная пятница', element: '.black-friday__button'}
+			head_filter_show_search:    { l: 'search',     f: 'Поиск',                 s: '.open--search' },
+			head_filter_show_settings:  { l: 'settings',   f: 'Настройки',             s: '.open--settings' },
+			head_filter_show_premium:   { l: 'premium',    f: 'Премиум',               s: '.open--premium' },
+			head_filter_show_profile:   { l: 'profile',    f: 'Профиль',               s: '.open--profile' },
+			head_filter_show_feed:      { l: 'feed',       f: 'Новости',               s: '.open--feed' },
+			head_filter_show_notice:    { l: 'notice',     f: 'Уведомления',           s: '.notice--icon' },
+			head_filter_show_broadcast: { l: 'broadcast',  f: 'Вещание',               s: '.open--broadcast' },
+			head_filter_show_fullscreen:{ l: 'fullscreen', f: 'Полноэкранный режим',   s: '.full-screen' },
+			head_filter_show_reload:    { l: 'reload',     f: 'Обновление страницы',   s: '.m-reload-screen' },
+			head_filter_show_blackfriday:{l: 'blackfriday',f: 'Черная пятница',        s: '.black-friday__button' }
 		};
-
 		var topHead = {
-			'head_filter_show_arrow': {langKey: 'arrow', fallback: 'Стрелка', element: '.head__backward'},
-			'head_filter_show_menu': {langKey: 'menu_btn', fallback: 'Меню', element: '.head__menu-icon'}
+			head_filter_show_arrow: { l: 'arrow',    f: 'Стрелка', s: '.head__backward' },
+			head_filter_show_menu:  { l: 'menu_btn', f: 'Меню',    s: '.head__menu-icon' }
 		};
-
-		var alwaysVisibleParams = {
-			'head_filter_show_clock': true,
-			'head_filter_show_calendar': true,
-			'head_filter_show_settings': true,
-			'head_filter_show_search': true,
-			'head_filter_show_notice': true,
-			'head_filter_show_arrow': true,
-			'head_filter_show_blackfriday': true,
-			'head_filter_show_menu': true,
-			'head_filter_show_source': true,
-			'head_filter_big_title': true,
-			'head_filter_show_profile': true,
-			'head_filter_show_network': true
+		var alwaysVisible = {
+			head_filter_show_clock: true, head_filter_show_calendar: true,
+			head_filter_show_source: true, head_filter_big_title: true,
+			head_filter_show_network: true
 		};
+		var allHeadKeys = Object.keys(topHead).concat(Object.keys(standardHead));
 
-		function getParamLabelByKey(key) {
-			if (key === 'head_filter_bylampa_notice_v2') return t('bylampa_notice', 'Уведомления ByLampa');
-			if (key === 'head_filter_show_clock') return t('clock_only', 'Часы');
-			if (key === 'head_filter_show_calendar') return t('calendar_only', 'Календарь');
-			if (key === 'head_filter_show_network') return t('network_indicator', 'Сеть');
-			if (key === 'head_filter_show_source') return t('source_title', 'Источник');
-			if (key === 'head_filter_big_title') return t('big_title', 'Увеличенное название раздела');
-			if (key in topHead) return t(topHead[key].langKey, topHead[key].fallback);
-			if (key in standardHead) return t(standardHead[key].langKey, standardHead[key].fallback);
-			return '';
-		}
-
-		function buildParamTitleMap() {
-			var map = {};
-			var keys = [
-				'head_filter_bylampa_notice_v2',
-				'head_filter_show_clock',
-				'head_filter_show_calendar',
-				'head_filter_show_network',
-				'head_filter_show_source',
-				'head_filter_big_title'
-			].concat(Object.keys(topHead), Object.keys(standardHead));
-
-			for (var i = 0; i < keys.length; i++) {
-				var k = keys[i];
-				var lbl = getParamLabelByKey(k);
-				if (lbl) map[lbl] = k;
-			}
-			return map;
-		}
-
-		function getStorageBool(key, defVal) {
+		// -------- storage --------
+		function getBool(key, def) {
 			try {
-				if (!Lampa.Storage || typeof Lampa.Storage.get !== 'function') return defVal;
-				var val = Lampa.Storage.get(key, defVal);
-				if (val === false || val === 'false' || val === 0 || val === '0') return false;
-				if (val === true || val === 'true' || val === 1 || val === '1') return true;
-				return Boolean(defVal);
-			} catch (err) {
-				return defVal;
-			}
+				if (!Lampa.Storage || typeof Lampa.Storage.get !== 'function') return def;
+				var v = Lampa.Storage.get(key, def);
+				if (v === false || v === 'false' || v === 0 || v === '0') return false;
+				if (v === true || v === 'true' || v === 1 || v === '1') return true;
+				return typeof v === 'boolean' ? v : Boolean(def);
+			} catch (e) { return def; }
 		}
+		function isByLampaInHeader() { return getBool('head_filter_bylampa_notice_v2', true); }
 
-		function setElementVisible(el, show) {
+		// -------- видимость --------
+		function setVisible(el, show) {
 			if (!el || !el.style) return;
 			try {
 				if (show) {
 					if (el.getAttribute && el.getAttribute('data-hf-hidden') === '1') {
-						el.style.removeProperty('display');
+						var o = el.getAttribute('data-hf-orig-display');
+						if (o && o !== 'none') el.style.setProperty('display', o, 'important');
+						else el.style.removeProperty('display');
 						el.removeAttribute('data-hf-hidden');
-					} else if (el.style.display === 'none') {
+						el.removeAttribute('data-hf-orig-display');
+					} else if (el.style.display === 'none' && !el.getAttribute('data-hf-hidden')) {
 						el.style.removeProperty('display');
 					}
-				} else {
-					if (el.style.display !== 'none') {
-						el.style.setProperty('display', 'none', 'important');
-						if (el.setAttribute) el.setAttribute('data-hf-hidden', '1');
-					}
+				} else if (el.style.display !== 'none' || el.getAttribute('data-hf-hidden') !== '1') {
+					var cur = el.style.getPropertyValue('display');
+					if (cur && cur !== 'none') el.setAttribute('data-hf-orig-display', cur);
+					el.style.setProperty('display', 'none', 'important');
+					if (el.setAttribute) el.setAttribute('data-hf-hidden', '1');
 				}
-			} catch (err) {}
+			} catch (e) {}
 		}
+		function hideShowAll(map) {
+			Object.keys(map).forEach(function(k) {
+				var els = document.querySelectorAll(map[k].s);
+				var show = getBool(k, true);
+				for (var i = 0; i < els.length; i++) setVisible(els[i], show);
+			});
+		}
+		function applyStatic() { hideShowAll(topHead); hideShowAll(standardHead); }
 
-		function showHideElement(selector, show) {
+		// -------- окружение ByLampa --------
+		var envCache = null;
+		function hasByLampaEnv() {
+			if (envCache !== null) return envCache;
 			try {
-				var els = $(selector);
-				if (!els.length) return;
-				els.each(function() {
-					setElementVisible(this, Boolean(show));
-				});
-			} catch (err) {}
+				if (window.ByLampa) { envCache = true; return true; }
+				var ss = document.getElementsByTagName('script');
+				for (var i = 0; i < ss.length; i++) if ((ss[i].src || '').toLowerCase().indexOf('bylampa') !== -1) { envCache = true; return true; }
+				var ls = document.getElementsByTagName('link');
+				for (var j = 0; j < ls.length; j++) if ((ls[j].href || '').toLowerCase().indexOf('bylampa') !== -1) { envCache = true; return true; }
+			} catch (e) {}
+			envCache = false; return false;
 		}
 
-		function applyStaticButtonsVisibility() {
+		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
+		function findByLampaBtn() {
 			try {
-				Object.keys(topHead).forEach(function(key) {
-					var show_element = getStorageBool(key, true);
-					showHideElement(topHead[key].element, show_element);
-				});
-				Object.keys(standardHead).forEach(function(key) {
-					var show_element = getStorageBool(key, true);
-					showHideElement(standardHead[key].element, show_element);
-				});
-			} catch (err) {}
-		}
-
-		function isByLampaNoticeInHeader() {
-			return getStorageBool('head_filter_bylampa_notice_v2', true);
-		}
-
-		function detectByLampaEnvironment() {
-			try {
-				if (window.ByLampa) return true;
-				var scripts = document.getElementsByTagName('script');
-				for (var i = 0; i < scripts.length; i++) {
-					var src = (scripts[i].src || '').toLowerCase();
-					if (src.indexOf('bylampa') !== -1) return true;
-				}
-				var links = document.getElementsByTagName('link');
-				for (var j = 0; j < links.length; j++) {
-					var href = (links[j].href || '').toLowerCase();
-					if (href.indexOf('bylampa') !== -1) return true;
-				}
-			} catch (err) {}
-			return false;
-		}
-
-		// --- 1. УВЕДОМЛЕНИЯ BYLAMPA ---
-		function getByLampaNoticeBtn() {
-			try {
-				var standardClasses = [
-					'open--search', 'open--settings', 'open--premium', 'open--profile',
-					'open--feed', 'notice--icon', 'open--broadcast', 'full-screen',
-					'm-reload-screen', 'black-friday__button', 'head__backward',
-					'head__menu-icon', 'head__split', 'head__time', 'head__title',
-					'head__network', 'head__wifi', 'head__speed', 'head__online', 'head__connection'
-				];
-
-				var explicitBtn = $('.head .bylampa--notice, .head .bylampa-notice, .head [data-action="bylampa_notice"], .head [data-bylampa-notice]');
-				if (explicitBtn.length) return explicitBtn;
-
-				if (!detectByLampaEnvironment()) return $();
-
+				var ex = $('.head .bylampa--notice, .head .bylampa-notice, .head [data-action="bylampa_notice"], .head [data-bylampa-notice]');
+				if (ex.length) return ex;
+				if (!hasByLampaEnv()) return $();
 				return $('.head .head__action, .head__actions > div, .head__actions > button').filter(function() {
 					var el = $(this);
 					if (!el.hasClass('selector') && !el.hasClass('head__action')) return false;
+					for (var i = 0; i < BYLAMPA_EXCLUDE.length; i++) if (el.hasClass(BYLAMPA_EXCLUDE[i])) return false;
+					var cls = (this.className || '').toString().toLowerCase();
+					if (/bookmark|torr|cub|tmdb|radio|shot|sync|theme|lang|exit|power/.test(cls)) return false;
+					var a = (el.attr('data-action') || '').toLowerCase();
+					if (a && a.indexOf('bylampa') === -1 && a.indexOf('notice') === -1 && a.indexOf('change') === -1) return false;
+					return el.find('svg').length > 0 || el.find('img').length > 0;
+				});
+			} catch (e) { return $(); }
+		}
+		function hasByLampaBtn() { return findByLampaBtn().length > 0; }
 
-					for (var i = 0; i < standardClasses.length; i++) {
-						if (el.hasClass(standardClasses[i])) return false;
+		function openByLampa() {
+			try {
+				var b = findByLampaBtn().get(0);
+				if (b) {
+					if (b.style && b.style.display === 'none') b.style.setProperty('display', 'flex', 'important');
+					try { $(b).trigger('hover:enter'); } catch (e1) {}
+					try { $(b).trigger('click'); } catch (e2) {}
+					setTimeout(function() { if (b && b.parentNode && !isByLampaInHeader()) setVisible(b, false); }, 50);
+					return;
+				}
+				if (window.ByLampa) {
+					if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
+					else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+				}
+			} catch (e) {}
+		}
+		function refreshMenuCtrl() {
+			try {
+				if (!Lampa.Controller || typeof Lampa.Controller.enabled !== 'function') return;
+				var c = Lampa.Controller.enabled();
+				if (c && c.name === 'menu' && typeof Lampa.Controller.collectionSet === 'function') {
+					var m = $('.menu'); if (m.length) Lampa.Controller.collectionSet(m);
+				}
+			} catch (e) {}
+		}
+
+		function refreshByLampa() {
+			try {
+				var items = $('.hf-bylampa-changes');
+				if (!hasByLampaBtn()) {
+					if (items.length) { items.remove(); refreshMenuCtrl(); }
+					return;
+				}
+				var inHeader = isByLampaInHeader();
+				findByLampaBtn().each(function() { setVisible(this, inHeader); });
+
+				if (inHeader) {
+					if (items.length) { items.remove(); refreshMenuCtrl(); }
+					return;
+				}
+				var valid = items.filter('[data-action="hf_bylampa_changes"]');
+				if (items.length > valid.length) items.not(valid).remove();
+				if (valid.length === 1) return;
+				valid.remove();
+
+				var console = $('.menu__item[data-action="console"]');
+				if (!console.length) console = $('.menu__item').filter(function() {
+					var x = $(this).find('.menu__text').text().trim();
+					return x === 'Консоль' || x === 'Console' || x === t('menu_console', 'Консоль');
+				});
+				if (!console.length && !$('.menu__list').length) return;
+
+				var bell = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+				var node;
+				if (console.length) {
+					node = console.first().clone(false);
+					node.removeClass('focus active select').addClass('hf-bylampa-changes')
+						.attr('data-action', 'hf_bylampa_changes');
+					node.find('.menu__ico').html(bell);
+					node.find('.menu__text').text(t('menu_changes', 'Изменения'));
+					node.find('.menu__counter, .menu__badge').remove();
+				} else {
+					node = $('<div class="menu__item selector hf-bylampa-changes" data-action="hf_bylampa_changes"><div class="menu__ico">' + bell + '</div><div class="menu__text">' + t('menu_changes', 'Изменения') + '</div></div>');
+				}
+				node.on('hover:enter.hfb click.hfb', function(e) { if (e && e.preventDefault) e.preventDefault(); openByLampa(); });
+
+				if (console.length) console.first().after(node);
+				else {
+					var lists = $('.menu__list');
+					if (lists.length > 1) lists.last().prepend(node);
+					else if (lists.length) lists.first().append(node);
+				}
+				refreshMenuCtrl();
+			} catch (e) {}
+		}
+
+		// -------- время / сеть --------
+		function isNetworkLike(cls, tag) {
+			return cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 ||
+				cls.indexOf('conn') !== -1 || cls.indexOf('signal') !== -1 || cls.indexOf('lan') !== -1 || tag === 'svg';
+		}
+		function isDateString(x) {
+			return !!x && /\d{1,2}[./-]\d{1,2}|янв|фев|мар|апр|мая|июн|июл|авг|сен|окт|ноя|дек|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|\b(май|may)\b|понедельник|вторник|среда|четверг|пятница|суббота|воскресенье|\b(пн|вт|ср|чт|пт|сб|вс|mon|tue|wed|thu|fri|sat|sun)\b/i.test(x);
+		}
+		function isTimeString(x) { return /^\d{1,2}:\d{2}(:\d{2})?$/.test(x); }
+
+		function ensureSpan(container, cls, txt) {
+			var span = container.querySelector(':scope > .' + cls.split(' ').pop()) || container.querySelector('.' + cls.split(' ').pop());
+			if (!span) { span = document.createElement('div'); span.className = cls; container.appendChild(span); }
+			if (span.textContent !== txt) span.textContent = txt;
+			return span;
+		}
+		function splitText(host, container) {
+			if (!host || !container) return;
+			var nodes = [], ch = host.childNodes;
+			for (var i = 0; i < ch.length; i++) if (ch[i].nodeType === 3) nodes.push(ch[i]);
+			for (var j = 0; j < nodes.length; j++) {
+				var node = nodes[j], raw = (node.nodeValue || '').trim();
+				if (!raw) continue;
+				var m = raw.match(/\d{1,2}:\d{2}(:\d{2})?/);
+				var time = m ? m[0] : '';
+				var rest = time ? raw.replace(time, '') : raw;
+				var date = rest.replace(/^[\s•|\-\/,]+|[\s•|\-\/,]+$/g, '').trim();
+				if (time && date && isDateString(date)) {
+					setVisible(ensureSpan(container, 'head__time-now hf-clock-wrap', time), getBool('head_filter_show_clock', true));
+					setVisible(ensureSpan(container, 'time--date hf-date-wrap', date), getBool('head_filter_show_calendar', true));
+					try { host.removeChild(node); } catch (e) {}
+				} else if (!time && date && isDateString(date)) {
+					setVisible(ensureSpan(container, 'time--date hf-date-wrap', date), getBool('head_filter_show_calendar', true));
+					try { host.removeChild(node); } catch (e) {}
+				}
+			}
+		}
+		function maybeSplit() {
+			if (splitting) return;
+			splitting = true;
+			try {
+				var c = $('.head__time').get(0);
+				if (!c) return;
+				splitText(c, c);
+				var inner = c.querySelector('.head__time-now:not(.hf-clock-wrap)');
+				if (inner) {
+					splitText(inner, c);
+					if (!inner.textContent.trim() && inner.children.length === 0 && inner.parentNode) inner.parentNode.removeChild(inner);
+				}
+			} catch (e) {} finally { splitting = false; }
+		}
+
+		function collectNet() {
+			if (tick && tick.net) return tick.net;
+			var out = [];
+			try {
+				var sel = '.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]';
+				var els = document.querySelectorAll(sel);
+				for (var i = 0; i < els.length; i++) {
+					var el = els[i];
+					if (el.classList.contains('head') || el.classList.contains('head__body') || el.classList.contains('head__actions')) continue;
+					if (el.closest('.head__action, .head__title')) continue;
+					out.push(el);
+				}
+				var tc = document.querySelector('.head__time');
+				if (tc) {
+					var all = tc.querySelectorAll('*');
+					for (var k = 0; k < all.length; k++) {
+						var n = all[k];
+						if (n.classList && (n.classList.contains('hf-clock-wrap') || n.classList.contains('hf-date-wrap'))) continue;
+						var tag = n.tagName.toLowerCase();
+						var txt = (n.textContent || '').trim();
+						if (tag === 'svg' || /мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(txt)) {
+							var target = (tag === 'svg' && n.parentElement && n.parentElement !== tc && n.parentElement.children.length === 1) ? n.parentElement : n;
+							if (out.indexOf(target) === -1) out.push(target);
+						}
 					}
+				}
+			} catch (e) {}
+			tick = tick || {}; tick.net = out;
+			return out;
+		}
 
-var clsStr = (this.className || '').toString().toLowerCase();
-if (/bookmark|torr|cub|tmdb|radio|shot|sync|theme|lang|exit|power/.test(clsStr)) {
-return false;
-}
-var action = (el.attr('data-action') || '').toLowerCase();
-if (action && action.indexOf('bylampa') === -1 && action.indexOf('notice') === -1 && action.indexOf('change') === -1) {
-return false;
-}
-if (!el.find('svg').length) return false;
-return true;
-});
-} catch (err) {
-return $();
-}
-}
-function hasByLampaNoticeFeature() {
-return getByLampaNoticeBtn().length > 0;
-}
-function toggleByLampaBtn(show) {
-try {
-var btn = getByLampaNoticeBtn();
-if (!btn.length) return;
-btn.each(function() {
-setElementVisible(this, Boolean(show));
-});
-} catch (err) {}
-}
-function openByLampaNoticeModal() {
-try {
-var btn = getByLampaNoticeBtn();
-var domBtn = btn.get(0);
-if (domBtn) {
-var wasHidden = domBtn.style && domBtn.style.display === 'none';
-if (wasHidden) {
-domBtn.style.setProperty('display', 'flex', 'important');
-}
-try { btn.trigger('hover:enter'); } catch (e1) {}
-try { btn.trigger('click'); } catch (e2) {}
-setTimeout(function() {
-if (!isByLampaNoticeInHeader()) {
-setElementVisible(domBtn, false);
-}
-}, 50);
-return;
-}
-if (window.ByLampa) {
-if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-}
-} catch (err) {}
-}
-function safeRefreshMenuController() {
-try {
-if (Lampa.Controller && typeof Lampa.Controller.enabled === 'function') {
-var activeCtrl = Lampa.Controller.enabled();
-if (activeCtrl && activeCtrl.name === 'menu' && typeof Lampa.Controller.collectionSet === 'function') {
-var menuEl = $('.menu');
-if (menuEl.length) Lampa.Controller.collectionSet(menuEl);
-}
-}
-} catch (err) {}
-}
-function updateByLampaNotice() {
-try {
-var existingItems = $('.hf-bylampa-changes');
-if (!hasByLampaNoticeFeature()) {
-if (existingItems.length) {
-existingItems.remove();
-safeRefreshMenuController();
-}
-return;
-}
-var showInHeader = isByLampaNoticeInHeader();
-toggleByLampaBtn(showInHeader);
-if (!showInHeader) {
-if (existingItems.length > 1) {
-existingItems.slice(1).remove();
-}
-if (existingItems.length === 1) return;
-var consoleItem = $('.menu__item[data-action="console"]');
-if (!consoleItem.length) {
-consoleItem = $('.menu__item').filter(function() {
-var txt = $(this).find('.menu__text').text().trim();
-return txt === 'Консоль' || txt === 'Console' || txt === t('menu_console', 'Консоль');
-});
-}
-if (!consoleItem.length && !$('.menu__list').length) return;
-var bellSvg = '' +
-'' +
-'' +
-'';
-var itemHtml;
-if (consoleItem.length) {
-itemHtml = consoleItem.first().clone(false);
-itemHtml.removeClass('focus active select');
-itemHtml.addClass('hf-bylampa-changes');
-itemHtml.attr('data-action', 'hf_bylampa_changes');
-itemHtml.find('.menu__ico').html(bellSvg);
-itemHtml.find('.menu__text').text(t('menu_changes', 'Изменения'));
-itemHtml.find('.menu__counter, .menu__badge').remove();
-} else {
-itemHtml = $(
-'' +
-'' + bellSvg + '' +
-'' + t('menu_changes', 'Изменения') + '' +
-''
-);
-}
-itemHtml.on('hover:enter click', function(e) {
-if (e && e.preventDefault) e.preventDefault();
-openByLampaNoticeModal();
-});
-if (consoleItem.length) {
-consoleItem.first().after(itemHtml);
-} else {
-var lists = $('.menu__list');
-if (lists.length > 1) {
-lists.last().prepend(itemHtml);
-} else {
-lists.first().append(itemHtml);
-}
-}
-safeRefreshMenuController();
-} else {
-if (existingItems.length) {
-existingItems.remove();
-safeRefreshMenuController();
-}
-}
-} catch (err) {}
-}
-// --- 2. ИНДИКАТОР СЕТИ ---
-function getNetworkNodes() {
-var nodes = [];
-try {
-$('.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]').each(function() {
-var el = $(this);
-if (el.hasClass('head') || el.hasClass('head__body') || el.hasClass('head__actions') || el.closest('.head__action, .head__title').length) return;
-if (nodes.indexOf(this) === -1) nodes.push(this);
-});
-var timeContainer = $('.head__time').get(0);
-if (timeContainer) {
-var allTimeChildren = timeContainer.querySelectorAll('*');
-for (var i = 0; i < allTimeChildren.length; i++) {
-var node = allTimeChildren.item(i);
-if (!node) continue;
-var tag = (node.tagName || '').toLowerCase();
-var txt = (node.textContent || '').trim();
-if (tag === 'svg' || /мбит|mbps|kbps|kb/s|ping|мс|ms/i.test(txt)) {
-var target = (tag === 'svg' && node.parentElement && node.parentElement !== timeContainer && node.parentElement.children.length === 1) ? node.parentElement : node;
-if (nodes.indexOf(target) === -1) nodes.push(target);
-}
-}
-}
-} catch (err) {}
-return nodes;
-}
-function updateNetworkIndicator() {
-try {
-var showNet = getStorageBool('head_filter_show_network', true);
-var netNodes = getNetworkNodes();
-for (var i = 0; i < netNodes.length; i++) {
-setElementVisible(netNodes[i], showNet);
-}
-} catch (err) {}
-}
-// --- 3. РАЗДЕЛЕНИЕ ЧАСОВ И КАЛЕНДАРЯ ---
-function isDateString(txt) {
-if (!txt) return false;
-return /\d{1,2}[./-]\d{1,2}|янв|фев|мар|апр|мая|июн|июл|авг|сен|окт|ноя|дек|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec|\b(май|may)\b|понедельник|вторник|среда|четверг|пятница|суббота|воскресенье|\b(пн|вт|ср|чт|пт|сб|вс|mon|tue|wed|thu|fri|sat|sun)\b/i.test(txt);
-}
-function splitInlineTextInside(hostEl, parentContainer) {
-if (!hostEl || !parentContainer) return;
-var textNodes = [];
-var childList = hostEl.childNodes;
-for (var i = 0; i < childList.length; i++) {
-var n = childList.item(i);
-if (n && n.nodeType === 3) textNodes.push(n);
-}
-for (var j = 0; j < textNodes.length; j++) {
-var node = textNodes[j];
-var rawText = (node.nodeValue || '').trim();
-if (!rawText) continue;
-var timeMatch = rawText.match(/\d{1,2}:\d{2}(:\d{2})?/);
-var timeStr = timeMatch ? String(timeMatch.slice(0, 1)) : '';
-var dateStr = timeStr ? rawText.replace(timeStr, '').replace(/^[\s•|-/,]+|[\s•|-/,]+$/g, '').trim() : rawText.replace(/^[\s•|-/,]+|[\s•|-/,]+$/g, '').trim();
-if (timeStr && dateStr && isDateString(dateStr)) {
-var clockSpan = parentContainer.querySelector('.hf-clock-wrap') || document.createElement('div');
-clockSpan.className = 'head__time-now hf-clock-wrap';
-clockSpan.textContent = timeStr;
-var dateSpan = parentContainer.querySelector('.hf-date-wrap') || document.createElement('div');
-dateSpan.className = 'time--date hf-date-wrap';
-dateSpan.textContent = dateStr;
-if (!clockSpan.parentNode) parentContainer.appendChild(clockSpan);
-if (!dateSpan.parentNode) parentContainer.appendChild(dateSpan);
-hostEl.removeChild(node);
-setElementVisible(clockSpan, getStorageBool('head_filter_show_clock', true));
-setElementVisible(dateSpan, getStorageBool('head_filter_show_calendar', true));
-} else if (!timeStr && dateStr && isDateString(dateStr)) {
-var onlyDateSpan = parentContainer.querySelector('.hf-date-wrap') || document.createElement('div');
-onlyDateSpan.className = 'time--date hf-date-wrap';
-onlyDateSpan.textContent = dateStr;
-if (!onlyDateSpan.parentNode) {
-parentContainer.appendChild(onlyDateSpan);
-}
-hostEl.removeChild(node);
-setElementVisible(onlyDateSpan, getStorageBool('head_filter_show_calendar', true));
-}
-}
-}
-function splitInlineTimeAndDate() {
-try {
-var container = $('.head__time').get(0);
-if (!container) return;
-splitInlineTextInside(container, container);
-var innerClock = container.querySelector('.head__time-now:not(.hf-clock-wrap)');
-if (innerClock) {
-splitInlineTextInside(innerClock, container);
-if (!innerClock.textContent.trim() && innerClock.children.length === 0 && innerClock.parentNode) {
-innerClock.parentNode.removeChild(innerClock);
-}
-}
-} catch (err) {}
-}
-function getClockNodes() {
-var clockNodes = [];
-try {
-splitInlineTimeAndDate();
-var container = $('.head__time').get(0);
-var netNodes = getNetworkNodes();
-$('.head__clock, .time--clock, .head__time-now').each(function() {
-if ($(this).closest('.head__title, .head__action').length) return;
-if (netNodes.indexOf(this) === -1 && clockNodes.indexOf(this) === -1) {
-clockNodes.push(this);
-}
-});
-if (container) {
-var children = container.children;
-for (var i = 0; i < children.length; i++) {
-var child = children.item(i);
-if (!child || netNodes.indexOf(child) !== -1) continue;
-var cls = (child.className || '').toString().toLowerCase();
-if (cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 || cls.indexOf('conn') !== -1 || (child.tagName || '').toLowerCase() === 'svg') {
-continue;
-}
-var txt = (child.textContent || '').trim();
-if (!txt || /мбит|mbps|kbps|kb/s|ping|мс|ms/i.test(txt)) continue;
-var isClock = cls.indexOf('clock') !== -1 ||
-(child.classList && (child.classList.contains('head__time-now') || child.classList.contains('time--clock'))) ||
-/^\d{1,2}:\d{2}(:\d{2})?$/.test(txt);
-if (isClock && clockNodes.indexOf(child) === -1) {
-clockNodes.push(child);
-}
-}
-if (!clockNodes.length && children.length === 0) {
-var rawText = (container.textContent || '').trim();
-if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(rawText)) {
-clockNodes.push(container);
-}
-}
-}
-} catch (err) {}
-return clockNodes;
-}
-function getCalendarNodes() {
-var calendarNodes = [];
-try {
-splitInlineTimeAndDate();
-var container = $('.head__time').get(0);
-var netNodes = getNetworkNodes();
-$('.head__date, .head__calendar, .time--date, .head [class*="calendar"]').each(function() {
-if (this === container) return;
-if ($(this).closest('.head__action, .head__title').length) return;
-if (netNodes.indexOf(this) !== -1) return;
-if (calendarNodes.indexOf(this) === -1) {
-calendarNodes.push(this);
-}
-});
-$('.head [class*="date"]').each(function() {
-if (this === container) return;
-if ($(this).closest('.head__action, .head__title').length) return;
-if (netNodes.indexOf(this) !== -1) return;
-var txt = ($(this).text() || '').trim();
-if (txt && !/\d{1,2}:\d{2}/.test(txt) && isDateString(txt) && calendarNodes.indexOf(this) === -1) {
-calendarNodes.push(this);
-}
-});
-if (container) {
-var children = container.children;
-for (var i = 0; i < children.length; i++) {
-var child = children.item(i);
-if (!child || netNodes.indexOf(child) !== -1) continue;
-var cls = (child.className || '').toString().toLowerCase();
-if (cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('speed') !== -1 || cls.indexOf('conn') !== -1 || (child.tagName || '').toLowerCase() === 'svg') {
-continue;
-}
-var txt = (child.textContent || '').trim();
-if (!txt || /мбит|mbps|kbps|kb/s|ping|мс|ms/i.test(txt)) continue;
-var isClock = cls.indexOf('clock') !== -1 ||
-(child.classList && (child.classList.contains('head__time-now') || child.classList.contains('time--clock'))) ||
-/^\d{1,2}:\d{2}(:\d{2})?$/.test(txt);
-var isDate = cls.indexOf('date') !== -1 ||
-cls.indexOf('cal') !== -1 ||
-(child.classList && child.classList.contains('time--date')) ||
-(!isClock && isDateString(txt));
-if (isDate && calendarNodes.indexOf(child) === -1) {
-calendarNodes.push(child);
-}
-}
-if (!calendarNodes.length && children.length === 0) {
-var rawText = (container.textContent || '').trim();
-if (rawText && !/\d{1,2}:\d{2}/.test(rawText) && isDateString(rawText)) {
-calendarNodes.push(container);
-}
-}
-}
-} catch (err) {}
-return calendarNodes;
-}
-function updateClock() {
-try {
-var showClock = getStorageBool('head_filter_show_clock', true);
-var clockNodes = getClockNodes();
-for (var i = 0; i < clockNodes.length; i++) {
-setElementVisible(clockNodes[i], showClock);
-}
-updateTimeContainerVisibility(clockNodes, null);
-} catch (err) {}
-}
-function updateCalendar() {
-try {
-var showCalendar = getStorageBool('head_filter_show_calendar', true);
-var calNodes = getCalendarNodes();
-for (var i = 0; i < calNodes.length; i++) {
-setElementVisible(calNodes[i], showCalendar);
-}
-updateTimeContainerVisibility(null, calNodes);
-} catch (err) {}
-}
-function updateTimeContainerVisibility(preClockNodes, preCalNodes) {
-try {
-var container = $('.head__time').get(0);
-if (!container) return;
-var clockNodes = preClockNodes || getClockNodes();
-var calNodes = preCalNodes || getCalendarNodes();
-var netNodes = getNetworkNodes();
-if (clockNodes.indexOf(container) !== -1 || calNodes.indexOf(container) !== -1) return;
-var hasClockInside = false;
-for (var i = 0; i < clockNodes.length; i++) {
-if (container.contains(clockNodes[i])) hasClockInside = true;
-}
-var hasCalInside = false;
-for (var j = 0; j < calNodes.length; j++) {
-if (container.contains(calNodes[j])) hasCalInside = true;
-}
-var hasNetInside = false;
-for (var k = 0; k < netNodes.length; k++) {
-if (container.contains(netNodes[k])) hasNetInside = true;
-}
-var showClock = getStorageBool('head_filter_show_clock', true);
-var showCal = getStorageBool('head_filter_show_calendar', true);
-var showNet = getStorageBool('head_filter_show_network', true);
-var children = container.children;
-for (var s = 0; s < children.length; s++) {
-var sep = children.item(s);
-if (!sep) continue;
-var sepTxt = (sep.textContent || '').trim();
-if (/^[•|-/]$/.test(sepTxt)) {
-setElementVisible(sep, showClock && showCal);
-}
-}
-if (!hasClockInside && !hasCalInside && !hasNetInside) return;
-var anyVisible = (hasClockInside && showClock) || (hasCalInside && showCal) || (hasNetInside && showNet);
-setElementVisible(container, anyVisible);
-} catch (err) {}
-}
-// --- 4. ЗАГОЛОВОК И ИСТОЧНИК ---
-function updateHeadTitle() {
-try {
-var titleEl = $('.head__title');
-if (!titleEl.length) return;
-var showSource = getStorageBool('head_filter_show_source', true);
-var bigTitle = getStorageBool('head_filter_big_title', false);
-var currentText = titleEl.text();
-var origText = titleEl.data('hf-orig');
-var baseOrig = origText ? origText.split(' - ').shift() : '';
-if (!origText || (currentText && currentText !== baseOrig && currentText !== origText)) {
-origText = currentText;
-titleEl.data('hf-orig', origText);
-}
-if (origText) {
-if (showSource) {
-if (titleEl.text() !== origText) titleEl.text(origText);
-} else {
-var cleanText = origText.split(' - ').shift();
-if (titleEl.text() !== cleanText) titleEl.text(cleanText);
-}
-}
-if (bigTitle) {
-titleEl.css({
-'font-weight': 'bold',
-'text-transform': 'uppercase'
-});
-} else {
-titleEl.css({
-'font-weight': '',
-'text-transform': ''
-});
-}
-} catch (err) {}
-}
-// --- 5. ПРОВЕРКА ДОСТУПНОСТИ ПЕРЕКЛЮЧАТЕЛЕЙ В МЕНЮ ---
-function isSettingParamAvailable(paramName) {
-try {
-if (alwaysVisibleParams[paramName]) {
-return true;
-}
-if (paramName === 'head_filter_bylampa_notice_v2') {
-return hasByLampaNoticeFeature();
-}
-if (paramName in topHead) {
-return $(topHead[paramName].element).length > 0;
-}
-if (paramName in standardHead) {
-return $(standardHead[paramName].element).length > 0;
-}
-} catch (err) {}
-return true;
-}
-function resolveParamNameFromRow(row, titleMap) {
-var name = row.attr('data-name') || row.data('name');
-if (!name) {
-var titleTxt = row.find('.settings-param__name').text().trim();
-if (titleTxt && titleMap[titleTxt]) {
-name = titleMap[titleTxt];
-row.attr('data-name', name);
-}
-}
-return name;
-}
-function updateSettingsMenuVisibility() {
-try {
-var allParams = $('.settings-param');
-if (!allParams.length) return;
-var activeCtrl = (Lampa.Controller && typeof Lampa.Controller.enabled === 'function') ? Lampa.Controller.enabled() : null;
-var titleMap = buildParamTitleMap();
-var changed = false;
-var focusLost = false;
-var matchedCount = 0;
-allParams.each(function() {
-var row = $(this);
-if (row.hasClass('settings-param--title')) {
-if (row.attr('data-hf-title') === '1') {
-var expectedTitle = t('name_menu', 'Отображать в шапке');
-var tEl = row.find('.settings-param__name');
-if (tEl.length && tEl.text().trim() !== expectedTitle) {
-tEl.text(expectedTitle);
-}
-}
-return;
-}
-var name = resolveParamNameFromRow(row, titleMap);
-if (!name || name.indexOf('head_filter_') !== 0) return;
-matchedCount++;
-if (matchedCount === 1) {
-var prevTitle = row.prev('.settings-param--title');
-if (prevTitle.length) prevTitle.attr('data-hf-title', '1');
-}
-var expectedLabel = getParamLabelByKey(name);
-if (expectedLabel) {
-var nameEl = row.find('.settings-param__name');
-if (nameEl.length && nameEl.text().trim() !== expectedLabel) {
-nameEl.text(expectedLabel);
-}
-}
-var available = isSettingParamAvailable(name);
-if (available) {
-if (this.style.display === 'none') {
-row.css('display', '');
-if (row.attr('data-hf-was-selector') === '1') {
-row.addClass('selector');
-}
-changed = true;
-}
-} else {
-if (this.style.display !== 'none') {
-if (row.hasClass('selector')) {
-row.attr('data-hf-was-selector', '1');
-}
-if (row.hasClass('focus')) {
-focusLost = true;
-}
-row.css('display', 'none');
-row.removeClass('selector focus');
-changed = true;
-}
-}
-});
-if (matchedCount > 0 && changed && activeCtrl && activeCtrl.name === 'settings_param' && typeof Lampa.Controller.collectionSet === 'function') {
-var body = $('.settings__body');
-if (body.length) {
-var visibleSelectors = body.find('.selector').filter(function() {
-return this.style.display !== 'none';
-});
-var focusedEl = visibleSelectors.filter('.focus').get(0);
-if (!focusedEl || focusLost) {
-focusedEl = visibleSelectors.first().get(0);
-}
-Lampa.Controller.collectionSet(body);
-if (focusedEl && typeof Lampa.Controller.collectionFocus === 'function') {
-Lampa.Controller.collectionFocus(focusedEl, body);
-}
-}
-}
-} catch (err) {}
-}
-function refreshByLampaSettingRow() {
-try {
-if (!$('.settings-param').length) return;
-updateSettingsMenuVisibility();
-if (!hasByLampaNoticeFeature()) return;
-var label = isByLampaNoticeInHeader() ? t('bylampa_notice_yes', 'Да') : t('bylampa_notice_moved', 'Перенесено в боковое меню');
-var row = $('.settings-param[data-name="head_filter_bylampa_notice_v2"]');
-if (!row.length) {
-var titleText = t('bylampa_notice', 'Уведомления ByLampa');
-row = $('.settings-param').filter(function() {
-return $(this).find('.settings-param__name').text().trim() === titleText;
-});
-}
-if (row.length) {
-var valEl = row.find('.settings-param__value');
-if (valEl.text() !== label) {
-valEl.text(label);
-}
-if (!row.attr('data-hf-bound')) {
-row.attr('data-hf-bound', '1');
-row.on('hover:enter click', function() {
-setTimeout(function() {
-updateByLampaNotice();
-refreshByLampaSettingRow();
-}, 60);
-});
-}
-}
-} catch (err) {}
-}
-function positionSettingsComponent() {
-try {
-var interfaceItem = $('[data-component="interface"]');
-var moreItem = $('[data-component="more"]');
-var headFilterItem = $('[data-component="head_filter"]');
-var moved = false;
-if (headFilterItem.length) {
-var compNameEl = headFilterItem.find('.settings-folder__name, .settings__name').first();
-var expectedCompName = t('name_plugin', 'Настройка шапки+');
-if (compNameEl.length && compNameEl.text().trim() !== expectedCompName) {
-compNameEl.text(expectedCompName);
-}
-if (!headFilterItem.hasClass('hf-icon-fixed')) {
-var clonedIcon = null;
-if (moreItem.length) {
-var moreIconEl = moreItem.find('.settings-folder__icon, .settings__icon').first();
-if (!moreIconEl.length) moreIconEl = moreItem.children().first();
-if (moreIconEl.length && moreIconEl.find('svg').length) {
-clonedIcon = moreIconEl.clone();
-}
-}
-if (!clonedIcon) {
-clonedIcon = $('');
-}
-var targetIconEl = headFilterItem.find('.settings-folder__icon, .settings__icon').first();
-if (targetIconEl.length) {
-targetIconEl.replaceWith(clonedIcon);
-} else {
-headFilterItem.prepend(clonedIcon);
-}
-headFilterItem.addClass('hf-icon-fixed');
-}
-if (interfaceItem.length && interfaceItem.next().attr('data-component') !== 'head_filter') {
-interfaceItem.after(headFilterItem);
-moved = true;
-}
-}
-if (moved && Lampa.Controller && typeof Lampa.Controller.enabled === 'function') {
-var activeCtrl = Lampa.Controller.enabled();
-if (activeCtrl && activeCtrl.name === 'settings_component' && typeof Lampa.Controller.collectionSet === 'function') {
-var settingsBody = $('.settings__body');
-if (settingsBody.length) {
-var focusedComp = settingsBody.find('.selector.focus').get(0);
-Lampa.Controller.collectionSet(settingsBody);
-if (focusedComp && typeof Lampa.Controller.collectionFocus === 'function') {
-Lampa.Controller.collectionFocus(focusedComp, settingsBody);
-}
-}
-}
-}
-} catch (err) {}
-}
-function applyAll() {
-if (isUpdatingHead) return;
-isUpdatingHead = true;
-try {
-applyStaticButtonsVisibility();
-updateHeadTitle();
-updateByLampaNotice();
-updateClock();
-updateCalendar();
-updateNetworkIndicator();
-refreshByLampaSettingRow();
-} finally {
-isUpdatingHead = false;
-}
-}
-try {
-var headTitleNode = document.querySelector('.head__title');
-if (headTitleNode && window.MutationObserver) {
-var titleObserver = new MutationObserver(function() {
-if (isUpdatingHead) return;
-isUpdatingHead = true;
-try {
-updateHeadTitle();
-} finally {
-isUpdatingHead = false;
-}
-});
-titleObserver.observe(headTitleNode, { childList: true, characterData: true, subtree: true });
-}
-} catch (err) {}
-try {
-var headNode = document.querySelector('.head');
-if (headNode && window.MutationObserver) {
-var headObserver = new MutationObserver(function() {
-if (isUpdatingHead) return;
-isUpdatingHead = true;
-try {
-applyStaticButtonsVisibility();
-if (hasByLampaNoticeFeature() && !isByLampaNoticeInHeader()) {
-toggleByLampaBtn(false);
-}
-updateClock();
-updateCalendar();
-updateNetworkIndicator();
-} finally {
-isUpdatingHead = false;
-}
-});
-headObserver.observe(headNode, {
-childList: true,
-characterData: true,
-subtree: true
-});
-}
-} catch (err) {}
-setInterval(function() {
-if (isUpdatingHead) return;
-isUpdatingHead = true;
-try {
-applyStaticButtonsVisibility();
-if (hasByLampaNoticeFeature() && !isByLampaNoticeInHeader() && !$('.hf-bylampa-changes').length) {
-updateByLampaNotice();
-}
-if ($('.settings-param').length) {
-refreshByLampaSettingRow();
-}
-} finally {
-isUpdatingHead = false;
-}
-}, 1200);
-if (Lampa.Controller && Lampa.Controller.listener && typeof Lampa.Controller.listener.follow === 'function') {
-Lampa.Controller.listener.follow('toggle', function(e) {
-if (!e) return;
-if (e.name === 'menu') {
-updateByLampaNotice();
-} else if (e.name === 'settings_component') {
-positionSettingsComponent();
-setTimeout(positionSettingsComponent, 30);
-} else if (e.name === 'settings_param') {
-refreshByLampaSettingRow();
-setTimeout(refreshByLampaSettingRow, 40);
-setTimeout(refreshByLampaSettingRow, 200);
-}
-});
-}
-if (Lampa.Storage && Lampa.Storage.listener && typeof Lampa.Storage.listener.follow === 'function') {
-Lampa.Storage.listener.follow('change', function(event) {
-if (!event) return;
-if (event.name == 'activity') {
-setTimeout(applyAll, 300);
-setTimeout(applyAll, 1000);
-} else if (event.name in topHead) {
-var show_top = getStorageBool(event.name, true);
-showHideElement(topHead[event.name].element, show_top);
-} else if (event.name in standardHead) {
-var show_std = getStorageBool(event.name, true);
-showHideElement(standardHead[event.name].element, show_std);
-} else if (event.name === 'head_filter_show_source' || event.name === 'head_filter_big_title') {
-updateHeadTitle();
-} else if (event.name === 'head_filter_bylampa_notice_v2') {
-setTimeout(function() {
-updateByLampaNotice();
-refreshByLampaSettingRow();
-}, 30);
-} else if (event.name === 'head_filter_show_clock') {
-updateClock();
-} else if (event.name === 'head_filter_show_calendar') {
-updateCalendar();
-} else if (event.name === 'head_filter_show_network') {
-updateNetworkIndicator();
-updateClock();
-updateCalendar();
-}
-});
-}
-if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
-Lampa.SettingsApi.addComponent({
-component: 'head_filter',
-name: t('name_plugin', 'Настройка шапки+'),
-icon: '',
-after: 'interface'
-});
-}
-if (Lampa.Settings && Lampa.Settings.listener && typeof Lampa.Settings.listener.follow === 'function') {
-Lampa.Settings.listener.follow('open', function(e) {
-if (!e) return;
-if (e.name === 'main') {
-positionSettingsComponent();
-setTimeout(positionSettingsComponent, 50);
-setTimeout(positionSettingsComponent, 200);
-} else if (e.name === 'head_filter') {
-refreshByLampaSettingRow();
-setTimeout(refreshByLampaSettingRow, 30);
-setTimeout(refreshByLampaSettingRow, 150);
-setTimeout(refreshByLampaSettingRow, 350);
-}
-});
-}
-if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function') {
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-type: 'title'
-},
-field: {
-name: t('name_menu', 'Отображать в шапке')
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_bylampa_notice_v2',
-type: 'trigger',
-default: true
-},
-field: {
-name: t('bylampa_notice', 'Уведомления ByLampa')
-},
-onChange: function() {
-setTimeout(function() {
-updateByLampaNotice();
-refreshByLampaSettingRow();
-}, 30);
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_show_clock',
-type: 'trigger',
-default: true
-},
-field: {
-name: t('clock_only', 'Часы')
-},
-onChange: function() {
-setTimeout(updateClock, 15);
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_show_calendar',
-type: 'trigger',
-default: true
-},
-field: {
-name: t('calendar_only', 'Календарь')
-},
-onChange: function() {
-setTimeout(updateCalendar, 15);
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_show_network',
-type: 'trigger',
-default: true
-},
-field: {
-name: t('network_indicator', 'Сеть')
-},
-onChange: function() {
-setTimeout(function() {
-updateNetworkIndicator();
-updateClock();
-updateCalendar();
-}, 15);
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_show_source',
-type: 'trigger',
-default: true
-},
-field: {
-name: t('source_title', 'Источник')
-},
-onChange: function() {
-setTimeout(updateHeadTitle, 15);
-}
-});
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: 'head_filter_big_title',
-type: 'trigger',
-default: false
-},
-field: {
-name: t('big_title', 'Увеличенное название раздела')
-},
-onChange: function() {
-setTimeout(updateHeadTitle, 15);
-}
-});
-Object.keys(topHead).forEach(function(key) {
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: key,
-type: 'trigger',
-default: true
-},
-field: {
-name: t(topHead[key].langKey, topHead[key].fallback)
-},
-onChange: function() {
-setTimeout(function() {
-var show_top = getStorageBool(key, true);
-showHideElement(topHead[key].element, show_top);
-}, 15);
-}
-});
-});
-Object.keys(standardHead).forEach(function(key) {
-Lampa.SettingsApi.addParam({
-component: 'head_filter',
-param: {
-name: key,
-type: 'trigger',
-default: true
-},
-field: {
-name: t(standardHead[key].langKey, standardHead[key].fallback)
-},
-onChange: function() {
-setTimeout(function() {
-var show_std = getStorageBool(key, true);
-showHideElement(standardHead[key].element, show_std);
-}, 15);
-}
-});
-});
-}
-setTimeout(applyAll, 300);
-setTimeout(applyAll, 1000);
-setTimeout(applyAll, 2500);
-}
-if (window.appready) {
-startPlugin();
-} else if (window.Lampa && Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
-Lampa.Listener.follow('app', function(e) {
-if (e && e.type == 'ready') {
-startPlugin();
-}
-});
-} else {
-var attempts = 0;
-var readyCheck = setInterval(function() {
-attempts++;
-if (attempts > 300) {
-clearInterval(readyCheck);
-return;
-}
-if (window.appready) {
-clearInterval(readyCheck);
-startPlugin();
-} else if (window.Lampa && Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
-clearInterval(readyCheck);
-Lampa.Listener.follow('app', function(e) {
-if (e && e.type == 'ready') {
-startPlugin();
-}
-});
-}
-}, 100);
-}
+		function collectClocks() {
+			if (tick && tick.clock) return tick.clock;
+			var out = [];
+			try {
+				maybeSplit();
+				var net = collectNet();
+				var c = document.querySelector('.head__time');
+				var q = document.querySelectorAll('.head__clock, .time--clock, .head__time-now');
+				for (var i = 0; i < q.length; i++) {
+					var el = q[i];
+					if (el.closest('.head__title, .head__action')) continue;
+					if (net.indexOf(el) === -1 && out.indexOf(el) === -1) out.push(el);
+				}
+				if (c && c.children) {
+					for (var j = 0; j < c.children.length; j++) {
+						var ch = c.children[j];
+						if (net.indexOf(ch) !== -1) continue;
+						var cls = (ch.className || '').toString().toLowerCase();
+						var tag = ch.tagName.toLowerCase();
+						if (isNetworkLike(cls, tag)) continue;
+						var txt = (ch.textContent || '').trim();
+						if (!txt || /мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(txt)) continue;
+						if ((cls.indexOf('clock') !== -1 || (ch.classList && (ch.classList.contains('head__time-now') || ch.classList.contains('time--clock'))) || isTimeString(txt)) && out.indexOf(ch) === -1) out.push(ch);
+					}
+					if (!out.length && c.children.length === 0 && isTimeString((c.textContent || '').trim())) out.push(c);
+				}
+			} catch (e) {}
+			tick = tick || {}; tick.clock = out;
+			return out;
+		}
+
+		function collectDates() {
+			if (tick && tick.cal) return tick.cal;
+			var out = [];
+			try {
+				maybeSplit();
+				var net = collectNet();
+				var c = document.querySelector('.head__time');
+				var q = document.querySelectorAll('.head__date, .head__calendar, .time--date, .head [class*="calendar"], .head [class*="date"]');
+				for (var i = 0; i < q.length; i++) {
+					var el = q[i];
+					if (el === c) continue;
+					if (el.closest('.head__action, .head__title')) continue;
+					if (net.indexOf(el) !== -1) continue;
+					var txt = (el.textContent || '').trim();
+					if (txt && !/\d{1,2}:\d{2}/.test(txt) && isDateString(txt) && out.indexOf(el) === -1) out.push(el);
+				}
+				if (c && c.children) {
+					for (var j = 0; j < c.children.length; j++) {
+						var ch = c.children[j];
+						if (net.indexOf(ch) !== -1) continue;
+						var cls = (ch.className || '').toString().toLowerCase();
+						var tag = ch.tagName.toLowerCase();
+						if (isNetworkLike(cls, tag)) continue;
+						var t2 = (ch.textContent || '').trim();
+						if (!t2 || /мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(t2)) continue;
+						var clock = cls.indexOf('clock') !== -1 || (ch.classList && (ch.classList.contains('head__time-now') || ch.classList.contains('time--clock'))) || isTimeString(t2);
+						var date = cls.indexOf('date') !== -1 || cls.indexOf('cal') !== -1 || (ch.classList && ch.classList.contains('time--date')) || (!clock && isDateString(t2));
+						if (date && out.indexOf(ch) === -1) out.push(ch);
+					}
+					if (!out.length && c.children.length === 0 && isDateString((c.textContent || '').trim())) out.push(c);
+				}
+			} catch (e) {}
+			tick = tick || {}; tick.cal = out;
+			return out;
+		}
+
+		function refreshTimeSection() {
+			try {
+				var showClock = getBool('head_filter_show_clock', true);
+				var showCal = getBool('head_filter_show_calendar', true);
+				var showNet = getBool('head_filter_show_network', true);
+				var clocks = collectClocks();
+				var dates = collectDates();
+				var net = collectNet();
+				for (var i = 0; i < clocks.length; i++) setVisible(clocks[i], showClock);
+				for (var j = 0; j < dates.length; j++) setVisible(dates[j], showCal);
+				for (var k = 0; k < net.length; k++) setVisible(net[k], showNet);
+				var c = document.querySelector('.head__time');
+				if (!c) return;
+				if (clocks.indexOf(c) !== -1 || dates.indexOf(c) !== -1) return;
+				var hasC = clocks.some(function(x) { return c.contains(x); });
+				var hasD = dates.some(function(x) { return c.contains(x); });
+				var hasN = net.some(function(x) { return c.contains(x); });
+				var kids = c.children;
+				for (var s = 0; s < kids.length; s++) if (/^[•|\-\/]$/.test((kids[s].textContent || '').trim())) setVisible(kids[s], showClock && showCal);
+				if (!hasC && !hasD && !hasN) return;
+				setVisible(c, (hasC && showClock) || (hasD && showCal) || (hasN && showNet));
+			} catch (e) {}
+		}
+
+		// -------- заголовок --------
+		function refreshTitle() {
+			try {
+				var el = $('.head__title');
+				if (!el.length) return;
+				var cur = el.text();
+				var orig = el.attr('data-hf-orig');
+				var stripped = el.attr('data-hf-stripped');
+				if (!orig) { orig = cur; el.attr('data-hf-orig', orig); stripped = orig.split(' - ').length === 2 ? orig.split(' - ')[0] : orig; el.attr('data-hf-stripped', stripped); }
+				else if (cur !== orig && cur !== stripped) { orig = cur; el.attr('data-hf-orig', orig); stripped = orig.split(' - ').length === 2 ? orig.split(' - ')[0] : orig; el.attr('data-hf-stripped', stripped); }
+				var target = getBool('head_filter_show_source', true) ? orig : stripped;
+				if (el.text() !== target) el.text(target);
+				if (getBool('head_filter_big_title', false)) el.css({ 'font-weight': 'bold', 'text-transform': 'uppercase' });
+				else el.css({ 'font-weight': '', 'text-transform': '' });
+			} catch (e) {}
+		}
+
+		// -------- меню настроек --------
+		var labelCache = null;
+		function labels() {
+			if (labelCache) return labelCache;
+			var m = {};
+			m.head_filter_bylampa_notice_v2 = t('bylampa_notice', 'Уведомления ByLampa');
+			m.head_filter_show_clock = t('clock_only', 'Часы');
+			m.head_filter_show_calendar = t('calendar_only', 'Календарь');
+			m.head_filter_show_network = t('network_indicator', 'Сеть');
+			m.head_filter_show_source = t('source_title', 'Источник');
+			m.head_filter_big_title = t('big_title', 'Увеличенное название раздела');
+			Object.keys(topHead).forEach(function(k) { m[k] = t(topHead[k].l, topHead[k].f); });
+			Object.keys(standardHead).forEach(function(k) { m[k] = t(standardHead[k].l, standardHead[k].f); });
+			labelCache = m;
+			return m;
+		}
+		function labelToKey() {
+			var m = labels(), inv = {};
+			Object.keys(m).forEach(function(k) { inv[m[k]] = k; });
+			return inv;
+		}
+		function isAvailable(name) {
+			if (name in alwaysVisible) return true;
+			if (name === 'head_filter_bylampa_notice_v2') return hasByLampaBtn();
+			if (name in topHead) return document.querySelector(topHead[name].s) !== null;
+			if (name in standardHead) return document.querySelector(standardHead[name].s) !== null;
+			return true;
+		}
+		function resolveName(row, inv) {
+			var n = row.attr('data-name') || row.data('name');
+			if (!n) {
+				var x = row.find('.settings-param__name').text().trim();
+				if (x && inv[x]) { n = inv[x]; row.attr('data-name', n); }
+			}
+			return n;
+		}
+		function refreshSettingsVisibility() {
+			try {
+				var rows = $('.settings-param');
+				if (!rows.length) return;
+				var ctrl = (Lampa.Controller && typeof Lampa.Controller.enabled === 'function') ? Lampa.Controller.enabled() : null;
+				var inv = labelToKey(), lbl = labels();
+				var changed = false, lost = false, seen = 0;
+				rows.each(function() {
+					var row = $(this);
+					if (row.hasClass('settings-param--title')) {
+						if (row.attr('data-hf-title') === '1') {
+							var want = t('name_menu', 'Отображать в шапке');
+							var tn = row.find('.settings-param__name');
+							if (tn.length && tn.text().trim() !== want) tn.text(want);
+						}
+						return;
+					}
+					var name = resolveName(row, inv);
+					if (!name || name.indexOf('head_filter_') !== 0) return;
+					seen++;
+					if (seen === 1) {
+						var p = row.prevAll('.settings-param--title').first();
+						if (p.length) p.attr('data-hf-title', '1');
+					}
+					if (lbl[name]) {
+						var ne = row.find('.settings-param__name');
+						if (ne.length && ne.text().trim() !== lbl[name]) ne.text(lbl[name]);
+					}
+					var ok = isAvailable(name);
+					if (ok) {
+						if (this.style.display === 'none') { row.css('display', ''); if (row.attr('data-hf-was-selector') === '1') row.addClass('selector'); changed = true; }
+					} else if (this.style.display !== 'none') {
+						if (row.hasClass('selector')) row.attr('data-hf-was-selector', '1');
+						if (row.hasClass('focus')) lost = true;
+						row.css('display', 'none').removeClass('selector focus');
+						changed = true;
+					}
+				});
+				if (seen && changed && ctrl && ctrl.name === 'settings_param' && typeof Lampa.Controller.collectionSet === 'function') {
+					var body = $('.settings__body');
+					if (body.length) {
+						var vis = body.find('.selector').filter(function() { return this.style.display !== 'none'; });
+						var f = vis.filter('.focus').get(0);
+						if (!f || lost) f = vis.first().get(0);
+						Lampa.Controller.collectionSet(body);
+						if (f && typeof Lampa.Controller.collectionFocus === 'function') Lampa.Controller.collectionFocus(f, body);
+					}
+				}
+			} catch (e) {}
+		}
+		function refreshByLampaRow() {
+			try {
+				if (!$('.settings-param').length) return;
+				refreshSettingsVisibility();
+				if (!hasByLampaBtn()) return;
+				var lbl = isByLampaInHeader() ? t('bylampa_notice_yes', 'Да') : t('bylampa_notice_moved', 'Перенесено в боковое меню');
+				var row = $('.settings-param[data-name="head_filter_bylampa_notice_v2"]');
+				if (!row.length) {
+					var tt = t('bylampa_notice', 'Уведомления ByLampa');
+					row = $('.settings-param').filter(function() { return $(this).find('.settings-param__name').text().trim() === tt; });
+				}
+				if (!row.length) return;
+				var v = row.find('.settings-param__value');
+				if (v.text() !== lbl) v.text(lbl);
+				if (!row.attr('data-hf-bound')) {
+					row.attr('data-hf-bound', '1');
+					row.on('hover:enter.hfb click.hfb', function() { setTimeout(function() { refreshByLampa(); refreshByLampaRow(); }, 60); });
+				}
+			} catch (e) {}
+		}
+
+		function positionComponent() {
+			try {
+				var iface = $('[data-component="interface"]');
+				var more = $('[data-component="more"]');
+				var hf = $('[data-component="head_filter"]');
+				var moved = false;
+				if (hf.length) {
+					var nm = hf.find('.settings-folder__name, .settings__name').first();
+					var want = t('name_plugin', 'Настройка шапки+');
+					if (nm.length && nm.text().trim() !== want) nm.text(want);
+					if (!hf.hasClass('hf-icon-fixed')) {
+						var clone = null;
+						if (more.length) {
+							var mi = more.find('.settings-folder__icon, .settings__icon').first();
+							if (!mi.length) {
+								more.children().each(function() { if ($(this).find('svg').length) { mi = $(this); return false; } });
+							}
+							if (mi.length && mi.find('svg').length) clone = mi.clone();
+						}
+						if (clone) {
+							var ti = hf.find('.settings-folder__icon, .settings__icon').first();
+							if (ti.length) ti.replaceWith(clone); else hf.prepend(clone);
+						}
+						hf.addClass('hf-icon-fixed');
+					}
+					if (iface.length && iface.next().attr('data-component') !== 'head_filter') { iface.after(hf); moved = true; }
+				}
+				if (moved && Lampa.Controller && typeof Lampa.Controller.enabled === 'function') {
+					var c = Lampa.Controller.enabled();
+					if (c && c.name === 'settings_component' && typeof Lampa.Controller.collectionSet === 'function') {
+						var body = $('.settings__body');
+						if (body.length) {
+							var f = body.find('.selector.focus').get(0);
+							Lampa.Controller.collectionSet(body);
+							if (f && typeof Lampa.Controller.collectionFocus === 'function') Lampa.Controller.collectionFocus(f, body);
+						}
+					}
+				}
+			} catch (e) {}
+		}
+
+		function withTick(fn) {
+			if (busy) return;
+			busy = true; tick = {};
+			try { fn(); } finally { busy = false; }
+		}
+		function applyAll() {
+			withTick(function() { applyStatic(); refreshTitle(); refreshByLampa(); refreshTimeSection(); });
+		}
+
+		// -------- наблюдатели --------
+		try {
+			var tn = document.querySelector('.head__title');
+			if (tn && window.MutationObserver) new MutationObserver(function() {
+				if (busy) return;
+				busy = true;
+				try { refreshTitle(); } finally { busy = false; }
+			}).observe(tn, { childList: true, characterData: true, subtree: true });
+		} catch (e) {}
+
+		try {
+			var hn = document.querySelector('.head');
+			if (hn && window.MutationObserver) new MutationObserver(function() {
+				if (busy || rafPending) return;
+				rafPending = true;
+				var run = function() {
+					rafPending = false;
+					withTick(function() { applyStatic(); if (hasByLampaBtn() && !isByLampaInHeader()) findByLampaBtn().each(function() { setVisible(this, false); }); refreshTimeSection(); });
+				};
+				if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
+			}).observe(hn, { childList: true, subtree: true });
+		} catch (e) {}
+
+		setInterval(function() {
+			if (busy) return;
+			if (!document.querySelector('.head') && !document.querySelector('.settings-param')) return;
+			withTick(function() {
+				applyStatic();
+				if (hasByLampaBtn() && !isByLampaInHeader() && !$('.hf-bylampa-changes').length) refreshByLampa();
+				var c = (Lampa.Controller && typeof Lampa.Controller.enabled === 'function') ? Lampa.Controller.enabled() : null;
+				if (c && c.name === 'settings_param') refreshByLampaRow();
+			});
+		}, 2000);
+
+		if (Lampa.Controller && Lampa.Controller.listener && typeof Lampa.Controller.listener.follow === 'function') {
+			Lampa.Controller.listener.follow('toggle', function(e) {
+				if (!e) return;
+				if (e.name === 'menu') refreshByLampa();
+				else if (e.name === 'settings_component') { positionComponent(); setTimeout(positionComponent, 30); }
+				else if (e.name === 'settings_param') { refreshByLampaRow(); setTimeout(refreshByLampaRow, 40); setTimeout(refreshByLampaRow, 200); }
+			});
+		}
+
+		if (Lampa.Storage && Lampa.Storage.listener && typeof Lampa.Storage.listener.follow === 'function') {
+			Lampa.Storage.listener.follow('change', function(e) {
+				if (!e) return;
+				if (e.name == 'activity') { setTimeout(applyAll, 300); setTimeout(applyAll, 1000); return; }
+				if (e.name === 'language') { labelCache = null; }
+				if (e.name in topHead) { setVisible(document.querySelector(topHead[e.name].s), getBool(e.name, true)); return; }
+				if (e.name in standardHead) { setVisible(document.querySelector(standardHead[e.name].s), getBool(e.name, true)); return; }
+				if (e.name === 'head_filter_show_source' || e.name === 'head_filter_big_title') { refreshTitle(); return; }
+				if (e.name === 'head_filter_bylampa_notice_v2') { setTimeout(function() { refreshByLampa(); refreshByLampaRow(); }, 30); return; }
+				if (e.name === 'head_filter_show_clock' || e.name === 'head_filter_show_calendar' || e.name === 'head_filter_show_network') {
+					tick = {}; refreshTimeSection();
+				}
+			});
+		}
+
+		if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
+			Lampa.SettingsApi.addComponent({ component: 'head_filter', name: t('name_plugin', 'Настройка шапки+'), icon: '', after: 'interface' });
+		}
+
+		if (Lampa.Settings && Lampa.Settings.listener && typeof Lampa.Settings.listener.follow === 'function') {
+			Lampa.Settings.listener.follow('open', function(e) {
+				if (!e) return;
+				if (e.name === 'main') { positionComponent(); setTimeout(positionComponent, 50); setTimeout(positionComponent, 200); }
+				else if (e.name === 'head_filter') { refreshByLampaRow(); setTimeout(refreshByLampaRow, 30); setTimeout(refreshByLampaRow, 150); setTimeout(refreshByLampaRow, 350); }
+			});
+		}
+
+		if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function') {
+			Lampa.SettingsApi.addParam({ component: 'head_filter', param: { type: 'title' }, field: { name: t('name_menu', 'Отображать в шапке') } });
+			function addToggle(key, label, onChange) {
+				Lampa.SettingsApi.addParam({
+					component: 'head_filter',
+					param: { name: key, type: 'trigger', default: key !== 'head_filter_big_title' },
+					field: { name: label },
+					onChange: function() { setTimeout(onChange, 15); }
+				});
+			}
+			addToggle('head_filter_bylampa_notice_v2', t('bylampa_notice', 'Уведомления ByLampa'), function() { refreshByLampa(); refreshByLampaRow(); });
+			addToggle('head_filter_show_clock', t('clock_only', 'Часы'), function() { tick = {}; refreshTimeSection(); });
+			addToggle('head_filter_show_calendar', t('calendar_only', 'Календарь'), function() { tick = {}; refreshTimeSection(); });
+			addToggle('head_filter_show_network', t('network_indicator', 'Сеть'), function() { tick = {}; refreshTimeSection(); });
+			addToggle('head_filter_show_source', t('source_title', 'Источник'), refreshTitle);
+			addToggle('head_filter_big_title', t('big_title', 'Увеличенное название раздела'), refreshTitle);
+			Object.keys(topHead).forEach(function(k) {
+				addToggle(k, t(topHead[k].l, topHead[k].f), function() { setVisible(document.querySelector(topHead[k].s), getBool(k, true)); });
+			});
+			Object.keys(standardHead).forEach(function(k) {
+				addToggle(k, t(standardHead[k].l, standardHead[k].f), function() { setVisible(document.querySelector(standardHead[k].s), getBool(k, true)); });
+			});
+		}
+
+		setTimeout(applyAll, 300);
+		setTimeout(applyAll, 1000);
+		setTimeout(applyAll, 2500);
+	}
+
+	if (window.appready) startPlugin();
+	else if (window.Lampa && Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
+		Lampa.Listener.follow('app', function(e) { if (e && e.type == 'ready') startPlugin(); });
+	} else {
+		var tries = 0, rc = setInterval(function() {
+			tries++;
+			if (tries > 300) { clearInterval(rc); return; }
+			if (window.appready) { clearInterval(rc); startPlugin(); }
+			else if (window.Lampa && Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
+				clearInterval(rc);
+				Lampa.Listener.follow('app', function(e) { if (e && e.type == 'ready') startPlugin(); });
+			}
+		}, 100);
+	}
 })();
