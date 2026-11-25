@@ -13,7 +13,7 @@
 			en: 'Menu',
 			uk: 'Меню',
 			zh: '菜单'
-		}, 
+		},
 		source_title: {
 			ru: 'Источник',
 			en: 'Source',
