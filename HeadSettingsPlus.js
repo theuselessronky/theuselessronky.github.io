@@ -151,7 +151,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '1.2.0',
+			version: '1.3.0',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -197,10 +197,13 @@
 			});
 		}
 
-		// true = "Да" (в правом верхнем углу), false = "Перенесено в боковое меню"
+		// true = "Да" (кнопка в шапке), false = "Перенесено в боковое меню"
 		function isByLampaNoticeInHeader() {
 			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
-			return Boolean(val) && val !== 'false' && val !== 'no' && val !== 'moved';
+			if (val === false || val === 'false' || val === 'no' || val === 'moved' || val === 0 || val === '0') {
+				return false;
+			}
+			return true;
 		}
 
 		function updateNetworkIndicator() {
@@ -356,17 +359,16 @@
 
 			if (window.ByLampa) {
 				if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
-				else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
-			}
-		}
-
-// Прямая вставка ровно ОДНОГО пункта "Изменения" под "Консоль" в боковом меню
+else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
+}
+}
+// Точная вставка ОДНОГО пункта "Изменения" под "Консоль" (как в рабочей версии 0.8.0)
 function updateByLampaNotice() {
 var showInHeader = isByLampaNoticeInHeader();
 toggleByLampaBtn(showInHeader);
-var menuLists = $('.menu__list');
-if (!menuLists.length) return;
-var existingItems = $('.hf-bylampa-changes');
+var menuContainer = $('.menu');
+if (!menuContainer.length) menuContainer = $('body');
+var existingItems = menuContainer.find('.hf-bylampa-changes');
 if (!showInHeader) {
 if (existingItems.length > 1) {
 existingItems.slice(1).remove();
@@ -387,20 +389,19 @@ itemHtml.on('hover:enter click', function(e) {
 if (e && e.preventDefault) e.preventDefault();
 openByLampaNoticeModal();
 });
-// Ищем "Консоль" по тексту или data-action во всём документе
-var consoleItem = $('.menu__item[data-action="console"]');
+// Точный поиск "Консоль" по .menu__text (как в v0.8.0!)
+var consoleItem = menuContainer.find('.menu__item[data-action="console"]');
 if (!consoleItem.length) {
-consoleItem = $('.menu__item').filter(function() {
-var txt = $(this).text().trim().toLowerCase();
-return txt === 'консоль' || txt === 'console';
+consoleItem = menuContainer.find('.menu__item').filter(function() {
+var txt = $(this).find('.menu__text').text().trim();
+return txt === 'Консоль' || txt === 'Console' || txt === Lampa.Lang.translate('menu_console');
 });
 }
 if (consoleItem.length) {
 consoleItem.first().after(itemHtml);
-} else if (menuLists.length > 1) {
-menuLists.last().prepend(itemHtml);
 } else {
-menuLists.first().append(itemHtml);
+var firstList = menuContainer.find('.menu__list').first();
+if (firstList.length) firstList.append(itemHtml);
 }
 if (Lampa.Menu && typeof Lampa.Menu.update === 'function') {
 Lampa.Menu.update();
@@ -483,12 +484,12 @@ updateClockAndCalendar();
 });
 headObserver.observe(headNode, { childList: true, subtree: true });
 }
-// Лёгкая фоновая проверка бокового меню (гарантирует появление "Изменения" в любой момент без крашей)
+// Проверка при смене контроллера и раз в секунду, чтобы пункт "Изменения" никогда не пропадал
 setInterval(function() {
-if (!isByLampaNoticeInHeader() && !$('.hf-bylampa-changes').length && $('.menu__list').length) {
+if (!isByLampaNoticeInHeader() && $('.menu__item').length && !$('.hf-bylampa-changes').length) {
 updateByLampaNotice();
 }
-}, 800);
+}, 1000);
 if (Lampa.Controller && Lampa.Controller.listener) {
 Lampa.Controller.listener.follow('toggle', function(e) {
 if (e.name === 'menu') {
@@ -514,8 +515,10 @@ showHideElement(standardHead[event.name].element, show_std);
 } else if (event.name === 'head_filter_show_source' || event.name === 'head_filter_big_title') {
 updateHeadTitle();
 } else if (event.name === 'head_filter_show_bylampa_notice') {
+setTimeout(function() {
 updateByLampaNotice();
-setTimeout(refreshByLampaSettingRow, 10);
+refreshByLampaSettingRow();
+}, 30);
 } else if (event.name === 'head_filter_show_clock' || event.name === 'head_filter_show_calendar' || event.name === 'head_filter_show_network') {
 updateClockAndCalendar();
 }
@@ -562,8 +565,10 @@ field: {
 name: Lampa.Lang.translate('bylampa_notice')
 },
 onChange: function() {
+setTimeout(function() {
 updateByLampaNotice();
-setTimeout(refreshByLampaSettingRow, 10);
+refreshByLampaSettingRow();
+}, 50);
 }
 });
 // 2. Часы
