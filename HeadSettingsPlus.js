@@ -32,17 +32,11 @@
 			uk: 'Сповіщення ByLampa',
 			zh: 'ByLampa 通知'
 		},
-		bylampa_notice_yes: {
-			ru: 'Да',
-			en: 'Yes',
-			uk: 'Так',
-			zh: '是'
-		},
-		bylampa_notice_moved: {
-			ru: 'Перенесено в боковое меню',
-			en: 'Moved to side menu',
-			uk: 'Перенесено в бічне меню',
-			zh: '移至侧边菜单'
+		bylampa_notice_desc: {
+			ru: 'При выключении переносится в боковое меню (пункт «Изменения»)',
+			en: 'When disabled, moves to the side menu («Changes»)',
+			uk: 'При вимкненні переноситься в бічне меню (пункт «Зміни»)',
+			zh: '关闭时移至侧边菜单'
 		},
 		menu_changes: {
 			ru: 'Изменения',
@@ -151,7 +145,7 @@
 	function startPlugin() {
 		var manifest = {
 			type: 'other',
-			version: '0.9.1',
+			version: '0.9.2',
 			name: Lampa.Lang.translate('name_plugin'),
 			description: Lampa.Lang.translate('plugin_description'),
 			component: 'head_filter'
@@ -197,48 +191,55 @@
 			});
 		}
 
+		// Нормализуем значение (если от прошлой версии осталась строка 'no', переводим в boolean false)
 		function isByLampaNoticeInHeader() {
-			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', 'yes');
-			return val === 'yes' || val === true || val === 'true';
+			var val = Lampa.Storage.get('head_filter_show_bylampa_notice', true);
+			if (val === 'no' || val === 'false' || val === false) return false;
+			return true;
 		}
 
-		// Управление индикатором Сети возле часов
+		// Расширенный поиск и управление индикатором Сети возле часов в шапке
 		function updateNetworkIndicator() {
 			var showNet = Lampa.Storage.get('head_filter_show_network', true);
 
-			var netSelectors = [
-				'.head__network',
-				'.head__wifi',
-				'.head__speed',
-				'.head__online',
-				'.head__internet',
-				'.head__connection',
-				'.network-status',
-				'.wifi-status',
-				'.head__time-network',
-				'.head__time-wifi'
-			];
-
-			$(netSelectors.join(', ')).each(function() {
+			// 1. Поиск по классам и атрибутам во всей шапке .head
+			$('.head [class*="net"], .head [class*="wifi"], .head [class*="speed"], .head [class*="online"], .head [class*="conn"], .head [class*="signal"], .head [class*="lan"], .head [id*="net"], .head [id*="wifi"]').each(function() {
+				// Не трогаем саму обёртку шапки или кнопки действий
+				if ($(this).hasClass('head') || $(this).hasClass('head__body') || $(this).hasClass('head__actions')) return;
 				setElementVisible(this, showNet);
 			});
 
+			// 2. Поиск внутри блока времени .head__time (иконки SVG, пинг, скорость)
 			var timeContainer = $('.head__time').get(0);
 			if (timeContainer) {
-				var svgs = timeContainer.querySelectorAll('svg');
-				for (var i = 0; i < svgs.length; i++) {
-					var svgEl = svgs.item(i);
-					var target = svgEl.parentElement && svgEl.parentElement !== timeContainer ? svgEl.parentElement : svgEl;
-					setElementVisible(target, showNet);
+				var allTimeChildren = timeContainer.querySelectorAll('*');
+				for (var i = 0; i < allTimeChildren.length; i++) {
+					var node = allTimeChildren.item(i);
+					if (!node) continue;
+					var tag = node.tagName.toLowerCase();
+					var txt = (node.textContent || '').trim();
+
+					// Если это SVG-иконка сети или блок со скоростью (Мбит/с, Mbps, KB/s, ping)
+					if (tag === 'svg' || /мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(txt)) {
+						var target = (tag === 'svg' && node.parentElement && node.parentElement !== timeContainer && node.parentElement.children.length === 1) ? node.parentElement : node;
+						setElementVisible(target, showNet);
+					}
 				}
 
-				var siblings = [timeContainer.previousElementSibling, timeContainer.nextElementSibling];
-				for (var s = 0; s < siblings.length; s++) {
-					var sib = siblings.slice(s, s + 1).shift();
-					if (!sib) continue;
-					var cls = (sib.className || '').toString().toLowerCase();
-					if (cls.indexOf('net') !== -1 || cls.indexOf('wifi') !== -1 || cls.indexOf('conn') !== -1 || cls.indexOf('speed') !== -1 || cls.indexOf('online') !== -1) {
-						setElementVisible(sib, showNet);
+				// 3. Поиск некликабельных соседних элементов рядом с .head__time (без класса head__action и без часов)
+				var parent = timeContainer.parentElement;
+				if (parent) {
+					var siblings = parent.children;
+					for (var s = 0; s < siblings.length; s++) {
+						var sib = siblings.item(s);
+						if (!sib || sib === timeContainer) continue;
+						var cls = (sib.className || '').toString();
+						// Пропускаем стандартные элементы шапки
+						if (/head__(backward|menu-icon|title|actions|split|time)|open--|notice--|full-screen|m-reload-screen|black-friday/.test(cls)) continue;
+						// Если элемент не является интерактивной кнопкой (.selector / .head__action), это индикатор сети/статуса
+						if (!sib.classList.contains('selector') && !sib.classList.contains('head__action')) {
+							setElementVisible(sib, showNet);
+						}
 					}
 				}
 			}
@@ -273,7 +274,7 @@
 				var txt = (child.textContent || '').trim();
 				if (txt.indexOf(':') !== -1 || child.classList.contains('head__time-now') || child.classList.contains('time--clock')) {
 					setElementVisible(child, showClock);
-				} else if (txt.length > 0) {
+				} else if (txt.length > 0 && !/мбит|mbps|kbps|kb\/s|ping|мс|ms/i.test(txt)) {
 					setElementVisible(child, showCalendar);
 				}
 			}
@@ -326,58 +327,51 @@
 				'open--feed', 'notice--icon', 'open--broadcast', 'full-screen',
 				'm-reload-screen', 'black-friday__button', 'head__backward',
 				'head__menu-icon', 'head__split', 'head__time', 'head__title',
-				'head__network', 'head__wifi', 'head__speed', 'head__online', 'head__connection'
-			];
-
-			return $('.head .head__action, .head__actions > div, .head__actions > button').filter(function() {
-				var el = $(this);
-				for (var i = 0; i < standardClasses.length; i++) {
-					var cls = standardClasses.slice(i, i + 1).shift();
-					if (el.hasClass(cls)) return false;
-				}
-				return true;
-			});
-		}
-
-		function toggleByLampaBtn(show) {
-			var btn = getByLampaNoticeBtn();
-			if (!btn.length) return;
-
-			btn.each(function() {
-				setElementVisible(this, show);
-			});
-		}
-
-		function openByLampaNoticeModal() {
-			var btn = getByLampaNoticeBtn();
-			var domBtn = btn.get(0);
-
-			if (domBtn) {
-				var wasHidden = domBtn.style && domBtn.style.display === 'none';
-				if (wasHidden) {
-					domBtn.style.setProperty('display', 'flex', 'important');
-				}
-
-				btn.trigger('hover:enter');
-				btn.trigger('click');
-				if (typeof domBtn.click === 'function') {
-					domBtn.click();
-				}
-
-				setTimeout(function() {
-					if (!isByLampaNoticeInHeader()) {
-						setElementVisible(domBtn, false);
-					}
-				}, 50);
-				return;
-			}
-
-			if (window.ByLampa) {
+'head__network', 'head__wifi', 'head__speed', 'head__online', 'head__connection'
+];
+return $('.head .head__action, .head__actions > div, .head__actions > button').filter(function() {
+var el = $(this);
+if (!el.hasClass('selector') && !el.hasClass('head__action')) return false;
+for (var i = 0; i < standardClasses.length; i++) {
+var cls = standardClasses.slice(i, i + 1).shift();
+if (el.hasClass(cls)) return false;
+}
+return true;
+});
+}
+function toggleByLampaBtn(show) {
+var btn = getByLampaNoticeBtn();
+if (!btn.length) return;
+btn.each(function() {
+setElementVisible(this, show);
+});
+}
+function openByLampaNoticeModal() {
+var btn = getByLampaNoticeBtn();
+var domBtn = btn.get(0);
+if (domBtn) {
+var wasHidden = domBtn.style && domBtn.style.display === 'none';
+if (wasHidden) {
+domBtn.style.setProperty('display', 'flex', 'important');
+}
+btn.trigger('hover:enter');
+btn.trigger('click');
+if (typeof domBtn.click === 'function') {
+domBtn.click();
+}
+setTimeout(function() {
+if (!isByLampaNoticeInHeader()) {
+setElementVisible(domBtn, false);
+}
+}, 50);
+return;
+}
+if (window.ByLampa) {
 if (typeof window.ByLampa.showNotice === 'function') window.ByLampa.showNotice();
 else if (typeof window.ByLampa.notice === 'function') window.ByLampa.notice();
 }
 }
-// Уведомления ByLampa: строго ОДИН пункт "Изменения" под "Консоль"
+// Уведомления ByLampa: при "Нет" скрывает из шапки и добавляет строго ОДИН пункт "Изменения" под "Консоль"
 function updateByLampaNotice() {
 var showInHeader = isByLampaNoticeInHeader();
 toggleByLampaBtn(showInHeader);
@@ -486,7 +480,7 @@ updateByLampaNotice();
 updateClockAndCalendar();
 }
 });
-// Символ "+" в стиле bold вместо иконки
+// Символ "+" в стиле bold, подогнанный под размер заголовка и немного крупнее
 var plusIcon = '+';
 if (Lampa.SettingsApi && typeof Lampa.SettingsApi.addComponent === 'function') {
 Lampa.SettingsApi.addComponent({
@@ -514,20 +508,17 @@ name: Lampa.Lang.translate('name_menu')
 }
 });
 // === НОВЫЕ ПЕРЕКЛЮЧАТЕЛИ (В НАЧАЛЕ СПИСКА) ===
-// 1. Уведомления ByLampa ("Да" / "Перенесено в боковое меню")
+// 1. Уведомления ByLampa (обычный переключатель Да / Нет без всплывающего окна)
 Lampa.SettingsApi.addParam({
 component: 'head_filter',
 param: {
 name: 'head_filter_show_bylampa_notice',
-type: 'select',
-values: {
-yes: Lampa.Lang.translate('bylampa_notice_yes'),
-no: Lampa.Lang.translate('bylampa_notice_moved')
-},
-default: 'yes'
+type: 'trigger',
+default: true
 },
 field: {
-name: Lampa.Lang.translate('bylampa_notice')
+name: Lampa.Lang.translate('bylampa_notice'),
+description: Lampa.Lang.translate('bylampa_notice_desc')
 }
 });
 // 2. Часы
