@@ -310,7 +310,7 @@
                 }, 20000);
             },
 
-            showTrailer(key) {
+                        showTrailer(key) {
                 this.stopSlideshow();
                 if (this.trailerElement) {
                     this.trailerElement.remove();
@@ -323,17 +323,29 @@
                 const iframe = document.createElement('iframe');
                 iframe.className = 'new-interface-trailer';
 
-                // Формируем параметры для обхода ошибки 153 и автозапуска без звука
-                let params = `autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1&disablekb=1&fs=0`;
-                if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-                    params += `&origin=${encodeURIComponent(window.location.origin)}`;
-                }
+                const embedUrl = `https://youtube.com{key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&iv_load_policy=3&playsinline=1&disablekb=1&fs=0`;
 
-                iframe.src = `https://youtube-nocookie.com{key}?${params}`;
+                iframe.srcdoc = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <base href="https://www.youtube.com">
+                        <style>
+                            html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+                        </style>
+                    </head>
+                    <body>
+                        <iframe src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                    </body>
+                    </html>
+                `;
                 iframe.allow = 'autoplay; encrypted-media';
-                iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
                 iframe.setAttribute('frameborder', '0');
                 iframe.setAttribute('tabindex', '-1');
+
+                iframe.onload = () => {
+                    wrapper.classList.add('loaded');
+                };
 
                 wrapper.appendChild(iframe);
 
@@ -345,7 +357,7 @@
                 }
                 this.trailerElement = wrapper;
             },
-
+			
             stopTrailer() {
                 if (this.trailerTimer) {
                     clearTimeout(this.trailerTimer);
