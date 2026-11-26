@@ -162,10 +162,6 @@
             slideshowIndex: 0,
             slideshowCurrentId: null,
 
-            trailerTimer: null,
-            trailerElement: null,
-            trailerCurrentId: null,
-
             attach() {
                 if (this.attached) return;
                 const container = main.render(true);
@@ -206,9 +202,7 @@
 
                 if (isNewItem) {
                     this.stopSlideshow();
-                    this.stopTrailer();
                     this.startSlideshow(data);
-                    this.scheduleTrailer(data);
                 }
             },
 
@@ -282,136 +276,16 @@
                 this.slideshowCurrentId = null;
             },
 
-            scheduleTrailer(data) {
-                this.trailerCurrentId = data.id;
-                if (!data || !data.id) return;
-                if (isEpisodeItem(data)) return;  // skip episodes
-                if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
-
-                const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
-
-                this.trailerTimer = setTimeout(() => {
-                    if (this.trailerCurrentId !== data.id) return;
-                    // Запрашиваем все доступные видео без фильтрации по языку
-                    const url = Lampa.TMDB.api(
-                        `${type}/${data.id}/videos?api_key=${Lampa.TMDB.key()}`
-                    );
-                    const network = new Lampa.Reguest();
-                    network.timeout(5000);
-                    network.silent(url, (videos) => {
-                        if (this.trailerCurrentId !== data.id) return;
-                        const results = (videos && videos.results) ? videos.results : [];
-                        let trailer = results.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
-                                   || results.find((v) => v.site === 'YouTube' && v.type === 'Teaser')
-                                   || results.find((v) => v.site === 'YouTube');
-                        if (!trailer || !trailer.key) return;
-                        this.showTrailer(trailer.key);
-                    });
-                }, 20000);
-            },
-
-                        showTrailer(key) {
-                this.stopSlideshow();
-                if (this.trailerElement) {
-                    this.trailerElement.remove();
-                    this.trailerElement = null;
-                }
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'new-interface-trailer-wrap';
-
-                const video = document.createElement('video');
-                video.className = 'new-interface-trailer-video';
-                video.autoplay = true;
-                video.muted = true;
-                video.loop = true;
-                video.playsInline = true;
-                video.setAttribute('muted', '');
-                video.setAttribute('playsinline', '');
-
-                wrapper.appendChild(video);
-
-                const container = main.render(true);
-                if (container && background.parentElement === container) {
-                    container.insertBefore(wrapper, background.nextSibling);
-                } else if (container) {
-                    container.appendChild(wrapper);
-                }
-                this.trailerElement = wrapper;
-
-                // Список публичных API для получения прямой ссылки на поток (без embed)
-                const pipedInstances = [
-                    'https://kavin.rocks',
-                    'https://adminforge.de',
-                    'https://private.coffee',
-                    'https://nosebs.ru'
-                ];
-
-                const tryInstance = (index) => {
-                    if (this.trailerElement !== wrapper) return;
-                    if (index >= pipedInstances.length) {
-                        // Если ни один источник не ответил — убираем обёртку, остаётся обычный фон
-                        wrapper.remove();
-                        this.trailerElement = null;
-                        return;
-                    }
-
-                    const network = new Lampa.Reguest();
-                    network.timeout(5000);
-                    network.silent(`${pipedInstances[index]}/streams/${key}`, (data) => {
-                        if (this.trailerElement !== wrapper) return;
-
-                        const streams = (data && data.videoStreams) ? data.videoStreams : [];
-                        // Ищем готовый mp4 поток (со звуком или без, нам звук не нужен) в 720p или 1080p
-                        const mp4Streams = streams.filter((s) => s.mimeType && s.mimeType.includes('video/mp4') && s.url);
-                        const chosen = mp4Streams.find((s) => s.quality === '720p')
-                                    || mp4Streams.find((s) => s.quality === '1080p')
-                                    || mp4Streams[0];
-
-                        if (chosen && chosen.url) {
-                            video.src = chosen.url;
-                            video.onloadeddata = () => {
-                                if (this.trailerElement === wrapper) {
-                                    wrapper.classList.add('loaded');
-                                    video.play().catch(() => {});
-                                }
-                            };
-                            video.onerror = () => tryInstance(index + 1);
-                        } else {
-                            tryInstance(index + 1);
-                        }
-                    }, () => {
-                        tryInstance(index + 1);
-                    });
-                };
-
-                tryInstance(0);
-            },
-			
-            stopTrailer() {
-                if (this.trailerTimer) {
-                    clearTimeout(this.trailerTimer);
-                    this.trailerTimer = null;
-                }
-                if (this.trailerElement) {
-                    this.trailerElement.remove();
-                    this.trailerElement = null;
-                }
-                this.trailerCurrentId = null;
-            },
-
             reset() {
                 clearTimeout(this.backgroundTimer);
                 this.backgroundTimer = null;
                 info.empty();
                 this.stopSlideshow();
-                this.stopTrailer();
             },
 
             destroy() {
                 clearTimeout(this.backgroundTimer);
                 this.stopSlideshow();
-                this.stopTrailer();
                 info.destroy();
                 const container = main.render(true);
                 if (container) container.classList.remove('new-interface');
@@ -632,7 +506,7 @@
         }
         .new-interface-info__head-right {
 			margin-left: auto;
-			padding-right: 1.5em;
+			padding-right: 1.1em;
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -710,28 +584,6 @@
             opacity: 0;
         }
         .new-interface .full-start__background.loaded { opacity: 1; }
-
-                        .new-interface-trailer-wrap {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0;
-            transition: opacity 0.8s ease;
-        }
-        .new-interface-trailer-wrap.loaded {
-            opacity: 1;
-        }
-        .new-interface-trailer-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            pointer-events: none;
-        }
 
         .new-interface .full-start__rate { font-size: 1.3em; margin-right: 0; }
         .new-interface .card__promo { display: none; }
