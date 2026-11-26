@@ -320,34 +320,16 @@
                 const wrapper = document.createElement('div');
                 wrapper.className = 'new-interface-trailer-wrap';
 
-                const iframe = document.createElement('iframe');
-                iframe.className = 'new-interface-trailer';
+                const video = document.createElement('video');
+                video.className = 'new-interface-trailer-video';
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                video.playsInline = true;
+                video.setAttribute('muted', '');
+                video.setAttribute('playsinline', '');
 
-                const embedUrl = `https://youtube.com{key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&iv_load_policy=3&playsinline=1&disablekb=1&fs=0`;
-
-                iframe.srcdoc = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <base href="https://www.youtube.com">
-                        <style>
-                            html, body, iframe { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-                        </style>
-                    </head>
-                    <body>
-                        <iframe src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                    </body>
-                    </html>
-                `;
-                iframe.allow = 'autoplay; encrypted-media';
-                iframe.setAttribute('frameborder', '0');
-                iframe.setAttribute('tabindex', '-1');
-
-                iframe.onload = () => {
-                    wrapper.classList.add('loaded');
-                };
-
-                wrapper.appendChild(iframe);
+                wrapper.appendChild(video);
 
                 const container = main.render(true);
                 if (container && background.parentElement === container) {
@@ -356,6 +338,54 @@
                     container.appendChild(wrapper);
                 }
                 this.trailerElement = wrapper;
+
+                // Список публичных API для получения прямой ссылки на поток (без embed)
+                const pipedInstances = [
+                    'https://kavin.rocks',
+                    'https://adminforge.de',
+                    'https://private.coffee',
+                    'https://nosebs.ru'
+                ];
+
+                const tryInstance = (index) => {
+                    if (this.trailerElement !== wrapper) return;
+                    if (index >= pipedInstances.length) {
+                        // Если ни один источник не ответил — убираем обёртку, остаётся обычный фон
+                        wrapper.remove();
+                        this.trailerElement = null;
+                        return;
+                    }
+
+                    const network = new Lampa.Reguest();
+                    network.timeout(5000);
+                    network.silent(`${pipedInstances[index]}/streams/${key}`, (data) => {
+                        if (this.trailerElement !== wrapper) return;
+
+                        const streams = (data && data.videoStreams) ? data.videoStreams : [];
+                        // Ищем готовый mp4 поток (со звуком или без, нам звук не нужен) в 720p или 1080p
+                        const mp4Streams = streams.filter((s) => s.mimeType && s.mimeType.includes('video/mp4') && s.url);
+                        const chosen = mp4Streams.find((s) => s.quality === '720p')
+                                    || mp4Streams.find((s) => s.quality === '1080p')
+                                    || mp4Streams[0];
+
+                        if (chosen && chosen.url) {
+                            video.src = chosen.url;
+                            video.onloadeddata = () => {
+                                if (this.trailerElement === wrapper) {
+                                    wrapper.classList.add('loaded');
+                                    video.play().catch(() => {});
+                                }
+                            };
+                            video.onerror = () => tryInstance(index + 1);
+                        } else {
+                            tryInstance(index + 1);
+                        }
+                    }, () => {
+                        tryInstance(index + 1);
+                    });
+                };
+
+                tryInstance(0);
             },
 			
             stopTrailer() {
@@ -681,7 +711,7 @@
         }
         .new-interface .full-start__background.loaded { opacity: 1; }
 
-                .new-interface-trailer-wrap {
+                        .new-interface-trailer-wrap {
             position: fixed;
             top: 0;
             left: 0;
@@ -691,21 +721,17 @@
             pointer-events: none;
             z-index: 0;
             opacity: 0;
-            animation: trailer-fade-in 0.6s ease forwards;
+            transition: opacity 0.8s ease;
         }
-        .new-interface-trailer {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100vw;
-            height: 56.25vw; /* 16:9 */
-            min-height: 100vh;
-            min-width: 177.78vh; /* 16:9 */
-            transform: translate(-50%, -50%) scale(1.12); /* Убирает верхний заголовок и элементы YouTube за пределы экрана */
-            border: none;
+        .new-interface-trailer-wrap.loaded {
+            opacity: 1;
+        }
+        .new-interface-trailer-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
             pointer-events: none;
         }
-        @keyframes trailer-fade-in { to { opacity: 1; } }
 
         .new-interface .full-start__rate { font-size: 1.3em; margin-right: 0; }
         .new-interface .card__promo { display: none; }
