@@ -1,17 +1,20 @@
 (function () {
     'use strict';
-    if (typeof Lampa === 'undefined') return;
+
+    if (typeof window.Lampa === 'undefined') return;
 
     var SHOTS_KEY = 'stylish_show_shots';
 
-    function showDebugError(where, err) {
-        var msg = err && err.message ? err.message : String(err);
-        if (window.Lampa && Lampa.Noty && typeof Lampa.Noty.show === 'function') {
-            Lampa.Noty.show('Stylish [' + where + ']: ' + msg);
-        }
-        if (window.console && console.error) {
-            console.error('Stylish [' + where + ']:', err);
-        }
+    function logError(where, err) {
+        try {
+            var msg = err && err.message ? err.message : String(err);
+            if (window.console && typeof console.error === 'function') {
+                console.error('[StylishInterface][' + where + ']', err);
+            }
+            if (window.Lampa && Lampa.Noty && typeof Lampa.Noty.show === 'function') {
+                Lampa.Noty.show('Stylish [' + where + ']: ' + msg);
+            }
+        } catch (e) {}
     }
 
     function safeCall(where, fn) {
@@ -19,47 +22,77 @@
             try {
                 return fn.apply(this, arguments);
             } catch (err) {
-                showDebugError(where, err);
+                logError(where, err);
             }
         };
     }
 
-    function createRequest() {
+    function createNetwork() {
         var Req = Lampa.Reguest || Lampa.Request;
         return typeof Req === 'function' ? new Req() : null;
     }
 
-    function getImageUrl(path, size) {
+    function getImgUrl(path, size) {
         if (!path) return '';
-        var clean = String(path);
-        if (clean.indexOf('http://') === 0 || clean.indexOf('https://') === 0) return clean;
-        if (clean.charAt(0) !== '/') clean = '/' + clean;
+        var str = String(path);
+        if (str.indexOf('http://') === 0 || str.indexOf('https://') === 0) return str;
+        if (str.charAt(0) !== '/') str = '/' + str;
         if (Lampa.Api && typeof Lampa.Api.img === 'function') {
-            return Lampa.Api.img(clean, size || 'w1280');
+            return Lampa.Api.img(str, size || 'w1280');
         }
-        if (Lampa.TMDB && typeof Lampa.TMDB.image === 'function') {
-            return Lampa.TMDB.image('t/p/' + (size || 'w1280') + clean);
-        }
-        return 'https://tmdb.org' + (size || 'w1280') + clean;
+        return 'https://tmdb.org' + (size || 'w1280') + str;
     }
 
-    function capitalizeText(str) {
+    function getField(name, def) {
+        if (!Lampa.Storage) return def;
+        if (typeof Lampa.Storage.field === 'function') {
+            var val = Lampa.Storage.field(name);
+            if (val !== undefined && val !== null) return val;
+        }
+        if (typeof Lampa.Storage.get === 'function') {
+            var g = Lampa.Storage.get(name, def);
+            if (g !== undefined && g !== null) return g;
+        }
+        return def;
+    }
+
+    function capFirst(str) {
         if (!str) return '';
         var s = String(str);
-        if (Lampa.Utils && typeof Lampa.Utils.capitalizeFirstLetter === 'function') {
-            return Lampa.Utils.capitalizeFirstLetter(s);
-        }
         return s.charAt(0).toUpperCase() + s.slice(1);
     }
 
-    function formatRuntime(minutes) {
-        if (!minutes) return '';
+    function formatTime(mins) {
+        if (!mins) return '';
         if (Lampa.Utils && typeof Lampa.Utils.secondsToTime === 'function') {
-            return Lampa.Utils.secondsToTime(minutes * 60, true);
+            return Lampa.Utils.secondsToTime(mins * 60, true);
         }
-        var h = Math.floor(minutes / 60);
-        var m = minutes % 60;
+        var h = Math.floor(mins / 60);
+        var m = mins % 60;
         return (h > 0 ? h + ' ч ' : '') + m + ' мин';
+    }
+
+    function cutText(text, max) {
+        if (!text) return '';
+        var str = String(text);
+        var limit = max || 180;
+        if (str.length <= limit) return str;
+        var part = str.slice(0, limit);
+        var space = part.lastIndexOf(' ');
+        if (space > limit * 0.6) part = part.slice(0, space);
+        while (part.length > 0 && ' ,.;:!?-'.indexOf(part.charAt(part.length - 1)) !== -1) {
+            part = part.slice(0, -1);
+        }
+        return (part || str.slice(0, limit - 3)) + '...';
+    }
+
+    function isEpisode(data) {
+        if (!data) return false;
+        if (data.__is_episode) return true;
+        if (data.media_type === 'episode' || data.type === 'episode') return true;
+        if (data.still_path && (data.episode_number !== undefined || data.season_number !== undefined)) return true;
+        if (data.episode_number !== undefined || data.season_number !== undefined) return true;
+        return false;
     }
 
     function startPluginV3() {
@@ -99,7 +132,7 @@
 
                 if (isShotsRow(item, element)) {
                     trackShotsRow(item);
-                    if (getSetting(SHOTS_KEY, true) === false) hideShotsRow(item);
+                    if (getField(SHOTS_KEY, true) === false) hideShotsRow(item);
                 }
                 attachLineHandlers(this, item);
             });
@@ -112,21 +145,8 @@
                 if (original) original.apply(this, args);
             });
         } catch (err) {
-            showDebugError('startPluginV3', err);
+            logError('startPluginV3', err);
         }
-    }
-
-    function getSetting(name, defaultValue) {
-        if (!Lampa.Storage) return defaultValue;
-        if (typeof Lampa.Storage.field === 'function') {
-            var v = Lampa.Storage.field(name);
-            if (v !== undefined && v !== null) return v;
-        }
-        if (typeof Lampa.Storage.get === 'function') {
-            var g = Lampa.Storage.get(name, defaultValue);
-            if (g !== undefined && g !== null) return g;
-        }
-        return defaultValue;
     }
 
     function trackShotsRow(item) {
@@ -147,7 +167,7 @@
     }
 
     function refreshShotsVisibility() {
-        var show = getSetting(SHOTS_KEY, true) !== false;
+        var show = getField(SHOTS_KEY, true) !== false;
         if (!Array.isArray(window.__stylish_shots_rows)) return;
         window.__stylish_shots_rows.forEach(function (row) {
             if (show) showShotsRow(row);
@@ -190,20 +210,11 @@
         return state;
     }
 
-    function isEpisodeItem(data) {
-        if (!data) return false;
-        if (data.__is_episode) return true;
-        if (data.media_type === 'episode' || data.type === 'episode') return true;
-        if (data.still_path && (data.episode_number !== undefined || data.season_number !== undefined)) return true;
-        if (data.episode_number !== undefined || data.season_number !== undefined) return true;
-        return false;
-    }
-
     function prepareLineData(element) {
         if (!element || !Array.isArray(element.results)) return;
         element.results.forEach(function (item) {
             if (!item) return;
-            if (isEpisodeItem(item)) {
+            if (isEpisode(item)) {
                 item.__is_episode = true;
                 if (!item.backdrop_path && item.still_path) {
                     item.backdrop_path = item.still_path;
@@ -221,7 +232,7 @@
         var background = document.createElement('img');
         background.className = 'full-start__background';
 
-        var slideNetwork = createRequest();
+        var slideNetwork = createNetwork();
 
         var state = {
             main: main,
@@ -253,10 +264,10 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     if (background.parentElement === container) {
                         container.insertBefore(infoNode, background.nextSibling);
-                    } else {
-                        container.insertBefore(infoNode, container.firstChild || null);
-                    }
-                }
+} else {
+container.insertBefore(infoNode, container.firstChild || null);
+}
+}
 if (infoNode && main.scroll && typeof main.scroll.minus === 'function') {
 main.scroll.minus(infoNode);
 }
@@ -285,7 +296,7 @@ updateBackground: function (data) {
 var self = this;
 var imgPath = data && data.backdrop_path;
 if (!imgPath && data && data.still_path) imgPath = data.still_path;
-var path = imgPath ? getImageUrl(imgPath, 'w1280') : '';
+var path = imgPath ? getImgUrl(imgPath, 'w1280') : '';
 if (!path || path === this.backgroundLast) return;
 clearTimeout(this.backgroundTimer);
 this.backgroundTimer = setTimeout(safeCall('bgTimer', function () {
@@ -310,10 +321,10 @@ this.slideshowCurrentId = data.id;
 this.slideshowImages = [];
 this.slideshowIndex = 0;
 if (!slideNetwork || !data || !data.id) return;
-if (isEpisodeItem(data)) return;
+if (isEpisode(data)) return;
 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 var type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
-var language = getSetting('language', 'ru');
+var language = getField('language', 'ru');
 var url = Lampa.TMDB.api(
 type + '/' + data.id + '/images?api_key=' + Lampa.TMDB.key() + '&language=' + language + '&include_image_language=' + language + ',null,en'
 );
@@ -337,7 +348,7 @@ if (!self.slideshowImages.length) return;
 var idx = self.slideshowIndex % self.slideshowImages.length;
 var next = self.slideshowImages.slice(idx, idx + 1).pop();
 self.slideshowIndex++;
-if (next) self.setBackground(getImageUrl(next, 'w1280'));
+if (next) self.setBackground(getImgUrl(next, 'w1280'));
 }), 10000);
 }
 }));
@@ -381,7 +392,7 @@ function applyEpisodeClass(card) {
 if (!card) return;
 var el = typeof card.render === 'function' ? card.render(true) : null;
 if (!el) return;
-var isEp = isEpisodeItem(card.data) || (el.classList && el.classList.contains('card--episode'));
+var isEp = isEpisode(card.data) || (el.classList && el.classList.contains('card--episode'));
 if (isEp && el.classList) {
 el.classList.add('episode-card');
 }
@@ -501,7 +512,7 @@ var args = Array.prototype.slice.call(arguments);
 try {
 return handler.call(this, original, args);
 } catch (err) {
-showDebugError('wrap:' + method, err);
+logError('wrap:' + method, err);
 return original ? original.apply(this, args) : undefined;
 }
 };
@@ -536,12 +547,11 @@ refreshShotsVisibility();
 });
 });
 } catch (err) {
-showDebugError('registerSettings', err);
+logError('registerSettings', err);
 }
 }
 function addStyleV3() {
-if (addStyleV3.added) return;
-addStyleV3.added = true;
+if (document.getElementById('stylish-interface-v3-css')) return;
 var css = [
 '.new-interface { position: relative; }',
 '.new-interface .card.card--wide { width: 18.3em; }',
@@ -561,7 +571,7 @@ var css = [
 '.new-interface-info__description { font-size: 1.0em; font-weight: 300; line-height: 1.45; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; width: 70%; overflow-wrap: anywhere; word-break: break-word; }',
 '.new-interface-info__description:empty { display: none; }',
 '.new-interface .card-more__box { padding-bottom: 95%; }',
-'.new-interface .full-start__background { position: absolute; top: -6em; left: 0; width: 100%; height: 108%; z-index: 0; transition: opacity 0.4s ease; opacity: 0; }',
+'.new-interface .full-start__background { position: absolute; top: -6em; left: 0; width: 100%; height: 108%; z-index: 0; transition: opacity 0.4s ease; opacity: 0; pointer-events: none; }',
 '.new-interface .full-start__background.loaded { opacity: 1; }',
 '.new-interface .full-start__rate { font-size: 1.3em; margin-right: 0; }',
 '.new-interface .card__promo { display: none; }',
@@ -579,14 +589,15 @@ var css = [
 '.new-interface .card__title, .new-interface .card__age { display: none; }'
 ].join('\n');
 var styleEl = document.createElement('style');
+styleEl.id = 'stylish-interface-v3-css';
 styleEl.type = 'text/css';
-styleEl.textContent = css;
+styleEl.appendChild(document.createTextNode(css));
 (document.head || document.documentElement).appendChild(styleEl);
 }
 function InterfaceInfo() {
 this.html = null;
 this.timer = null;
-this.network = createRequest();
+this.network = createNetwork();
 this.loaded = {};
 this.currentUrl = null;
 }
@@ -625,7 +636,7 @@ if (title) this.html.find('.new-interface-info__title').text(title);
 else this.html.find('.new-interface-info__title').empty();
 var overview = data.overview || '';
 if (overview) {
-this.html.find('.new-interface-info__description').text(this.truncateDescription(overview, 180));
+this.html.find('.new-interface-info__description').text(cutText(overview, 180));
 }
 if (Lampa.Utils && typeof Lampa.Utils.cardImgBackground === 'function' && Lampa.Background && typeof Lampa.Background.change === 'function') {
 var bg = Lampa.Utils.cardImgBackground(data);
@@ -633,25 +644,13 @@ if (bg) Lampa.Background.change(bg);
 }
 this.load(data);
 });
-InterfaceInfo.prototype.truncateDescription = function (text, maxChars) {
-if (!text) return '';
-var limit = maxChars || 180;
-if (text.length <= limit) return text;
-var cut = text.slice(0, limit);
-var lastSpace = cut.lastIndexOf(' ');
-if (lastSpace > limit * 0.6) cut = cut.slice(0, lastSpace);
-while (cut.length > 0 && ' ,.;:!?-'.indexOf(cut.charAt(cut.length - 1)) !== -1) {
-cut = cut.slice(0, -1);
-}
-return cut ? cut + '…' : text.slice(0, limit - 1) + '…';
-};
 InterfaceInfo.prototype.load = function (data) {
 var self = this;
 if (!this.network || !data || !data.id) return;
-if (isEpisodeItem(data)) return;
+if (isEpisode(data)) return;
 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 var type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
-var language = getSetting('language', 'ru');
+var language = getField('language', 'ru');
 var url = Lampa.TMDB.api(type + '/' + data.id + '?api_key=' + Lampa.TMDB.key() + '&append_to_response=content_ratings,release_dates,images&language=' + language);
 this.currentUrl = url;
 if (this.loaded[url]) { this.draw(this.loaded[url]); return; }
@@ -672,16 +671,16 @@ var create = ((movie.release_date || movie.first_air_date || '0000') + '').slice
 var vote = parseFloat((movie.vote_average || 0) + '').toFixed(1);
 var countries = sources && typeof sources.parseCountries === 'function' ? sources.parseCountries(movie) : [];
 var pg = sources && typeof sources.parsePG === 'function' ? sources.parsePG(movie) : '';
-var showYear = getSetting('stylish_show_year', true);
-var showCountry = getSetting('stylish_show_country', true);
-var showRuntime = getSetting('stylish_show_runtime', true);
-var showRating = getSetting('stylish_show_rating', true);
-var showPg = getSetting('stylish_show_pg', true);
-var showGenres = getSetting('stylish_show_genres', true);
+var showYear = getField('stylish_show_year', true);
+var showCountry = getField('stylish_show_country', true);
+var showRuntime = getField('stylish_show_runtime', true);
+var showRating = getField('stylish_show_rating', true);
+var showPg = getField('stylish_show_pg', true);
+var showGenres = getField('stylish_show_genres', true);
 var leftParts = [];
 if (showYear && create !== '0000') leftParts.push('' + create + '');
 if (showCountry && countries && countries.length) leftParts.push('' + countries.join(', ') + '');
-if (showRuntime && movie.runtime) leftParts.push('' + formatRuntime(movie.runtime) + '');
+if (showRuntime && movie.runtime) leftParts.push('' + formatTime(movie.runtime) + '');
 if (showRating && vote > 0) leftParts.push('' + vote + 'TMDB');
 var leftHtml = leftParts.length ? leftParts.join('●') : '';
 var rightParts = [];
@@ -690,7 +689,7 @@ if (showGenres && Array.isArray(movie.genres) && movie.genres.length) {
 var genreNames = [];
 movie.genres.forEach(function (g) {
 if (g && g.name) {
-genreNames.push(capitalizeText(g.name));
+genreNames.push(capFirst(g.name));
 }
 });
 if (genreNames.length) {
@@ -744,7 +743,7 @@ startPluginV3();
 });
 }
 } catch (err) {
-showDebugError('init', err);
+logError('init', err);
 }
 }
 if (window.appready) {
