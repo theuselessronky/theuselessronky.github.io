@@ -548,7 +548,7 @@
             margin-bottom: 2.6em;
         }
         .new-interface-info__body {
-            width: 80%;
+            width: 100%;
             padding-top: 1.1em;
             display: flex;
             flex-direction: column;
@@ -575,6 +575,8 @@
             white-space: nowrap;
         }
         .new-interface-info__head-right {
+			margin-left: auto;
+			padding-right: 1.5em;
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -609,6 +611,7 @@
             vertical-align: middle;
         }
         .new-interface-info__title {
+			max-width: 80%;
             font-size: 4em;
             font-weight: 600;
             margin-bottom: 0.3em;
