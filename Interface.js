@@ -1,241 +1,263 @@
 (function () {
-'use strict';
-if (typeof Lampa === 'undefined') return;
-var SHOTS_KEY = 'stylish_show_shots';
-var seriesBackdropCache = {};
-var seriesBackdropCallbacks = {};
-function startPluginV3() {
-if (!Lampa.Maker || !Lampa.Maker.map || !Lampa.Utils) return;
-if (window.plugin_interface_ready_v3) return;
-window.plugin_interface_ready_v3 = true;
-addStyleV3();
-registerSettings();
-var mainMap = Lampa.Maker.map('Main');
-if (!mainMap || !mainMap.Items || !mainMap.Create) return;
-wrap(mainMap.Items, 'onInit', function (original, args) {
-if (original) original.apply(this, args);
-this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
-});
-wrap(mainMap.Create, 'onCreate', function (original, args) {
-if (original) original.apply(this, args);
-if (!this.__newInterfaceEnabled) return;
-ensureState(this).attach();
-});
-wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
-var element = Array.isArray(args) ? args.slice(0, 1).pop() : null;
-if (this.__newInterfaceEnabled && element) prepareLineData(element);
-return original ? original.apply(this, args) : undefined;
-});
-wrap(mainMap.Items, 'onAppend', function (original, args) {
-if (original) original.apply(this, args);
-if (!this.__newInterfaceEnabled) return;
-var list = Array.isArray(args) ? args : [];
-var item = list.slice(0, 1).pop();
-var element = list.slice(1, 2).pop();
-if (!item || !element) return;
-if (isShotsRow(item, element)) {
-trackShotsRow(item);
-if (getSetting(SHOTS_KEY, true) === false) hideShotsRow(item);
-}
-attachLineHandlers(this, item);
-});
-wrap(mainMap.Items, 'onDestroy', function (original, args) {
-if (this.__newInterfaceState) {
-this.__newInterfaceState.destroy();
-delete this.__newInterfaceState;
-}
-delete this.__newInterfaceEnabled;
-if (original) original.apply(this, args);
-});
-}
-function getSetting(name, defaultValue) {
-if (!Lampa.Storage || typeof Lampa.Storage.field !== 'function') return defaultValue;
-var v = Lampa.Storage.field(name);
-return (v === undefined || v === null) ? defaultValue : v;
-}
-function trackShotsRow(item) {
-if (!window.__stylish_shots_rows) window.__stylish_shots_rows = [];
-if (window.__stylish_shots_rows.indexOf(item) === -1) {
-window.__stylish_shots_rows.push(item);
-}
-}
-function hideShotsRow(item) {
-var el = item && typeof item.render === 'function' ? item.render(true) : null;
-if (el && el.classList) el.classList.add('shots-row-hidden');
-}
-function showShotsRow(item) {
-var el = item && typeof item.render === 'function' ? item.render(true) : null;
-if (el && el.classList) el.classList.remove('shots-row-hidden');
-}
-function refreshShotsVisibility() {
-var show = getSetting(SHOTS_KEY, true) !== false;
-if (!window.__stylish_shots_rows) return;
-window.__stylish_shots_rows.forEach(function (item) {
-if (show) showShotsRow(item);
-else hideShotsRow(item);
-});
-}
-function isShotsRow(line, element) {
-if (!line && !element) return false;
-var candidates = [
-line && line.title,
-line && line.component,
-line && line.method,
-line && line.object && line.object.title,
-line && line.object && line.object.component,
-element && element.title,
-element && element.name,
-element && element.component,
-element && element.method
-].filter(Boolean).map(function (s) { return String(s).toLowerCase(); });
-return candidates.some(function (s) {
-return s.indexOf('shots') !== -1 || s.indexOf('шотс') !== -1;
-});
-}
-function shouldUseNewInterface(object) {
-if (!object) return false;
-if (window.innerWidth < 767) return false;
-return true;
-}
-function ensureState(main) {
-if (main.__newInterfaceState) return main.__newInterfaceState;
-var state = createInterfaceState(main);
-main.__newInterfaceState = state;
-return state;
-}
-function isEpisodeItem(data) {
-if (!data) return false;
-if (data.__is_episode) return true;
-if (data.media_type === 'episode' || data.type === 'episode') return true;
-if (data.still_path && (data.episode_number !== undefined || data.season_number !== undefined)) return true;
-if (data.episode_number !== undefined || data.season_number !== undefined) return true;
-return false;
-}
-function getSeriesIdFromEpisode(data) {
-if (!data) return null;
-return (data.show && data.show.id)
-|| (data.tv && data.tv.id)
-|| data.show_id
-|| data.tv_id
-|| data.series_id
-|| null;
-}
-function getSeriesBackdrop(data) {
-if (!data) return '';
-var direct = (data.show && data.show.backdrop_path)
-|| (data.tv && data.tv.backdrop_path)
-|| data.backdrop_path
-|| '';
-if (direct) return direct;
-var sid = getSeriesIdFromEpisode(data);
-if (sid && seriesBackdropCache[sid] && seriesBackdropCache[sid] !== 'loading') {
-return seriesBackdropCache[sid];
-}
-return '';
-}
-function prepareLineData(element) {
-if (!element || !Array.isArray(element.results)) return;
-element.results.forEach(function (item) {
-if (!item) return;
-if (isEpisodeItem(item)) {
-item.__is_episode = true;
-var seriesBg = getSeriesBackdrop(item);
-if (seriesBg) {
-item.__series_backdrop = seriesBg;
-if (!item.backdrop_path) item.backdrop_path = seriesBg;
-} else if (!item.backdrop_path && item.still_path) {
-item.backdrop_path = item.still_path;
-}
-}
-});
-Lampa.Utils.extendItemsParams(element.results, { style: { name: 'wide' } });
-}
-function createInterfaceState(main) {
-var info = new InterfaceInfo();
-info.create();
-var background = document.createElement('img');
-background.className = 'full-start__background';
-var slideNetwork = new Lampa.Reguest();
-var trailerNetwork = new Lampa.Reguest();
-var state = {
-main: main,
-info: info,
-background: background,
-infoElement: null,
-backgroundTimer: null,
-backgroundLast: '',
-attached: false,
-lastData: null,
-lastUpdateTime: 0,
-slideshowTimer: null,
-slideshowImages: [],
-slideshowIndex: 0,
-slideshowCurrentId: null,
-trailerTimer: null,
-trailerElement: null,
-trailerCurrentId: null,
-trailerCache: {},
-attach: function () {
-var self = this;
-if (this.attached) return;
-var container = main && typeof main.render === 'function' ? main.render(true) : null;
-if (!container) return;
-container.classList.add('new-interface');
-if (!background.parentElement) {
-container.insertBefore(background, container.firstChild || null);
-}
-var infoNode = info.render(true);
-this.infoElement = infoNode;
-if (infoNode && infoNode.parentNode !== container) {
-if (background.parentElement === container) {
-container.insertBefore(infoNode, background.nextSibling);
-} else {
-container.insertBefore(infoNode, container.firstChild || null);
-}
-}
-if (infoNode && main.scroll && typeof main.scroll.minus === 'function') {
-main.scroll.minus(infoNode);
-}
-this.attached = true;
-window.__stylish_refresh = function () {
-if (self.lastData) self.update(self.lastData, true);
-refreshShotsVisibility();
-};
-},
-update: function (data, force) {
-if (!data) return;
-var now = Date.now();
-var isSame = this.lastData && this.lastData.id === data.id;
-if (!force && isSame && now - this.lastUpdateTime < 150) return;
-this.lastUpdateTime = now;
-var isNewItem = !this.lastData || this.lastData.id !== data.id;
-this.lastData = data;
-info.update(data);
-this.updateBackground(data);
-if (isNewItem) {
-this.stopSlideshow();
-this.stopTrailer();
-this.startSlideshow(data);
-this.scheduleTrailer(data);
-}
-},
-updateBackground: function (data) {
-var self = this;
-var imgPath = data && data.backdrop_path;
-if (!imgPath && data && data.still_path) imgPath = data.still_path;
-var path = imgPath ? Lampa.Api.img(imgPath, 'w1280') : '';
-if (!path || path === this.backgroundLast) return;
-clearTimeout(this.backgroundTimer);
-this.backgroundTimer = setTimeout(function () {
-self.setBackground(path);
-}, 1000);
-},
-setBackground: function (path) {
-var self = this;
-if (!path || background.src === path) return;
-background.classList.remove('loaded');
+    'use strict';
+    if (typeof Lampa === 'undefined') return;
+
+    var SHOTS_KEY = 'stylish_show_shots';
+    var seriesBackdropCache = {};
+    var seriesBackdropCallbacks = {};
+
+    function startPluginV3() {
+        if (!Lampa.Maker || !Lampa.Maker.map || !Lampa.Utils) return;
+        if (window.plugin_interface_ready_v3) return;
+        window.plugin_interface_ready_v3 = true;
+
+        addStyleV3();
+        registerSettings();
+
+        var mainMap = Lampa.Maker.map('Main');
+        if (!mainMap || !mainMap.Items || !mainMap.Create) return;
+
+        wrap(mainMap.Items, 'onInit', function (original, args) {
+            if (original) original.apply(this, args);
+            this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
+        });
+        wrap(mainMap.Create, 'onCreate', function (original, args) {
+            if (original) original.apply(this, args);
+            if (!this.__newInterfaceEnabled) return;
+            ensureState(this).attach();
+        });
+        wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
+            var element = Array.isArray(args) ? args.slice(0, 1).pop() : null;
+            if (this.__newInterfaceEnabled && element) prepareLineData(element);
+            return original ? original.apply(this, args) : undefined;
+        });
+        wrap(mainMap.Items, 'onAppend', function (original, args) {
+            if (original) original.apply(this, args);
+            if (!this.__newInterfaceEnabled) return;
+            var list = Array.isArray(args) ? args : [];
+            var item = list.slice(0, 1).pop();
+            var element = list.slice(1, 2).pop();
+            if (!item || !element) return;
+
+            if (isShotsRow(item, element)) {
+                trackShotsRow(item);
+                if (getSetting(SHOTS_KEY, true) === false) hideShotsRow(item);
+            }
+            attachLineHandlers(this, item);
+        });
+        wrap(mainMap.Items, 'onDestroy', function (original, args) {
+            if (this.__newInterfaceState) {
+                this.__newInterfaceState.destroy();
+                delete this.__newInterfaceState;
+            }
+            delete this.__newInterfaceEnabled;
+            if (original) original.apply(this, args);
+        });
+    }
+
+    function getSetting(name, defaultValue) {
+        if (!Lampa.Storage || typeof Lampa.Storage.field !== 'function') return defaultValue;
+        var v = Lampa.Storage.field(name);
+        return (v === undefined || v === null) ? defaultValue : v;
+    }
+
+    function trackShotsRow(item) {
+        if (!window.__stylish_shots_rows) window.__stylish_shots_rows = [];
+        if (window.__stylish_shots_rows.indexOf(item) === -1) {
+            window.__stylish_shots_rows.push(item);
+        }
+    }
+
+    function hideShotsRow(item) {
+        var el = item && typeof item.render === 'function' ? item.render(true) : null;
+        if (el && el.classList) el.classList.add('shots-row-hidden');
+    }
+
+    function showShotsRow(item) {
+        var el = item && typeof item.render === 'function' ? item.render(true) : null;
+        if (el && el.classList) el.classList.remove('shots-row-hidden');
+    }
+
+    function refreshShotsVisibility() {
+        var show = getSetting(SHOTS_KEY, true) !== false;
+        if (!window.__stylish_shots_rows) return;
+        window.__stylish_shots_rows.forEach(function (item) {
+            if (show) showShotsRow(item);
+            else hideShotsRow(item);
+        });
+    }
+
+    function isShotsRow(line, element) {
+        if (!line && !element) return false;
+        var candidates = [
+            line && line.title,
+            line && line.component,
+            line && line.method,
+            line && line.object && line.object.title,
+            line && line.object && line.object.component,
+            element && element.title,
+            element && element.name,
+            element && element.component,
+            element && element.method
+        ].filter(Boolean).map(function (s) { return String(s).toLowerCase(); });
+        return candidates.some(function (s) {
+            return s.indexOf('shots') !== -1 || s.indexOf('шотс') !== -1;
+        });
+    }
+
+    function shouldUseNewInterface(object) {
+        if (!object) return false;
+        if (window.innerWidth < 767) return false;
+        return true;
+    }
+
+    function ensureState(main) {
+        if (main.__newInterfaceState) return main.__newInterfaceState;
+        var state = createInterfaceState(main);
+        main.__newInterfaceState = state;
+        return state;
+    }
+
+    function isEpisodeItem(data) {
+        if (!data) return false;
+        if (data.__is_episode) return true;
+        if (data.media_type === 'episode' || data.type === 'episode') return true;
+        if (data.still_path && (data.episode_number !== undefined || data.season_number !== undefined)) return true;
+        if (data.episode_number !== undefined || data.season_number !== undefined) return true;
+        return false;
+    }
+
+    function getSeriesIdFromEpisode(data) {
+        if (!data) return null;
+        return (data.show && data.show.id)
+            || (data.tv && data.tv.id)
+            || data.show_id
+            || data.tv_id
+            || data.series_id
+            || null;
+    }
+
+    function getSeriesBackdrop(data) {
+        if (!data) return '';
+        var direct = (data.show && data.show.backdrop_path)
+            || (data.tv && data.tv.backdrop_path)
+            || data.backdrop_path
+            || '';
+        if (direct) return direct;
+
+        var sid = getSeriesIdFromEpisode(data);
+        if (sid && seriesBackdropCache[sid] && seriesBackdropCache[sid] !== 'loading') {
+            return seriesBackdropCache[sid];
+        }
+        return '';
+    }
+
+    function prepareLineData(element) {
+        if (!element || !Array.isArray(element.results)) return;
+        element.results.forEach(function (item) {
+            if (!item) return;
+            if (isEpisodeItem(item)) {
+                item.__is_episode = true;
+                var seriesBg = getSeriesBackdrop(item);
+                if (seriesBg) {
+                    item.__series_backdrop = seriesBg;
+                    if (!item.backdrop_path) item.backdrop_path = seriesBg;
+                } else if (!item.backdrop_path && item.still_path) {
+                    item.backdrop_path = item.still_path;
+                }
+            }
+        });
+        Lampa.Utils.extendItemsParams(element.results, { style: { name: 'wide' } });
+    }
+
+    function createInterfaceState(main) {
+        var info = new InterfaceInfo();
+        info.create();
+        var background = document.createElement('img');
+        background.className = 'full-start__background';
+
+        var slideNetwork = new Lampa.Reguest();
+
+        var state = {
+            main: main,
+            info: info,
+            background: background,
+            infoElement: null,
+            backgroundTimer: null,
+            backgroundLast: '',
+            attached: false,
+            lastData: null,
+            lastUpdateTime: 0,
+
+            slideshowTimer: null,
+            slideshowImages: [],
+            slideshowIndex: 0,
+            slideshowCurrentId: null,
+
+            attach: function () {
+                var self = this;
+                if (this.attached) return;
+                var container = main && typeof main.render === 'function' ? main.render(true) : null;
+                if (!container) return;
+                container.classList.add('new-interface');
+                if (!background.parentElement) {
+                    container.insertBefore(background, container.firstChild || null);
+                }
+                var infoNode = info.render(true);
+                this.infoElement = infoNode;
+                if (infoNode && infoNode.parentNode !== container) {
+                    if (background.parentElement === container) {
+                        container.insertBefore(infoNode, background.nextSibling);
+                    } else {
+                        container.insertBefore(infoNode, container.firstChild || null);
+                    }
+                }
+                if (infoNode && main.scroll && typeof main.scroll.minus === 'function') {
+                    main.scroll.minus(infoNode);
+                }
+                this.attached = true;
+                window.__stylish_refresh = function () {
+                    if (self.lastData) self.update(self.lastData, true);
+                    refreshShotsVisibility();
+                };
+            },
+
+            update: function (data, force) {
+                if (!data) return;
+                var now = Date.now();
+                var isSame = this.lastData && this.lastData.id === data.id;
+                if (!force && isSame && now - this.lastUpdateTime < 150) return;
+                this.lastUpdateTime = now;
+
+                var isNewItem = !this.lastData || this.lastData.id !== data.id;
+                this.lastData = data;
+
+                info.update(data);
+                this.updateBackground(data);
+
+                if (isNewItem) {
+                    this.stopSlideshow();
+                    this.startSlideshow(data);
+                }
+            },
+
+            updateBackground: function (data) {
+                var self = this;
+                var imgPath = data && data.backdrop_path;
+                if (!imgPath && data && data.still_path) imgPath = data.still_path;
+                var path = imgPath ? Lampa.Api.img(imgPath, 'w1280') : '';
+                if (!path || path === this.backgroundLast) return;
+                clearTimeout(this.backgroundTimer);
+                this.backgroundTimer = setTimeout(function () {
+                    self.setBackground(path);
+                }, 1000);
+            },
+
+            setBackground: function (path) {
+                if (!path || background.src === path) return;
+                background.classList.remove('loaded');
 background.onload = function () {
-if (!self.trailerElement) background.classList.add('loaded');
+background.classList.add('loaded');
 };
 background.onerror = function () {
 background.classList.remove('loaded');
@@ -289,104 +311,15 @@ this.slideshowImages = [];
 this.slideshowIndex = 0;
 this.slideshowCurrentId = null;
 },
-scheduleTrailer: function (data) {
-var self = this;
-this.trailerCurrentId = data.id;
-if (!data || !data.id) return;
-if (isEpisodeItem(data)) return;
-var title = (data.title || data.name || data.original_title || data.original_name || '').trim();
-if (!title) return;
-var year = ((data.release_date || data.first_air_date || '') + '').slice(0, 4);
-this.trailerTimer = setTimeout(function () {
-if (self.trailerCurrentId !== data.id) return;
-if (self.trailerCache[data.id]) {
-self.showRutubeTrailer(self.trailerCache[data.id]);
-return;
-}
-var primaryQuery = (title + ' ' + year + ' трейлер').trim();
-var fallbackQuery = (title + ' трейлер').trim();
-self.searchRutubeTrailer(primaryQuery, data.id, function (videoId) {
-if (self.trailerCurrentId !== data.id) return;
-if (videoId) {
-self.trailerCache[data.id] = videoId;
-self.showRutubeTrailer(videoId);
-} else if (primaryQuery !== fallbackQuery) {
-self.searchRutubeTrailer(fallbackQuery, data.id, function (fallbackId) {
-if (self.trailerCurrentId !== data.id || !fallbackId) return;
-self.trailerCache[data.id] = fallbackId;
-self.showRutubeTrailer(fallbackId);
-});
-}
-});
-}, 20000);
-},
-searchRutubeTrailer: function (query, itemId, callback) {
-var self = this;
-var searchUrl = 'rutube.ru' + encodeURIComponent(query) + '&format=json';
-trailerNetwork.clear();
-trailerNetwork.timeout(6000);
-trailerNetwork.silent(searchUrl, function (res) {
-if (self.trailerCurrentId !== itemId) return;
-var results = (res && Array.isArray(res.results)) ? res.results : [];
-if (!results.length) {
-callback(null);
-return;
-}
-var valid = results.filter(function (v) { return v && v.id && (!v.duration || v.duration <= 420); });
-var pool = valid.length ? valid : results;
-var best = pool.find(function (v) {
-var t = String(v.title || '').toLowerCase();
-return t.indexOf('трейлер') !== -1 || t.indexOf('тизер') !== -1 || t.indexOf('trailer') !== -1 || t.indexOf('teaser') !== -1;
-}) || pool.find(Boolean);
-callback(best && best.id ? best.id : null);
-}, function () {
-callback(null);
-});
-},
-showRutubeTrailer: function (videoId) {
-this.stopSlideshow();
-if (this.trailerElement) {
-this.trailerElement.remove();
-this.trailerElement = null;
-}
-var iframe = document.createElement('iframe');
-iframe.className = 'new-interface-trailer';
-iframe.src = 'rutube.ru' + encodeURIComponent(videoId) + '?autoStart=true&mute=1';
-iframe.allow = 'clipboard-write; autoplay; encrypted-media; picture-in-picture';
-iframe.allowFullscreen = true;
-iframe.setAttribute('frameborder', '0');
-iframe.setAttribute('tabindex', '-1');
-var container = main && typeof main.render === 'function' ? main.render(true) : null;
-if (container && background.parentElement === container) {
-container.insertBefore(iframe, background.nextSibling);
-} else if (container) {
-container.appendChild(iframe);
-}
-this.trailerElement = iframe;
-},
-stopTrailer: function () {
-trailerNetwork.clear();
-if (this.trailerTimer) {
-clearTimeout(this.trailerTimer);
-this.trailerTimer = null;
-}
-if (this.trailerElement) {
-this.trailerElement.remove();
-this.trailerElement = null;
-}
-this.trailerCurrentId = null;
-},
 reset: function () {
 clearTimeout(this.backgroundTimer);
 this.backgroundTimer = null;
 info.empty();
 this.stopSlideshow();
-this.stopTrailer();
 },
 destroy: function () {
 clearTimeout(this.backgroundTimer);
 this.stopSlideshow();
-this.stopTrailer();
 info.destroy();
 var container = main && typeof main.render === 'function' ? main.render(true) : null;
 if (container) container.classList.remove('new-interface');
@@ -630,8 +563,6 @@ var css = [
 '.new-interface .card-more__box { padding-bottom: 95%; }',
 '.new-interface .full-start__background { position: absolute; top: -6em; left: 0; width: 100%; height: 108%; z-index: 0; transition: opacity 0.4s ease; opacity: 0; }',
 '.new-interface .full-start__background.loaded { opacity: 1; }',
-'.new-interface-trailer { position: absolute; top: -6em; left: 0; width: 100%; height: 108%; border: none; pointer-events: none; z-index: 0; opacity: 0; animation: trailer-fade-in 0.6s ease forwards; }',
-'@keyframes trailer-fade-in { to { opacity: 1; } }',
 '.new-interface .full-start__rate { font-size: 1.3em; margin-right: 0; }',
 '.new-interface .card__promo { display: none; }',
 '.new-interface .card.card--wide + .card-more .card-more__box { padding-bottom: 95%; }',
