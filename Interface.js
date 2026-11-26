@@ -285,106 +285,73 @@
             scheduleTrailer(data) {
                 this.trailerCurrentId = data.id;
                 if (!data || !data.id) return;
-                if (isEpisodeItem(data)) return;
+                if (isEpisodeItem(data)) return;  // skip episodes
+                if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 
-                const KP_API_KEY = 'ВАШ_КЛЮЧ_ОТ_KINOPOISK_API_UNOFFICIAL'; // Вставьте ваш ключ
-                const title = data.title || data.name || data.original_title || data.original_name;
-                const year = ((data.release_date || data.first_air_date || '') + '').slice(0, 4);
-                
-                if (!title) return;
+                const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
 
                 this.trailerTimer = setTimeout(() => {
                     if (this.trailerCurrentId !== data.id) return;
-                    
-                    const searchUrl = `https://kinopoiskapiunofficial.tech{encodeURIComponent(title)}&page=1`;
+                    // Запрашиваем все доступные видео без фильтрации по языку
+                    const url = Lampa.TMDB.api(
+                        `${type}/${data.id}/videos?api_key=${Lampa.TMDB.key()}`
+                    );
                     const network = new Lampa.Reguest();
                     network.timeout(5000);
-                    
-                    network.silent(searchUrl, (searchRes) => {
+                    network.silent(url, (videos) => {
                         if (this.trailerCurrentId !== data.id) return;
-                        if (!searchRes || !Array.isArray(searchRes.films) || !searchRes.films.length) return;
-
-                        // Ищем точное совпадение по году, если год есть
-                        let film = searchRes.films[0];
-                        if (year) {
-                            const exact = searchRes.films.find(f => String(f.year) === String(year));
-                            if (exact) film = exact;
-                        }
-
-                        const kpId = film.filmId || film.kinopoiskId;
-                        if (!kpId) return;
-
-                        // Запрашиваем видео по ID Кинопоиска
-                        const videosUrl = `https://kinopoiskapiunofficial.tech{kpId}/videos`;
-                        network.silent(videosUrl, (videosRes) => {
-                            if (this.trailerCurrentId !== data.id) return;
-                            const items = (videosRes && videosRes.items) ? videosRes.items : [];
-                            
-                            // Ищем трейлер на Кинопоиске (обычно site === 'KINOPOISK_WIDGET' или прямые ссылки)
-                            let trailer = items.find(v => v.site === 'KINOPOISK_WIDGET');
-                            if (!trailer) trailer = items.find(v => v.url && (v.url.includes('.mp4') || v.url.includes('kinopoisk')));
-                            
-                            if (!trailer || !trailer.url) return;
-                            this.showTrailer(trailer.url);
-                        }, false, {
-                            headers: { 'X-API-KEY': KP_API_KEY }
-                        });
-                    }, false, {
-                        headers: { 'X-API-KEY': KP_API_KEY }
+                        const results = (videos && videos.results) ? videos.results : [];
+                        let trailer = results.find((v) => v.site === 'YouTube' && v.type === 'Trailer')
+                                   || results.find((v) => v.site === 'YouTube' && v.type === 'Teaser')
+                                   || results.find((v) => v.site === 'YouTube');
+                        if (!trailer || !trailer.key) return;
+                        this.showTrailer(trailer.key);
                     });
                 }, 20000);
             },
 
-            showTrailer(url) {
+            showTrailer(key) {
                 this.stopSlideshow();
                 if (this.trailerElement) {
                     this.trailerElement.remove();
                     this.trailerElement = null;
                 }
 
-                let mediaEl;
-                // Если это прямая ссылка на видеофайл (mp4/webm)
-                if (url.match(/\.(mp4|webm)(\?.*)?$/i)) {
-                    mediaEl = document.createElement('video');
-                    mediaEl.src = url;
-                    mediaEl.autoplay = true;
-                    mediaEl.muted = true;
-                    mediaEl.loop = true;
-                    mediaEl.playsInline = true;
-                } else {
-                    // Если это виджет Кинопоиска (KINOPOISK_WIDGET)
-                    mediaEl = document.createElement('iframe');
-                    // Добавляем параметры автоплея и отключения звука, если виджет их поддерживает
-                    const separator = url.includes('?') ? '&' : '?';
-                    mediaEl.src = `${url}${separator}autoplay=1&mute=1&loop=1`;
-                    mediaEl.allow = 'autoplay; encrypted-media; fullscreen';
-                    mediaEl.setAttribute('frameborder', '0');
-                    mediaEl.setAttribute('tabindex', '-1');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'new-interface-trailer-wrap';
+
+                const iframe = document.createElement('iframe');
+                iframe.className = 'new-interface-trailer';
+
+                // Формируем параметры для обхода ошибки 153 и автозапуска без звука
+                let params = `autoplay=1&mute=1&controls=0&loop=1&playlist=${key}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&playsinline=1&disablekb=1&fs=0`;
+                if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                    params += `&origin=${encodeURIComponent(window.location.origin)}`;
                 }
 
-                mediaEl.className = 'new-interface-trailer';
+                iframe.src = `https://youtube-nocookie.com{key}?${params}`;
+                iframe.allow = 'autoplay; encrypted-media';
+                iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                iframe.setAttribute('frameborder', '0');
+                iframe.setAttribute('tabindex', '-1');
+
+                wrapper.appendChild(iframe);
 
                 const container = main.render(true);
                 if (container && background.parentElement === container) {
-                    container.insertBefore(mediaEl, background.nextSibling);
+                    container.insertBefore(wrapper, background.nextSibling);
                 } else if (container) {
-                    container.appendChild(mediaEl);
+                    container.appendChild(wrapper);
                 }
-                this.trailerElement = mediaEl;
+                this.trailerElement = wrapper;
             },
 
-                        stopTrailer() {
+            stopTrailer() {
                 if (this.trailerTimer) {
                     clearTimeout(this.trailerTimer);
                     this.trailerTimer = null;
                 }
                 if (this.trailerElement) {
-                    // --- НАЧАЛО ИЗМЕНЕНИЙ ---
-                    if (this.trailerElement.tagName === 'VIDEO') {
-                        this.trailerElement.pause();
-                        this.trailerElement.src = '';
-                    }
-                    // --- КОНЕЦ ИЗМЕНЕНИЙ ---
                     this.trailerElement.remove();
                     this.trailerElement = null;
                 }
@@ -419,7 +386,6 @@
         };
         return state;
     }
-
 
     /* ================= КАРТОЧКИ ================= */
 
@@ -703,17 +669,29 @@
         }
         .new-interface .full-start__background.loaded { opacity: 1; }
 
-        .new-interface-trailer {
-            position: absolute;
-            top: -6em;
+                .new-interface-trailer-wrap {
+            position: fixed;
+            top: 0;
             left: 0;
-            width: 100%;
-            height: 108%;
-            border: none;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
             pointer-events: none;
             z-index: 0;
             opacity: 0;
             animation: trailer-fade-in 0.6s ease forwards;
+        }
+        .new-interface-trailer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100vw;
+            height: 56.25vw; /* 16:9 */
+            min-height: 100vh;
+            min-width: 177.78vh; /* 16:9 */
+            transform: translate(-50%, -50%) scale(1.12); /* Убирает верхний заголовок и элементы YouTube за пределы экрана */
+            border: none;
+            pointer-events: none;
         }
         @keyframes trailer-fade-in { to { opacity: 1; } }
 
