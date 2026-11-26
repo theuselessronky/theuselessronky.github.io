@@ -14,6 +14,54 @@
         }
     }
 
+    function safeCall(where, fn) {
+        return function () {
+            try {
+                return fn.apply(this, arguments);
+            } catch (err) {
+                showDebugError(where, err);
+            }
+        };
+    }
+
+    function createRequest() {
+        var Req = Lampa.Reguest || Lampa.Request;
+        return typeof Req === 'function' ? new Req() : null;
+    }
+
+    function getImageUrl(path, size) {
+        if (!path) return '';
+        var clean = String(path);
+        if (clean.indexOf('http://') === 0 || clean.indexOf('https://') === 0) return clean;
+        if (clean.charAt(0) !== '/') clean = '/' + clean;
+        if (Lampa.Api && typeof Lampa.Api.img === 'function') {
+            return Lampa.Api.img(clean, size || 'w1280');
+        }
+        if (Lampa.TMDB && typeof Lampa.TMDB.image === 'function') {
+            return Lampa.TMDB.image('t/p/' + (size || 'w1280') + clean);
+        }
+        return 'https://tmdb.org' + (size || 'w1280') + clean;
+    }
+
+    function capitalizeText(str) {
+        if (!str) return '';
+        var s = String(str);
+        if (Lampa.Utils && typeof Lampa.Utils.capitalizeFirstLetter === 'function') {
+            return Lampa.Utils.capitalizeFirstLetter(s);
+        }
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function formatRuntime(minutes) {
+        if (!minutes) return '';
+        if (Lampa.Utils && typeof Lampa.Utils.secondsToTime === 'function') {
+            return Lampa.Utils.secondsToTime(minutes * 60, true);
+        }
+        var h = Math.floor(minutes / 60);
+        var m = minutes % 60;
+        return (h > 0 ? h + ' ч ' : '') + m + ' мин';
+    }
+
     function startPluginV3() {
         try {
             if (!Lampa.Maker || typeof Lampa.Maker.map !== 'function' || !Lampa.Utils) return;
@@ -37,7 +85,7 @@
                 ensureState(this).attach();
             });
             wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
-                var element = Array.isArray(args) && args.length > 0 ? args[0] : null;
+                var element = Array.isArray(args) && args.length > 0 ? args.slice(0, 1).pop() : null;
                 if (this.__newInterfaceEnabled && element) prepareLineData(element);
                 return original ? original.apply(this, args) : undefined;
             });
@@ -45,8 +93,8 @@
                 if (original) original.apply(this, args);
                 if (!this.__newInterfaceEnabled) return;
                 var list = Array.isArray(args) ? args : [];
-                var item = list.length > 0 ? list[0] : null;
-                var element = list.length > 1 ? list[1] : null;
+                var item = list.length > 0 ? list.slice(0, 1).pop() : null;
+                var element = list.length > 1 ? list.slice(1, 2).pop() : null;
                 if (!item || !element) return;
 
                 if (isShotsRow(item, element)) {
@@ -69,9 +117,16 @@
     }
 
     function getSetting(name, defaultValue) {
-        if (!Lampa.Storage || typeof Lampa.Storage.field !== 'function') return defaultValue;
-        var v = Lampa.Storage.field(name);
-        return (v === undefined || v === null) ? defaultValue : v;
+        if (!Lampa.Storage) return defaultValue;
+        if (typeof Lampa.Storage.field === 'function') {
+            var v = Lampa.Storage.field(name);
+            if (v !== undefined && v !== null) return v;
+        }
+        if (typeof Lampa.Storage.get === 'function') {
+            var g = Lampa.Storage.get(name, defaultValue);
+            if (g !== undefined && g !== null) return g;
+        }
+        return defaultValue;
     }
 
     function trackShotsRow(item) {
@@ -93,11 +148,11 @@
 
     function refreshShotsVisibility() {
         var show = getSetting(SHOTS_KEY, true) !== false;
-        if (!window.__stylish_shots_rows) return;
-        for (var i = 0; i < window.__stylish_shots_rows.length; i++) {
-            if (show) showShotsRow(window.__stylish_shots_rows[i]);
-            else hideShotsRow(window.__stylish_shots_rows[i]);
-        }
+        if (!Array.isArray(window.__stylish_shots_rows)) return;
+        window.__stylish_shots_rows.forEach(function (row) {
+            if (show) showShotsRow(row);
+            else hideShotsRow(row);
+        });
     }
 
     function isShotsRow(line, element) {
@@ -113,12 +168,13 @@
             element && element.component,
             element && element.method
         ];
-        for (var i = 0; i < candidates.length; i++) {
-            if (!candidates[i]) continue;
-            var str = String(candidates[i]).toLowerCase();
-            if (str.indexOf('shots') !== -1 || str.indexOf('шотс') !== -1) return true;
-        }
-        return false;
+        var found = false;
+        candidates.forEach(function (val) {
+            if (!val || found) return;
+            var str = String(val).toLowerCase();
+            if (str.indexOf('shots') !== -1 || str.indexOf('шотс') !== -1) found = true;
+        });
+        return found;
     }
 
     function shouldUseNewInterface(object) {
@@ -145,16 +201,15 @@
 
     function prepareLineData(element) {
         if (!element || !Array.isArray(element.results)) return;
-        for (var i = 0; i < element.results.length; i++) {
-            var item = element.results[i];
-            if (!item) continue;
+        element.results.forEach(function (item) {
+            if (!item) return;
             if (isEpisodeItem(item)) {
                 item.__is_episode = true;
                 if (!item.backdrop_path && item.still_path) {
                     item.backdrop_path = item.still_path;
                 }
             }
-        }
+        });
         if (typeof Lampa.Utils.extendItemsParams === 'function') {
             Lampa.Utils.extendItemsParams(element.results, { style: { name: 'wide' } });
         }
@@ -166,7 +221,7 @@
         var background = document.createElement('img');
         background.className = 'full-start__background';
 
-        var slideNetwork = new Lampa.Reguest();
+        var slideNetwork = createRequest();
 
         var state = {
             main: main,
@@ -184,71 +239,58 @@
             slideshowIndex: 0,
             slideshowCurrentId: null,
 
-            attach: function () {
-                try {
-                    var self = this;
-                    if (this.attached) return;
-                    var container = main && typeof main.render === 'function' ? main.render(true) : null;
-                    if (!container) return;
-                    container.classList.add('new-interface');
-                    if (!background.parentElement) {
-                        container.insertBefore(background, container.firstChild || null);
-                    }
-                    var infoNode = info.render(true);
-                    this.infoElement = infoNode;
-                    if (infoNode && infoNode.parentNode !== container) {
-                        if (background.parentElement === container) {
-                            container.insertBefore(infoNode, background.nextSibling);
-                        } else {
-                            container.insertBefore(infoNode, container.firstChild || null);
-                        }
-                    }
-                    if (infoNode && main.scroll && typeof main.scroll.minus === 'function') {
-                        main.scroll.minus(infoNode);
-                    }
-                    this.attached = true;
-                    window.__stylish_refresh = function () {
-                        if (self.lastData) self.update(self.lastData, true);
-                        refreshShotsVisibility();
-                    };
-                } catch (err) {
-                    showDebugError('attach', err);
-                }
-            },
-
-            update: function (data, force) {
-                try {
-                    if (!data) return;
-                    var now = Date.now();
-                    var isSame = this.lastData && this.lastData.id === data.id;
-                    if (!force && isSame && now - this.lastUpdateTime < 150) return;
-                    this.lastUpdateTime = now;
-
-                    var isNewItem = !this.lastData || this.lastData.id !== data.id;
-                    this.lastData = data;
-
-                    info.update(data);
-                    this.updateBackground(data);
-
-                    if (isNewItem) {
-                        this.stopSlideshow();
-                        this.startSlideshow(data);
-                    }
-                } catch (err) {
-                    showDebugError('update', err);
-                }
-            },
-
-            updateBackground: function (data) {
+            attach: safeCall('attach', function () {
                 var self = this;
-                var imgPath = data && data.backdrop_path;
-                if (!imgPath && data && data.still_path) imgPath = data.still_path;
-                var path = imgPath && Lampa.Api && typeof Lampa.Api.img === 'function' ? Lampa.Api.img(imgPath, 'w1280') : '';
-                if (!path || path === this.backgroundLast) return;
+                if (this.attached) return;
+                var container = main && typeof main.render === 'function' ? main.render(true) : null;
+                if (!container) return;
+                container.classList.add('new-interface');
+                if (!background.parentElement) {
+                    container.insertBefore(background, container.firstChild || null);
+                }
+                var infoNode = info.render(true);
+                this.infoElement = infoNode;
+                if (infoNode && infoNode.parentNode !== container) {
+                    if (background.parentElement === container) {
+                        container.insertBefore(infoNode, background.nextSibling);
+                    } else {
+                        container.insertBefore(infoNode, container.firstChild || null);
+                    }
+                }
+if (infoNode && main.scroll && typeof main.scroll.minus === 'function') {
+main.scroll.minus(infoNode);
+}
+this.attached = true;
+window.__stylish_refresh = safeCall('refresh', function () {
+if (self.lastData) self.update(self.lastData, true);
+refreshShotsVisibility();
+});
+}),
+update: safeCall('update', function (data, force) {
+if (!data) return;
+var now = Date.now();
+var isSame = this.lastData && this.lastData.id === data.id;
+if (!force && isSame && now - this.lastUpdateTime < 150) return;
+this.lastUpdateTime = now;
+var isNewItem = !this.lastData || this.lastData.id !== data.id;
+this.lastData = data;
+info.update(data);
+this.updateBackground(data);
+if (isNewItem) {
+this.stopSlideshow();
+this.startSlideshow(data);
+}
+}),
+updateBackground: function (data) {
+var self = this;
+var imgPath = data && data.backdrop_path;
+if (!imgPath && data && data.still_path) imgPath = data.still_path;
+var path = imgPath ? getImageUrl(imgPath, 'w1280') : '';
+if (!path || path === this.backgroundLast) return;
 clearTimeout(this.backgroundTimer);
-this.backgroundTimer = setTimeout(function () {
+this.backgroundTimer = setTimeout(safeCall('bgTimer', function () {
 self.setBackground(path);
-}, 1000);
+}), 1000);
 },
 setBackground: function (path) {
 if (!path || background.src === path) return;
@@ -267,42 +309,41 @@ var self = this;
 this.slideshowCurrentId = data.id;
 this.slideshowImages = [];
 this.slideshowIndex = 0;
-if (!data || !data.id) return;
+if (!slideNetwork || !data || !data.id) return;
 if (isEpisodeItem(data)) return;
 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 var type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
-var language = Lampa.Storage.get('language');
+var language = getSetting('language', 'ru');
 var url = Lampa.TMDB.api(
 type + '/' + data.id + '/images?api_key=' + Lampa.TMDB.key() + '&language=' + language + '&include_image_language=' + language + ',null,en'
 );
 slideNetwork.clear();
 slideNetwork.timeout(5000);
-slideNetwork.silent(url, function (images) {
+slideNetwork.silent(url, safeCall('slideSilent', function (images) {
 if (self.slideshowCurrentId !== data.id) return;
 var backdrops = (images && Array.isArray(images.backdrops)) ? images.backdrops : [];
 var current = data.backdrop_path ? '/' + String(data.backdrop_path).replace(/^//, '') : null;
 var list = [];
-for (var i = 0; i < backdrops.length; i++) {
-var img = backdrops[i];
+backdrops.forEach(function (img) {
 if (img && img.file_path && img.iso_639_1 !== 'xx' && img.file_path !== current && list.indexOf(img.file_path) === -1) {
 list.push(img.file_path);
 }
-}
+});
 self.slideshowImages = list;
 self.slideshowIndex = 0;
 if (list.length > 0) {
-self.slideshowTimer = setInterval(function () {
+self.slideshowTimer = setInterval(safeCall('slideTick', function () {
 if (!self.slideshowImages.length) return;
 var idx = self.slideshowIndex % self.slideshowImages.length;
-var next = self.slideshowImages[idx];
+var next = self.slideshowImages.slice(idx, idx + 1).pop();
 self.slideshowIndex++;
-if (next) self.setBackground(Lampa.TMDB.image('t/p/w1280' + next));
-}, 10000);
+if (next) self.setBackground(getImageUrl(next, 'w1280'));
+}), 10000);
 }
-});
+}));
 },
 stopSlideshow: function () {
-slideNetwork.clear();
+if (slideNetwork) slideNetwork.clear();
 if (this.slideshowTimer) {
 clearInterval(this.slideshowTimer);
 this.slideshowTimer = null;
@@ -317,7 +358,7 @@ this.backgroundTimer = null;
 info.empty();
 this.stopSlideshow();
 },
-destroy: function () {
+destroy: safeCall('destroy', function () {
 clearTimeout(this.backgroundTimer);
 this.stopSlideshow();
 info.destroy();
@@ -332,7 +373,7 @@ background.parentNode.removeChild(background);
 this.attached = false;
 this.lastData = null;
 delete window.__stylish_refresh;
-}
+})
 };
 return state;
 }
@@ -351,7 +392,9 @@ var element = card.render(true);
 if (!element) return;
 if (!element.isConnected) {
 clearTimeout(card.__newInterfaceLabelTimer);
-card.__newInterfaceLabelTimer = setTimeout(function () { updateCardTitle(card); }, 50);
+card.__newInterfaceLabelTimer = setTimeout(safeCall('cardTitleTimer', function () {
+updateCardTitle(card);
+}), 50);
 return;
 }
 clearTimeout(card.__newInterfaceLabelTimer);
@@ -382,19 +425,19 @@ card.params = card.params || {};
 card.params.style = card.params.style || {};
 if (!card.params.style.name) card.params.style.name = 'wide';
 card.use({
-onFocus: function () { state.update(card.data); },
-onHover: function () { state.update(card.data); },
-onTouch: function () { state.update(card.data); },
-onVisible: function () { applyEpisodeClass(card); updateCardTitle(card); },
-onUpdate: function () { applyEpisodeClass(card); updateCardTitle(card); },
-onDestroy: function () {
+onFocus: safeCall('cardFocus', function () { state.update(card.data); }),
+onHover: safeCall('cardHover', function () { state.update(card.data); }),
+onTouch: safeCall('cardTouch', function () { state.update(card.data); }),
+onVisible: safeCall('cardVisible', function () { applyEpisodeClass(card); updateCardTitle(card); }),
+onUpdate: safeCall('cardUpdate', function () { applyEpisodeClass(card); updateCardTitle(card); }),
+onDestroy: safeCall('cardDestroy', function () {
 clearTimeout(card.__newInterfaceLabelTimer);
 if (card.__newInterfaceLabel && card.__newInterfaceLabel.parentNode) {
 card.__newInterfaceLabel.parentNode.removeChild(card.__newInterfaceLabel);
 }
 card.__newInterfaceLabel = null;
 delete card.__newInterfaceCard;
-}
+})
 });
 applyEpisodeClass(card);
 updateCardTitle(card);
@@ -403,7 +446,7 @@ function getCardData(card, element, index) {
 if (card && card.data) return card.data;
 if (element && Array.isArray(element.results) && element.results.length > 0) {
 var idx = index || 0;
-return element.results[idx] || null;
+return element.results.slice(idx, idx + 1).pop() || null;
 }
 return null;
 }
@@ -425,27 +468,25 @@ line.__newInterfaceLine = true;
 var state = ensureState(main);
 var applyToCard = function (card) { decorateCard(state, card); };
 line.use({
-onInstance: function (card) { applyToCard(card); },
-onActive: function (card, itemData) {
+onInstance: safeCall('lineInstance', function (card) { applyToCard(card); }),
+onActive: safeCall('lineActive', function (card, itemData) {
 var current = getCardData(card, itemData, 0);
 if (current) state.update(current);
-},
-onToggle: function () {
-setTimeout(function () {
+}),
+onToggle: safeCall('lineToggle', function () {
+setTimeout(safeCall('lineToggleTimer', function () {
 var domData = getFocusedCardData(line);
 if (domData) state.update(domData);
-}, 32);
-},
-onMore: function () { state.reset(); },
-onDestroy: function () {
+}), 32);
+}),
+onMore: safeCall('lineMore', function () { state.reset(); }),
+onDestroy: safeCall('lineDestroy', function () {
 state.reset();
 delete line.__newInterfaceLine;
-}
+})
 });
 if (Array.isArray(line.items) && line.items.length) {
-for (var i = 0; i < line.items.length; i++) {
-applyToCard(line.items[i]);
-}
+line.items.forEach(applyToCard);
 }
 if (line.last) {
 var lastData = getDomCardData(line.last);
@@ -457,10 +498,16 @@ if (!target) return;
 var original = typeof target[method] === 'function' ? target[method] : null;
 target[method] = function () {
 var args = Array.prototype.slice.call(arguments);
+try {
 return handler.call(this, original, args);
+} catch (err) {
+showDebugError('wrap:' + method, err);
+return original ? original.apply(this, args) : undefined;
+}
 };
 }
 function registerSettings() {
+try {
 if (!Lampa.SettingsApi || window.__stylish_settings_registered) return;
 window.__stylish_settings_registered = true;
 Lampa.SettingsApi.addComponent({
@@ -477,8 +524,7 @@ var params = [
 { name: 'stylish_show_country', label: 'Страна',                desc: 'Показывать на фоне выделенной карточки' },
 { name: SHOTS_KEY,              label: 'Shots',                 desc: 'Показывать блок Shots на главной странице' }
 ];
-for (var i = 0; i < params.length; i++) {
-(function (p) {
+params.forEach(function (p) {
 Lampa.SettingsApi.addParam({
 component: 'stylish_interface',
 param: { name: p.name, type: 'trigger', default: true },
@@ -488,7 +534,9 @@ if (window.__stylish_refresh) window.__stylish_refresh();
 refreshShotsVisibility();
 }
 });
-})(params[i]);
+});
+} catch (err) {
+showDebugError('registerSettings', err);
 }
 }
 function addStyleV3() {
@@ -519,7 +567,7 @@ var css = [
 '.new-interface .card__promo { display: none; }',
 '.new-interface .card.card--wide + .card-more .card-more__box { padding-bottom: 95%; }',
 '.new-interface .card.card--wide .card-watched { display: none !important; }',
-'.new-interface .card.episode-card .card__episode-poster, .new-interface .card.card--episode .card__episode-poster, .new-interface .card.episode-card .card-episode__poster, .new-interface .card.card--episode .card-episode__poster { display: none !important; }',
+'.new-interface .card.episode-card .card__episode-poster, .new-interface .card.card--episode .card__episode-poster, .new-interface .card.episode-card .card-episode__poster, .new-interface .card.card--episode .card-episode__poster, .new-interface .card.episode-card .card__poster-bottom, .new-interface .card.card--episode .card__poster-bottom { display: none !important; }',
 '.new-interface .shots-row-hidden { display: none !important; }',
 '.new-interface-card-title { margin-top: 0.6em; font-size: 1.05em; font-weight: 500; color: #fff; display: block; text-align: left; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }',
 'body.light--version .new-interface-card-title { color: #111; }',
@@ -538,7 +586,7 @@ styleEl.textContent = css;
 function InterfaceInfo() {
 this.html = null;
 this.timer = null;
-this.network = new Lampa.Reguest();
+this.network = createRequest();
 this.loaded = {};
 this.currentUrl = null;
 }
@@ -564,7 +612,7 @@ if (!this.html) this.create();
 if (!this.html) return null;
 return js ? this.html.get(0) : this.html;
 };
-InterfaceInfo.prototype.update = function (data) {
+InterfaceInfo.prototype.update = safeCall('infoUpdate', function (data) {
 if (!data) return;
 if (!this.html) this.create();
 if (!this.html) return;
@@ -584,7 +632,7 @@ var bg = Lampa.Utils.cardImgBackground(data);
 if (bg) Lampa.Background.change(bg);
 }
 this.load(data);
-};
+});
 InterfaceInfo.prototype.truncateDescription = function (text, maxChars) {
 if (!text) return '';
 var limit = maxChars || 180;
@@ -599,25 +647,25 @@ return cut ? cut + '…' : text.slice(0, limit - 1) + '…';
 };
 InterfaceInfo.prototype.load = function (data) {
 var self = this;
-if (!data || !data.id) return;
+if (!this.network || !data || !data.id) return;
 if (isEpisodeItem(data)) return;
 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 var type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
-var language = Lampa.Storage.get('language');
+var language = getSetting('language', 'ru');
 var url = Lampa.TMDB.api(type + '/' + data.id + '?api_key=' + Lampa.TMDB.key() + '&append_to_response=content_ratings,release_dates,images&language=' + language);
 this.currentUrl = url;
 if (this.loaded[url]) { this.draw(this.loaded[url]); return; }
 clearTimeout(this.timer);
-this.timer = setTimeout(function () {
+this.timer = setTimeout(safeCall('infoLoadTimer', function () {
 self.network.clear();
 self.network.timeout(5000);
-self.network.silent(url, function (movie) {
+self.network.silent(url, safeCall('infoLoadSilent', function (movie) {
 self.loaded[url] = movie;
 if (self.currentUrl === url) self.draw(movie);
-});
-}, 300);
+}));
+}), 300);
 };
-InterfaceInfo.prototype.draw = function (movie) {
+InterfaceInfo.prototype.draw = safeCall('infoDraw', function (movie) {
 if (!movie || !this.html) return;
 var sources = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb ? Lampa.Api.sources.tmdb : null;
 var create = ((movie.release_date || movie.first_air_date || '0000') + '').slice(0, 4);
@@ -633,18 +681,18 @@ var showGenres = getSetting('stylish_show_genres', true);
 var leftParts = [];
 if (showYear && create !== '0000') leftParts.push('' + create + '');
 if (showCountry && countries && countries.length) leftParts.push('' + countries.join(', ') + '');
-if (showRuntime && movie.runtime) leftParts.push('' + Lampa.Utils.secondsToTime(movie.runtime * 60, true) + '');
+if (showRuntime && movie.runtime) leftParts.push('' + formatRuntime(movie.runtime) + '');
 if (showRating && vote > 0) leftParts.push('' + vote + 'TMDB');
 var leftHtml = leftParts.length ? leftParts.join('●') : '';
 var rightParts = [];
 if (showPg && pg) rightParts.push('' + pg + '');
 if (showGenres && Array.isArray(movie.genres) && movie.genres.length) {
 var genreNames = [];
-for (var g = 0; g < movie.genres.length; g++) {
-if (movie.genres[g] && movie.genres[g].name) {
-genreNames.push(Lampa.Utils.capitalizeFirstLetter(movie.genres[g].name));
+movie.genres.forEach(function (g) {
+if (g && g.name) {
+genreNames.push(capitalizeText(g.name));
 }
-}
+});
 if (genreNames.length) {
 rightParts.push('' + genreNames.join(', ') + '');
 }
@@ -654,12 +702,11 @@ this.html.find('.new-interface-info__head-left').html(leftHtml);
 this.html.find('.new-interface-info__head-right').html(rightHtml);
 if (movie.images && Array.isArray(movie.images.logos) && movie.images.logos.length > 0) {
 var firstLogo = null;
-for (var l = 0; l < movie.images.logos.length; l++) {
-if (movie.images.logos[l] && movie.images.logos[l].file_path) {
-firstLogo = movie.images.logos[l];
-break;
+movie.images.logos.forEach(function (logo) {
+if (!firstLogo && logo && logo.file_path) {
+firstLogo = logo;
 }
-}
+});
 if (firstLogo) {
 var rawPath = String(firstLogo.file_path || '');
 if (rawPath.charAt(0) === '/') rawPath = rawPath.slice(1);
@@ -670,7 +717,7 @@ this.html.find('.new-interface-info__title').html(
 );
 }
 }
-};
+});
 InterfaceInfo.prototype.empty = function () {
 if (!this.html) return;
 this.html.find('.new-interface-info__head-left').empty();
@@ -680,12 +727,13 @@ this.html.find('.new-interface-info__description').empty();
 };
 InterfaceInfo.prototype.destroy = function () {
 clearTimeout(this.timer);
-this.network.clear();
+if (this.network) this.network.clear();
 this.loaded = {};
 this.currentUrl = null;
 if (this.html) { this.html.remove(); this.html = null; }
 };
 function init() {
+try {
 if (!Lampa.Manifest || Lampa.Manifest.app_digital < 300) return;
 startPluginV3();
 if (!window.plugin_interface_ready_v3 && Lampa.Listener && typeof Lampa.Listener.follow === 'function') {
@@ -694,6 +742,9 @@ if (e && e.type === 'start' && !window.plugin_interface_ready_v3) {
 startPluginV3();
 }
 });
+}
+} catch (err) {
+showDebugError('init', err);
 }
 }
 if (window.appready) {
