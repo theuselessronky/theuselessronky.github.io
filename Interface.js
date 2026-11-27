@@ -536,7 +536,8 @@
             max-width: 38em;
             height: auto !important;
             min-height: 1em;
-            display: block !important;
+            display: flex !important;
+            justify-content: flex-end;
             z-index: 2;
             pointer-events: none;
         }
@@ -566,6 +567,12 @@
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
             white-space: nowrap;
             flex-shrink: 0;
+        }
+        .new-interface-info__right-bottom--boxed {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 0.65em 1em;
+            border-radius: 20px;
+            box-sizing: border-box;
         }
         .new-interface-info__right-row {
             display: flex;
@@ -600,11 +607,16 @@
             -webkit-line-clamp: 4;
             line-clamp: 4;
             -webkit-box-orient: vertical;
-            max-height: 5.8em !important;
+            max-height: 6.9em !important;
             text-align: right;
-            width: 100%;
+            width: fit-content;
+            max-width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 0.65em 1em;
+            border-radius: 20px;
+            box-sizing: border-box;
         }
-        .new-interface-info__description:empty { display: none; }
+        .new-interface-info__description:empty { display: none !important; }
 
         /* Название / Лого */
         .new-interface-info__title {
@@ -878,12 +890,15 @@
             if (showCountry && countries && countries.length) metaParts.push(countries.join(', '));
             const metaHtml = metaParts.length ? metaParts.join('<span class="new-interface-info__split">&#9679;</span>') : '';
 
+            const rightBottomEl = this.html.find('.new-interface-info__right-bottom');
+            rightBottomEl.removeClass('new-interface-info__right-bottom--boxed');
+
             if (moveMetaRight) {
                 const rightStack = [];
                 if (metaHtml) rightStack.push(`<div class="new-interface-info__right-meta">${metaHtml}</div>`);
                 if (genresText) rightStack.push(`<div class="new-interface-info__right-genres">${genresText}</div>`);
                 if (rightStack.length) {
-                    this.html.find('.new-interface-info__right-bottom').html(rightStack.join(''));
+                    rightBottomEl.addClass('new-interface-info__right-bottom--boxed').html(rightStack.join(''));
                 }
             } else {
                 if (genresText) {
