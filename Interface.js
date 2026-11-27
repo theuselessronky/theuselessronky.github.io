@@ -4,15 +4,6 @@
 
     const SHOTS_KEY = 'stylish_show_shots';
     const DESC_KEY = 'stylish_show_description';
-    const RELOAD_FLAG = 'stylish_interface_first_reloaded';
-
-    try {
-        if (!sessionStorage.getItem(RELOAD_FLAG)) {
-            sessionStorage.setItem(RELOAD_FLAG, '1');
-            window.location.reload();
-            return;
-        }
-    } catch (e) {}
 
     /* ================= ИНИЦИАЛИЗАЦИЯ ================= */
 
@@ -69,6 +60,28 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
+
+        const reloadMainOnce = function () {
+            if (window.__stylish_main_reloaded) return;
+            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
+            const active = Lampa.Activity.active();
+            if (!active || active.component !== 'main') return;
+            window.__stylish_main_reloaded = true;
+            Lampa.Activity.replace({
+                url: active.url || '',
+                title: active.title || Lampa.Lang.translate('title_main'),
+                component: 'main',
+                page: 1
+            });
+        };
+
+        if (window.appready) {
+            setTimeout(reloadMainOnce, 400);
+        } else if (Lampa.Listener) {
+            Lampa.Listener.follow('app', function (e) {
+                if (e.type === 'ready') setTimeout(reloadMainOnce, 400);
+            });
+        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
