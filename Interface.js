@@ -26,9 +26,10 @@
             if (this.__newInterfaceEnabled === undefined) {
                 this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
             }
+            if (this.__newInterfaceEnabled) {
+                ensureState(this).attach();
+            }
             if (original) original.apply(this, args);
-            if (!this.__newInterfaceEnabled) return;
-            ensureState(this).attach();
         });
         wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
             const element = args && args[0];
@@ -55,14 +56,20 @@
 
             attachLineHandlers(this, item);
 
-            if (!this.__firstRowSynced && this.scroll && typeof item.render === 'function') {
+            if (!this.__firstRowSynced) {
                 this.__firstRowSynced = true;
-                setTimeout(() => {
-                    const el = item.render(true);
-                    if (el && this.scroll && typeof this.scroll.update === 'function') {
-                        this.scroll.update(el, true);
+                const state = ensureState(this);
+                requestAnimationFrame(() => {
+                    if (!state.attached) return;
+                    if (state.infoElement && state.infoElement.offsetHeight === 0 && this.scroll && typeof this.scroll.minus === 'function') {
+                        this.scroll.minus(state.infoElement);
                     }
-                }, 50);
+                    const scrollEl = this.scroll && typeof this.scroll.render === 'function' ? this.scroll.render(true) : null;
+                    const scrollBody = scrollEl && scrollEl.querySelector('.scroll__body');
+                    if (scrollBody && scrollBody.style.transform && scrollBody.style.transform.indexOf('-') !== -1) {
+                        scrollBody.style.transform = 'translate3d(0px, 0px, 0px)';
+                    }
+                });
             }
         });
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
@@ -71,6 +78,7 @@
                 delete this.__newInterfaceState;
             }
             delete this.__newInterfaceEnabled;
+            delete this.__firstRowSynced;
             if (original) original.apply(this, args);
         });
     }
@@ -496,21 +504,6 @@
             justify-content: space-between;
             box-sizing: border-box;
             pointer-events: none;
-        }
-
-        .new-interface .items-line__head > *:not(.items-line__title):not(.items-line__more),
-        .new-interface .items-line__title > *,
-        .new-interface .items-line__title svg,
-        .new-interface .items-line__title img,
-        .new-interface .items-line__title i,
-        .new-interface .items-line__icon {
-            display: none !important;
-        }
-
-        .new-interface .items-line__title::before,
-        .new-interface .items-line__title::after {
-            display: none !important;
-            content: none !important;
         }
 
         .new-interface .items-line__body {
