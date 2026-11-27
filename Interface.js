@@ -161,7 +161,9 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                main.scroll.minus(infoNode);
+                if (main.scroll && typeof main.scroll.minus === 'function') {
+                    main.scroll.minus(infoNode);
+                }
                 this.attached = true;			 
 
                 this._isActive = true;
@@ -308,8 +310,10 @@
     /* ================= КАРТОЧКИ ================= */
 
     function applyEpisodeClass(card) {
-        if (!card || !isEpisodeItem(card.data)) return;
+        if (!card) return;
         const el = typeof card.render === 'function' ? card.render(true) : null;
+        const data = card.data || (el && el.card_data);
+        if (!isEpisodeItem(data)) return;
         if (el) el.classList.add('episode-card');
     }
 
@@ -430,6 +434,10 @@
         line.__newInterfaceLine = true;
         const state = ensureState(main);
         const applyToCard = (card) => decorateCard(state, card);
+        let moTimer = null;
+        let syncTimer = null;
+        let toggleTimer = null;
+
         line.use({
             onInstance(card) { applyToCard(card); },
             onActive(card, itemData) {
@@ -437,13 +445,22 @@
                 if (current) state.update(current);
             },
             onToggle() {
-                setTimeout(() => {
+                clearTimeout(toggleTimer);
+                toggleTimer = setTimeout(() => {
                     const domData = getFocusedCardData(line);
                     if (domData) state.update(domData);
+                    syncDomTitles();
                 }, 32);
             },
             onMore() { state.reset(); },
             onDestroy() {
+                clearTimeout(moTimer);
+                clearTimeout(syncTimer);
+                clearTimeout(toggleTimer);
+                if (line.__newInterfaceObserver) {
+                    line.__newInterfaceObserver.disconnect();
+                    delete line.__newInterfaceObserver;
+                }
                 state.reset();
                 delete line.__newInterfaceLine;
             }
@@ -453,7 +470,9 @@
             if (!lineEl || !lineEl.querySelectorAll) return;
             const cards = lineEl.querySelectorAll('.card, .card-episode');
             cards.forEach((el) => {
-                const data = el.card_data;
+                if (el.classList.contains('bookmarks-folder')) return;
+                const viewEl = el.querySelector('.card__view');
+                const data = el.card_data || (viewEl && viewEl.card_data);
                 if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) return;
                 const rawTitle = data.title || data.name || data.original_title || data.original_name || data.heading || data.label;
                 const text = rawTitle ? String(rawTitle).trim() : '';
@@ -470,7 +489,7 @@
 
         if (Array.isArray(line.items) && line.items.length) line.items.forEach(applyToCard);
         syncDomTitles();
-        setTimeout(() => {
+        syncTimer = setTimeout(() => {
             if (Array.isArray(line.items) && line.items.length) {
                 line.items.forEach((card) => {
                     applyToCard(card);
@@ -479,6 +498,15 @@
             }
             syncDomTitles();
         }, 150);
+
+        const lineEl = typeof line.render === 'function' ? line.render(true) : null;
+        if (lineEl && typeof MutationObserver !== 'undefined') {
+            line.__newInterfaceObserver = new MutationObserver(() => {
+                clearTimeout(moTimer);
+                moTimer = setTimeout(syncDomTitles, 60);
+            });
+            line.__newInterfaceObserver.observe(lineEl, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        }
         if (line.last) {
             const lastData = getDomCardData(line.last);
             if (lastData) state.update(lastData);
@@ -841,7 +869,11 @@
             transform: none !important;
         }
 
-        /* Вертикальные постеры: обрезка названия до 2 строк без наезда года */
+        /* Вертикальные постеры: обрезка названия до 2 строк без перекрытия годом */
+        .card:not(.card--wide) {
+            position: relative !important;
+            padding-bottom: 1.5em !important;
+        }
         .card:not(.card--wide) .card__title {
             display: -webkit-box !important;
             -webkit-line-clamp: 2 !important;
@@ -851,15 +883,19 @@
             text-overflow: ellipsis !important;
             white-space: normal !important;
             height: auto !important;
-            line-height: 1.3em !important;
-            max-height: 2.65em !important;
+            line-height: 1.25em !important;
+            max-height: 2.55em !important;
             margin-bottom: 0 !important;
         }
         .card:not(.card--wide) .card__age {
-            position: static !important;
+            position: absolute !important;
+            left: 0 !important;
+            bottom: 0.1em !important;
+            top: auto !important;
             display: block !important;
             white-space: nowrap !important;
-            margin-top: 0.35em !important;
+            line-height: 1.2em !important;
+            margin: 0 !important;
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
@@ -897,6 +933,7 @@
         }
 
         clear() {
+            clearTimeout(this.timer);
             if (!this.html) return;
             this.html.find('.new-interface-info__description').empty();
             this.html.find('.new-interface-info__title').empty();
