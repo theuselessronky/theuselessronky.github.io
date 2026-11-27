@@ -488,29 +488,13 @@
         .new-interface .items-line__body {
             overflow: visible !important;
         }
-		.new-interface .items-line__head svg,
-        .new-interface .items-line__head img,
-        .new-interface .items-line__head i,
-        .new-interface .items-line__head [class*="icon"],
-        .new-interface .items-line__head [class*="badge"],
-        .new-interface .items-line__head [class*="emoji"],
-        .new-interface .items-line__title svg,
-        .new-interface .items-line__title img,
-        .new-interface .items-line__title i,
-        .new-interface .items-line__title [class*="icon"],
-        .new-interface .items-line__title [class*="badge"],
-        .new-interface .items-line__title [class*="emoji"] {
+		
+        .new-interface .items-line__head .full-person__photo,
+        .new-interface .items-line__title .full-person__photo {
             display: none !important;
+            background: none !important;
+            background-color: transparent !important;
         }
-
-        .new-interface .items-line__head::before,
-        .new-interface .items-line__head::after,
-        .new-interface .items-line__title::before,
-        .new-interface .items-line__title::after {
-            display: none !important;
-            content: none !important;
-        }
-
 
         .new-interface-info__body {
             width: 100%;
