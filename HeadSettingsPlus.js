@@ -125,14 +125,17 @@
 					} else if (el.style.display === 'none') {
 						el.style.removeProperty('display');
 					}
-				} else {
+					} else {
 					if (!hidden) {
 						var curD = el.style.getPropertyValue('display');
 						if (curD && curD !== 'none') el.setAttribute('data-hf-orig-display', curD);
-						el.style.setProperty('display', 'none', 'important');
 						if (el.setAttribute) el.setAttribute('data-hf-hidden', '1');
 					}
+					if (el.style.getPropertyValue('display') !== 'none' || el.style.getPropertyPriority('display') !== 'important') {
+						el.style.setProperty('display', 'none', 'important');
+					}
 				}
+
 			} catch (e) {}
 		}
 		function hideShowAll(map) {
@@ -261,6 +264,10 @@
 					return;
 				}
 				var inHeader = isByLampaInHeader();
+				if (document.body) {
+					if (inHeader) document.body.classList.remove('hf-hide-bylampa-btn');
+					else document.body.classList.add('hf-hide-bylampa-btn');
+				}
 				findByLampaBtn().each(function() { setVisible(this, inHeader); });
 
 				if (inHeader) {
@@ -885,6 +892,13 @@
 					for (var i = 0; i < els.length; i++) setVisible(els[i], v);
 				});
 			});
+		}
+
+		if (!document.getElementById('hf-bylampa-hide-style')) {
+			var st = document.createElement('style');
+			st.id = 'hf-bylampa-hide-style';
+			st.textContent = 'body.hf-hide-bylampa-btn .head .bylampa--notice, body.hf-hide-bylampa-btn .head .bylampa-notice, body.hf-hide-bylampa-btn .head [data-action="bylampa_notice"], body.hf-hide-bylampa-btn .head [data-bylampa-notice], body.hf-hide-bylampa-btn .head [data-hf-hidden="1"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }';
+			document.head.appendChild(st);
 		}
 
 		setTimeout(applyAll, 300);
