@@ -39,9 +39,9 @@
             const element = args && args[1];
             if (!item || !element) return;
 
-            if (isShotsRow(item, element)) {
-                trackShotsRow(item);
-                if (getSetting(SHOTS_KEY, true) === false) hideShotsRow(item);
+            if (isShotsRow(item, element) && getSetting(SHOTS_KEY, true) === false) {
+              const el = typeof item.render === 'function' ? item.render(true) : null;
+              if (el) el.classList.add('shots-row-hidden');
             }
             attachLineHandlers(this, item);
         });
@@ -151,21 +151,11 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                                const updateScrollAnchor = () => {
-                    if (!this.attached || !infoNode) return;
-                    const lineHead = container.querySelector('.items-line__head');
-                    const headHeight = lineHead ? lineHead.offsetHeight : 0;
-                    const totalMinus = Math.max(0, infoNode.offsetHeight - headHeight);
-                    main.scroll.minus(totalMinus);
-                };
+                                main.scroll.minus(infoNode);
                 this.attached = true;
-                updateScrollAnchor();
-                this._scrollAnchorHandler = updateScrollAnchor;
-                window.addEventListener('resize', updateScrollAnchor);
 
                 window.__stylish_refresh = () => {
                     if (this.lastData) this.update(this.lastData, true);
-                    updateScrollAnchor();
                 };
             },
 
@@ -460,9 +450,9 @@
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 22em);
+            height: calc(100vh - 18.5em);
             min-height: 18em;
-            margin-bottom: 1.5em;
+            margin-bottom: -2.8em;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -492,15 +482,16 @@
         /* Верхний правый угол фона: описание выделенного фильма */
         .new-interface-info__head {
             position: absolute;
-            top: 1.5em;
+            top: 4.5em;
             right: 1.5em;
             width: 42%;
             display: flex;
             justify-content: flex-end;
             align-items: flex-start;
-            z-index: 3;
+            z-index: 5;
             pointer-events: none;
         }
+
 
         /* Левая нижняя колонка: жанры -> название -> год/страна */
         .new-interface-info__left-bottom {
