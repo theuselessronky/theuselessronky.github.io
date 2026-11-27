@@ -464,13 +464,18 @@
         }
 
         /* Верхний правый угол: описание */
-         .new-interface-info__head {
+        .new-interface .card__description { display: none !important; }
+
+        .new-interface-info__head {
             width: 45%;
+            margin-left: auto;
             align-self: flex-end;
             display: flex;
             justify-content: flex-end;
+            align-items: flex-start;
             padding-top: 0.5em;
         }
+
 
         /* Левая нижняя колонка: жанры -> название -> год/страна */
         .new-interface-info__left-bottom {
@@ -481,6 +486,9 @@
             max-width: 70%;
             min-width: 0;
         }
+        .new-interface-info__meta-top { order: 1; }
+        .new-interface-info__title    { order: 2; }
+        .new-interface-info__genres   { order: 3; }
 
         /* Правая нижняя строка: длительность • pg • рейтинг */
         .new-interface-info__right-bottom {
@@ -591,7 +599,11 @@
         .new-interface .full-start__background.loaded { opacity: 1; }
 
         .new-interface .card__title,
-        .new-interface .card__age { display: none; }
+        .new-interface .card__age,
+        .new-interface .card__type,
+        .new-interface .card__head,
+        .new-interface .card__top { display: none !important; }
+
 
         .new-interface .card.episode-card .card__poster,
         .new-interface .card.episode-card .card__img,
@@ -648,7 +660,7 @@
             this.loaded = {};
             this.currentUrl = null;
         }
-        create() {
+                create() {
             if (this.html) return;
             this.html = $(`<div class="new-interface-info">
                 <div class="new-interface-info__head">
@@ -656,9 +668,9 @@
                 </div>
                 <div class="new-interface-info__body">
                     <div class="new-interface-info__left-bottom">
-                        <div class="new-interface-info__genres"></div>
-                        <div class="new-interface-info__title"></div>
                         <div class="new-interface-info__meta-top"></div>
+                        <div class="new-interface-info__title"></div>
+                        <div class="new-interface-info__genres"></div>
                     </div>
                     <div class="new-interface-info__right-bottom"></div>
                 </div>
@@ -687,11 +699,12 @@
             if (title) this.html.find('.new-interface-info__title').text(title);
 
             const showDesc = getSetting(DESC_KEY, true);
-            const overview = data.overview || '';
-            if (showDesc && overview) {
+            if (showDesc && !isEpisodeItem(data)) {
+            const overview = (data.overview || '').trim();
+            if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
                 this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
+                }
             }
-
             const bg = Lampa.Utils.cardImgBackground(data);
             if (bg) Lampa.Background.change(bg);
 
