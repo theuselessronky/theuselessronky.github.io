@@ -92,7 +92,7 @@
     function shouldUseNewInterface(object) {
         if (!object) return false;
         if (object.component === 'full') return false;
-        if (window.innerWidth < 480 && !Lampa.Platform.tv()) return false;
+        if (window.innerWidth > 0 && window.innerWidth < 480 && !Lampa.Platform.tv()) return false;
         return true;
     }
 
@@ -140,7 +140,8 @@
             attached: false,
             lastData: null,
             lastUpdateTime: 0,
-
+			
+			slideshowNetwork: new Lampa.Reguest(),
             slideshowTimer: null,
             slideshowImages: [],
             slideshowIndex: 0,
@@ -229,9 +230,9 @@
                     `${type}/${data.id}/images?api_key=${Lampa.TMDB.key()}&language=${language}&include_image_language=${language},null,en`
                 );
 
-                const network = new Lampa.Reguest();
-                network.timeout(5000);
-                network.silent(url, (images) => {
+                this.slideshowNetwork.clear();
+                this.slideshowNetwork.timeout(5000);
+                this.slideshowNetwork.silent(url, (images) => {
                     if (this.slideshowCurrentId !== data.id) return;
                     const backdrops = (images && images.backdrops) ? images.backdrops : [];
                     let list = backdrops
@@ -255,6 +256,7 @@
             },
 
             stopSlideshow() {
+                this.slideshowNetwork.clear();
                 if (this.slideshowTimer) {
                     clearInterval(this.slideshowTimer);
                     this.slideshowTimer = null;
@@ -282,10 +284,6 @@
                 }
                 if (background && background.parentNode) {
                     background.parentNode.removeChild(background);
-                }
-				if (this._scrollAnchorHandler) {
-                window.removeEventListener('resize', this._scrollAnchorHandler);
-                this._scrollAnchorHandler = null;
                 }
                 if (this._activityListener) {
                     Lampa.Listener.remove('activity', this._activityListener);
@@ -761,10 +759,6 @@
                     this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
                 }
             }
-			
-            const bg = Lampa.Utils.cardImgBackground(data);
-            if (bg) Lampa.Background.change(bg);
-
             this.load(data);
         }
         truncateDescription(text, maxChars = 180) {
@@ -855,11 +849,12 @@
             }
 
             // Логотип заменяет текстовое название
-                        if (movie.images && movie.images.logos && movie.images.logos.length > 0) {
+            if (movie.images && movie.images.logos && movie.images.logos.length > 0) {
                 const logoPath = movie.images.logos[0] && movie.images.logos[0].file_path;
                 if (logoPath) {
+                    const cleanPath = logoPath.replace(/^\/+/, '').replace(/\.[^.]+$/, '.png');
                     this.html.find('.new-interface-info__title').html(
-                        '<img src="' + Lampa.TMDB.image('t/p/w500/' + logoPath.slice(1, -4) + '.png') + '" />'
+                        '<img src="' + Lampa.TMDB.image('t/p/w500/' + cleanPath) + '" />'
                     );
                 }
             }
@@ -880,6 +875,5 @@
 
     if (Lampa.Manifest.app_digital >= 300) {
         startPluginV3();
-        return;
     }
 })();
