@@ -23,13 +23,9 @@
             if (original) original.apply(this, args);
         });
         wrap(mainMap.Create, 'onCreate', function (original, args) {
-            if (this.__newInterfaceEnabled === undefined) {
-                this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
-            }
-            if (this.__newInterfaceEnabled) {
-                ensureState(this).attach();
-            }
             if (original) original.apply(this, args);
+            if (!this.__newInterfaceEnabled) return;
+            ensureState(this).attach();
         });
         wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
             const element = args && args[0];
@@ -55,22 +51,6 @@
             if (!this.__newInterfaceEnabled || !item) return;
 
             attachLineHandlers(this, item);
-
-            if (!this.__firstRowSynced) {
-                this.__firstRowSynced = true;
-                const state = ensureState(this);
-                requestAnimationFrame(() => {
-                    if (!state.attached) return;
-                    if (state.infoElement && state.infoElement.offsetHeight === 0 && this.scroll && typeof this.scroll.minus === 'function') {
-                        this.scroll.minus(state.infoElement);
-                    }
-                    const scrollEl = this.scroll && typeof this.scroll.render === 'function' ? this.scroll.render(true) : null;
-                    const scrollBody = scrollEl && scrollEl.querySelector('.scroll__body');
-                    if (scrollBody && scrollBody.style.transform && scrollBody.style.transform.indexOf('-') !== -1) {
-                        scrollBody.style.transform = 'translate3d(0px, 0px, 0px)';
-                    }
-                });
-            }
         });
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
             if (this.__newInterfaceState) {
@@ -78,7 +58,6 @@
                 delete this.__newInterfaceState;
             }
             delete this.__newInterfaceEnabled;
-            delete this.__firstRowSynced;
             if (original) original.apply(this, args);
         });
     }
@@ -509,6 +488,29 @@
         .new-interface .items-line__body {
             overflow: visible !important;
         }
+		.new-interface .items-line__head svg,
+        .new-interface .items-line__head img,
+        .new-interface .items-line__head i,
+        .new-interface .items-line__head [class*="icon"],
+        .new-interface .items-line__head [class*="badge"],
+        .new-interface .items-line__head [class*="emoji"],
+        .new-interface .items-line__title svg,
+        .new-interface .items-line__title img,
+        .new-interface .items-line__title i,
+        .new-interface .items-line__title [class*="icon"],
+        .new-interface .items-line__title [class*="badge"],
+        .new-interface .items-line__title [class*="emoji"] {
+            display: none !important;
+        }
+
+        .new-interface .items-line__head::before,
+        .new-interface .items-line__head::after,
+        .new-interface .items-line__title::before,
+        .new-interface .items-line__title::after {
+            display: none !important;
+            content: none !important;
+        }
+
 
         .new-interface-info__body {
             width: 100%;
