@@ -3,6 +3,7 @@
     if (typeof Lampa === 'undefined') return;
 
     const SHOTS_KEY = 'stylish_show_shots';
+    const DESC_KEY = 'stylish_show_description';
 
     /* ================= ИНИЦИАЛИЗАЦИЯ ================= */
 
@@ -38,10 +39,16 @@
             const element = args && args[1];
             if (!item || !element) return;
 
+            // Полное скрытие Shots: не даем ряду даже инициализироваться
             if (isShotsRow(item, element)) {
-                trackShotsRow(item);
-                if (getSetting(SHOTS_KEY, true) === false) hideShotsRow(item);
+                if (getSetting(SHOTS_KEY, true) === false) {
+                    const el = item.render(true);
+                    if (el) el.style.display = 'none';
+                    item.__stylish_hidden = true;
+                    return;
+                }
             }
+
             attachLineHandlers(this, item);
         });
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
@@ -61,44 +68,20 @@
         return (v === undefined || v === null) ? defaultValue : v;
     }
 
-    function trackShotsRow(item) {
-        if (!window.__stylish_shots_rows) window.__stylish_shots_rows = [];
-        if (window.__stylish_shots_rows.indexOf(item) === -1) {
-            window.__stylish_shots_rows.push(item);
-        }
-    }
-
-    function hideShotsRow(item) {
-        const el = item && typeof item.render === 'function' ? item.render(true) : null;
-        if (el) el.classList.add('shots-row-hidden');
-    }
-
-    function showShotsRow(item) {
-        const el = item && typeof item.render === 'function' ? item.render(true) : null;
-        if (el) el.classList.remove('shots-row-hidden');
-    }
-
-    function refreshShotsVisibility() {
-        const show = getSetting(SHOTS_KEY, true) !== false;
-        if (!window.__stylish_shots_rows) return;
-        window.__stylish_shots_rows.forEach(function (item) {
-            if (show) showShotsRow(item);
-            else hideShotsRow(item);
-        });
-    }
-
     function isShotsRow(line, element) {
         if (!line && !element) return false;
         const candidates = [
             line && line.title,
             line && line.component,
             line && line.method,
+            line && line.type,
             line && line.object && line.object.title,
             line && line.object && line.object.component,
             element && element.title,
             element && element.name,
             element && element.component,
-            element && element.method
+            element && element.method,
+            element && element.type
         ].filter(Boolean).map(function (s) { return String(s).toLowerCase(); });
         return candidates.some(function (s) {
             return s.indexOf('shots') !== -1 || s.indexOf('шотс') !== -1;
@@ -118,12 +101,10 @@
         return state;
     }
 
-        function isEpisodeItem(data) {
+    function isEpisodeItem(data) {
         if (!data || typeof data !== 'object') return false;
-        
         if (data.media_type === 'episode') return true;
         if (data.show_id && typeof data.episode_number !== 'undefined') return true;
-        
         return false;
     }
 
@@ -174,17 +155,12 @@
                 const infoNode = info.render(true);
                 this.infoElement = infoNode;
                 if (infoNode && infoNode.parentNode !== container) {
-                    if (background.parentElement === container) {
-                        container.insertBefore(infoNode, background.nextSibling);
-                    } else {
-                        container.insertBefore(infoNode, container.firstChild || null);
-                    }
+                    container.insertBefore(infoNode, background.nextSibling);
                 }
                 main.scroll.minus(infoNode);
                 this.attached = true;
                 window.__stylish_refresh = () => {
                     if (this.lastData) this.update(this.lastData, true);
-                    refreshShotsVisibility();
                 };
             },
 
@@ -233,7 +209,7 @@
                 this.slideshowIndex = 0;
 
                 if (!data || !data.id) return;
-                if (isEpisodeItem(data)) return;  // skip episodes
+                if (isEpisodeItem(data)) return;
                 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 
                 const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
@@ -390,7 +366,7 @@
     }
 
     function attachLineHandlers(main, line) {
-        if (!line || line.__newInterfaceLine) return;
+        if (!line || line.__newInterfaceLine || line.__stylish_hidden) return;
         line.__newInterfaceLine = true;
         const state = ensureState(main);
         const applyToCard = (card) => decorateCard(state, card);
@@ -446,7 +422,8 @@
             { name: 'stylish_show_genres',  label: 'Жанры',                 desc: 'Показывать на фоне выделенной карточки' },
             { name: 'stylish_show_year',    label: 'Год',                   desc: 'Показывать на фоне выделенной карточки' },
             { name: 'stylish_show_country', label: 'Страна',                desc: 'Показывать на фоне выделенной карточки' },
-            { name: SHOTS_KEY,              label: 'Shots',                 desc: 'Показывать блок Shots на главной странице' }
+            { name: SHOTS_KEY,              label: 'Shots',                 desc: 'Показывать блок Shots на главной странице' },
+            { name: DESC_KEY,               label: 'Описание',              desc: 'Показывать описание на фоне выделенной карточки' }
         ];
 
         params.forEach(function (p) {
@@ -456,7 +433,6 @@
                 field: { name: p.label, description: p.desc },
                 onChange: function () {
                     if (window.__stylish_refresh) window.__stylish_refresh();
-                    refreshShotsVisibility();
                 }
             });
         });
@@ -469,127 +445,163 @@
         addStyleV3.added = true;
         Lampa.Template.add('new_interface_style_v3', `<style>
         .new-interface { position: relative; }
-        .new-interface .card.card--wide { width: 18.3em; }
 
         .new-interface-info {
-            position: relative;
-            z-index: 1;
-            padding: 1.5em;
-            height: 25.5em;
-            margin-bottom: 2.6em;
-        }
-        .new-interface-info__body {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding-top: 1.1em;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
             display: flex;
             flex-direction: column;
+            justify-content: flex-end;
+            padding: 1.5em 1.5em 3em 1.5em;
+            box-sizing: border-box;
         }
+
+        .new-interface-info__body {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            pointer-events: none;
+        }
+
+        /* Верхний правый угол: описание */
         .new-interface-info__head {
+            position: absolute;
+            top: -12em;
+            right: 0;
+            width: 45%;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1em;
-            margin-bottom: 1em;
-            font-size: 1.3em;
-            min-height: 1em;
-            color: rgba(255, 255, 255, 0.6);
+            justify-content: flex-end;
+            pointer-events: auto;
         }
-        .new-interface-info__head span { color: #fff; }
-        .new-interface-info__head-left:empty,
-        .new-interface-info__head-right:empty { display: none; }
-        .new-interface-info__head-left {
+
+        /* Левая нижняя колонка: жанры -> название -> год/страна */
+        .new-interface-info__left-bottom {
             display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            color: rgba(255, 255, 255, 0.75);
-            font-size: 0.95em;
-            white-space: nowrap;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.4em;
+            max-width: 70%;
+            pointer-events: auto;
         }
-        .new-interface-info__head-right {
-			margin-left: auto;
-			padding-right: 1.1em;
+
+        /* Правая нижняя строка: длительность • pg • рейтинг */
+        .new-interface-info__right-bottom {
+            position: absolute;
+            bottom: 0;
+            right: 0;
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            flex-wrap: wrap;
-            color: rgba(255, 255, 255, 0.75);
-            font-size: 0.85em;
-            text-align: right;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            gap: 0.6em;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.85);
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
+            pointer-events: auto;
         }
-        .new-interface-info__head-left .full-start__rate {
-            display: inline-flex;
-            align-items: baseline;
-            gap: 0.25em;
-            font-size: 1em;
-            margin: 0;
-        }
-        .new-interface-info__head-left .full-start__rate > div:first-child {
-            color: #fff;
-            font-weight: 600;
-        }
-        .new-interface-info__head-left .full-start__rate > div:last-child {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.8em;
-        }
-        .new-interface-info__split {
-            margin: 0 0.6em;
-            font-size: 0.55em;
-            color: rgba(255, 255, 255, 0.35);
-            display: inline-block;
-            vertical-align: middle;
-        }
-        .new-interface-info__title {
-			max-width: 80%;
-            font-size: 4em;
-            font-weight: 600;
-            margin-bottom: 0.3em;
-            overflow: hidden;
-            text-overflow: '.';
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            line-clamp: 1;
-            -webkit-box-orient: vertical;
-            margin-left: -0.03em;
-            line-height: 1.3;
-        }
-        .new-interface-info__details { display: none; }
+
+        /* Описание */
         .new-interface-info__description {
-            font-size: 1.0em;
+            font-size: 0.95em;
             font-weight: 300;
-            line-height: 1.45;
+            line-height: 1.4;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 3;
             line-clamp: 3;
             -webkit-box-orient: vertical;
-            width: 70%;
-            overflow-wrap: anywhere;
-            word-break: break-word;
+            max-height: 4.2em;
+            min-height: 0;
+            text-align: right;
+            width: 100%;
         }
         .new-interface-info__description:empty { display: none; }
 
-        .new-interface .card-more__box { padding-bottom: 95%; }
+        /* Название / Лого */
+        .new-interface-info__title {
+            font-size: 3.2em;
+            font-weight: 600;
+            line-height: 1.1;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+        .new-interface-info__title img {
+            max-height: 1.8em;
+            max-width: 100%;
+            margin-bottom: 0.1em;
+        }
 
+        /* Год • Страна */
+        .new-interface-info__meta-top {
+            font-size: 0.95em;
+            color: rgba(255, 255, 255, 0.75);
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 0.4em;
+        }
+
+        /* Жанры */
+        .new-interface-info__genres {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
+            margin-top: 0.2em;
+        }
+
+        /* Разделители */
+        .new-interface-info__split {
+            margin: 0 0.4em;
+            font-size: 0.6em;
+            color: rgba(255, 255, 255, 0.45);
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Рейтинг */
+        .new-interface-info__rate {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.2em;
+        }
+        .new-interface-info__rate > div:first-child {
+            color: #fff;
+            font-weight: 600;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+        }
+        .new-interface-info__rate > div:last-child {
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.8em;
+        }
+
+        /* Фон */
         .new-interface .full-start__background {
             position: absolute;
-            top: -6em;
+            top: 0;
             left: 0;
             width: 100%;
-            height: 108%;
+            height: 100%;
             z-index: 0;
+            object-fit: cover;
             transition: opacity 0.4s ease;
             opacity: 0;
         }
         .new-interface .full-start__background.loaded { opacity: 1; }
 
-        .new-interface .full-start__rate { font-size: 1.3em; margin-right: 0; }
-        .new-interface .card__promo { display: none; }
-        .new-interface .card.card--wide + .card-more .card-more__box { padding-bottom: 95%; }
-        .new-interface .card.card--wide .card-watched { display: none !important; }
+        .new-interface .card__title,
+        .new-interface .card__age { display: none; }
 
         .new-interface .card.episode-card .card__poster,
         .new-interface .card.episode-card .card__img,
@@ -615,17 +627,23 @@
             pointer-events: none;
         }
         body.light--version .new-interface-card-title { color: #111; }
-        body.light--version .new-interface-info__body { width: 69%; padding-top: 1.5em; }
-        body.light--version .new-interface-info { height: 26.8em; margin-bottom: 2.6em; }
 
-        body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.focus .card__view {
-            animation: animation-card-focus 0.2s;
+        /* Светлая тема — инвертированная тень */
+        body.light--version .new-interface-info__description,
+        body.light--version .new-interface-info__title,
+        body.light--version .new-interface-info__meta-top,
+        body.light--version .new-interface-info__genres,
+        body.light--version .new-interface-info__right-bottom {
+            color: #111;
+            text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.8);
         }
-        body.advanced--animation:not(.no--animation) .new-interface .card.card--wide.animate-trigger-enter .card__view {
-            animation: animation-trigger-enter 0.2s forwards;
+        body.light--version .new-interface-info__rate > div:first-child {
+            color: #111;
+            text-shadow: 0 1px 4px rgba(255, 255, 255, 0.9);
         }
-        .new-interface .card__title,
-        .new-interface .card__age { display: none; }
+        body.light--version .new-interface-info__rate > div:last-child {
+            color: rgba(0, 0, 0, 0.55);
+        }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
     }
@@ -643,14 +661,16 @@
         create() {
             if (this.html) return;
             this.html = $(`<div class="new-interface-info">
-                <div class="new-interface-info__body">
-                    <div class="new-interface-info__head">
-                        <div class="new-interface-info__head-left"></div>
-                        <div class="new-interface-info__head-right"></div>
-                    </div>
-                    <div class="new-interface-info__title"></div>
-                    <div class="new-interface-info__details"></div>
+                <div class="new-interface-info__head">
                     <div class="new-interface-info__description"></div>
+                </div>
+                <div class="new-interface-info__body">
+                    <div class="new-interface-info__left-bottom">
+                        <div class="new-interface-info__genres"></div>
+                        <div class="new-interface-info__title"></div>
+                        <div class="new-interface-info__meta-top"></div>
+                    </div>
+                    <div class="new-interface-info__right-bottom"></div>
                 </div>
             </div>`);
         }
@@ -658,21 +678,26 @@
             if (!this.html) this.create();
             return js ? this.html[0] : this.html;
         }
+        clear() {
+            if (!this.html) return;
+            this.html.find('.new-interface-info__description').empty();
+            this.html.find('.new-interface-info__title').empty();
+            this.html.find('.new-interface-info__meta-top').empty();
+            this.html.find('.new-interface-info__genres').empty();
+            this.html.find('.new-interface-info__right-bottom').empty();
+        }
         update(data) {
             if (!data) return;
             if (!this.html) this.create();
             this.currentUrl = null;
-
-            this.html.find('.new-interface-info__head-left').empty();
-            this.html.find('.new-interface-info__head-right').empty();
-            this.html.find('.new-interface-info__description').empty();
+            this.clear();
 
             const title = data.title || data.name || data.original_title || data.original_name || '';
             if (title) this.html.find('.new-interface-info__title').text(title);
-            else this.html.find('.new-interface-info__title').empty();
 
+            const showDesc = getSetting(DESC_KEY, true);
             const overview = data.overview || '';
-            if (overview) {
+            if (showDesc && overview) {
                 this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
             }
 
@@ -724,38 +749,54 @@
             const showPg = getSetting('stylish_show_pg', true);
             const showGenres = getSetting('stylish_show_genres', true);
 
-            const leftParts = [];
-            if (showYear && create !== '0000') leftParts.push(`<span class="new-interface-info__year">${create}</span>`);
-            if (showCountry && countries && countries.length) leftParts.push(`<span class="new-interface-info__country">${countries.join(', ')}</span>`);
-            if (showRuntime && movie.runtime) leftParts.push(`<span class="new-interface-info__runtime">${Lampa.Utils.secondsToTime(movie.runtime * 60, true)}</span>`);
-            if (showRating && vote > 0) leftParts.push(`<div class="full-start__rate new-interface-info__rate"><div>${vote}</div><div>TMDB</div></div>`);
-            const leftHtml = leftParts.length ? leftParts.join('<span class="new-interface-info__split">&#9679;</span>') : '';
-
-            const rightParts = [];
-            if (showPg && pg) rightParts.push(`<span class="new-interface-info__pg">${pg}</span>`);
+            // Левая нижняя колонка: жанры (снизу), название (над), год • страна (сверху)
             if (showGenres && Array.isArray(movie.genres) && movie.genres.length) {
-                rightParts.push(`<span class="new-interface-info__genres">${movie.genres.map((i) => Lampa.Utils.capitalizeFirstLetter(i.name)).join(', ')}</span>`);
+                const genresText = movie.genres.map((i) => Lampa.Utils.capitalizeFirstLetter(i.name)).join(', ');
+                this.html.find('.new-interface-info__genres').text(genresText);
             }
-            const rightHtml = rightParts.length ? rightParts.join('<span class="new-interface-info__split">&#9679;</span>') : '';
 
-            this.html.find('.new-interface-info__head-left').html(leftHtml);
-            this.html.find('.new-interface-info__head-right').html(rightHtml);
+            const metaParts = [];
+            if (showYear && create !== '0000') metaParts.push(create);
+            if (showCountry && countries && countries.length) metaParts.push(countries.join(', '));
+            if (metaParts.length) {
+                this.html.find('.new-interface-info__meta-top').html(metaParts.join('<span class="new-interface-info__split">&#9679;</span>'));
+            }
 
+            // Правая нижняя строка: длительность • PG • рейтинг
+            const rightParts = [];
+            if (showRuntime && movie.runtime) {
+                rightParts.push({ html: Lampa.Utils.secondsToTime(movie.runtime * 60, true), isRate: false });
+            }
+            if (showPg && pg) {
+                rightParts.push({ html: pg, isRate: false });
+            }
+            if (showRating && vote > 0) {
+                rightParts.push({
+                    html: `<div class="new-interface-info__rate"><div>${vote}</div><div>TMDB</div></div>`,
+                    isRate: true
+                });
+            }
+
+            if (rightParts.length) {
+                const html = rightParts.map(function (part, index) {
+                    if (index === 0) return part.html;
+                    return '<span class="new-interface-info__split">&#9679;</span>' + part.html;
+                }).join('');
+                this.html.find('.new-interface-info__right-bottom').html(html);
+            }
+
+            // Логотип заменяет текстовое название
             if (movie.images && movie.images.logos && movie.images.logos.length > 0) {
                 const logoPath = movie.images.logos[0].file_path;
                 if (logoPath) {
                     this.html.find('.new-interface-info__title').html(
-                        '<img style="margin-top: 0.3em; margin-bottom: 0.1em; max-height: 1.8em; max-width: 6.8em;" src="' + Lampa.TMDB.image('t/p/w500/' + logoPath.slice(1, -4) + '.png') + '" />'
+                        '<img src="' + Lampa.TMDB.image('t/p/w500/' + logoPath.slice(1, -4) + '.png') + '" />'
                     );
                 }
             }
         }
         empty() {
-            if (!this.html) return;
-            this.html.find('.new-interface-info__head-left').empty();
-            this.html.find('.new-interface-info__head-right').empty();
-            this.html.find('.new-interface-info__title').empty();
-            this.html.find('.new-interface-info__description').empty();
+            this.clear();
         }
         destroy() {
             clearTimeout(this.timer);
@@ -772,5 +813,4 @@
         startPluginV3();
         return;
     }
-    // Для версий < 300 — старый интерфейс не поддерживается плагином
 })();
