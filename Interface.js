@@ -450,15 +450,16 @@
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 18.5em);
-            min-height: 18em;
-            margin-bottom: -2.8em;
+            height: calc(100vh - 21.5em);
+            min-height: 16em;
+            margin-bottom: 0.5em;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             box-sizing: border-box;
             pointer-events: none;
         }
+
 
 
         .new-interface-info__body {
@@ -479,16 +480,16 @@
             display: none !important;
         }
 
-        /* Верхний правый угол фона: описание выделенного фильма */
+                /* Верхний правый угол фона: описание выделенного фильма */
         .new-interface-info__head {
             position: absolute;
-            top: 4.5em;
+            top: 5.5em;
             right: 1.5em;
             width: 42%;
-            display: flex;
+            display: flex !important;
             justify-content: flex-end;
             align-items: flex-start;
-            z-index: 5;
+            z-index: 10;
             pointer-events: none;
         }
 
@@ -602,16 +603,17 @@
 
         /* Фон */
         .new-interface .full-start__background {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             z-index: 0;
             object-fit: cover;
             transition: opacity 0.4s ease;
             opacity: 0;
         }
+
         .new-interface .full-start__background.loaded { opacity: 1; }
 
         .new-interface .card__title,
