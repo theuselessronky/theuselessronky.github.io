@@ -825,10 +825,11 @@
 
 
         .new-interface-card-title {
-            position: absolute !important;
-            left: 0;
-            right: 0;
-            bottom: 0.2em;
+            position: relative !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+            margin-top: 0.55em !important;
             font-size: 1.05em;
             line-height: 1.25em;
             height: 1.25em;
@@ -869,12 +870,8 @@
             transform: none !important;
         }
 
-        /* Вертикальные постеры: обрезка названия до 2 строк без перекрытия годом */
-        .card:not(.card--wide) {
-            position: relative !important;
-            padding-bottom: 1.5em !important;
-        }
-        .card:not(.card--wide) .card__title {
+        /* Вертикальные постеры: обрезка названия до 2 строк и чёткий отступ до года */
+        .card:not(.card--wide):not(.bookmarks-folder) .card__title {
             display: -webkit-box !important;
             -webkit-line-clamp: 2 !important;
             line-clamp: 2 !important;
@@ -884,18 +881,15 @@
             white-space: normal !important;
             height: auto !important;
             line-height: 1.25em !important;
-            max-height: 2.55em !important;
-            margin-bottom: 0 !important;
+            max-height: 2.5em !important;
+            margin-bottom: 0.45em !important;
         }
-        .card:not(.card--wide) .card__age {
-            position: absolute !important;
-            left: 0 !important;
-            bottom: 0.1em !important;
-            top: auto !important;
+        .card:not(.card--wide):not(.bookmarks-folder) .card__age {
+            position: static !important;
             display: block !important;
             white-space: nowrap !important;
             line-height: 1.2em !important;
-            margin: 0 !important;
+            margin-top: 0.35em !important;
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
