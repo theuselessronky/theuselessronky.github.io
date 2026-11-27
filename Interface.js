@@ -446,10 +446,6 @@
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
         .new-interface { position: relative; }
-        .activity:not(.active) .new-interface-info,
-        .activity:not(.active) .new-interface .full-start__background {
-            display: none !important;
-        }
         .new-interface .card.card--wide { width: 18.3em; }
 
         .new-interface-info {
