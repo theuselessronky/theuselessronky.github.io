@@ -444,7 +444,28 @@
                 delete line.__newInterfaceLine;
             }
         });
+        const syncDomTitles = () => {
+            const lineEl = typeof line.render === 'function' ? line.render(true) : null;
+            if (!lineEl || !lineEl.querySelectorAll) return;
+            const cards = lineEl.querySelectorAll('.card');
+            cards.forEach((el) => {
+                const data = el.card_data;
+                if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) return;
+                const rawTitle = data.title || data.name || data.original_title || data.original_name || data.heading || data.label;
+                const text = rawTitle ? String(rawTitle).trim() : '';
+                if (!text) return;
+                let label = el.querySelector('.new-interface-card-title');
+                if (!label) {
+                    label = document.createElement('div');
+                    label.className = 'new-interface-card-title';
+                    el.appendChild(label);
+                }
+                if (label.textContent !== text) label.textContent = text;
+            });
+        };
+
         if (Array.isArray(line.items) && line.items.length) line.items.forEach(applyToCard);
+        syncDomTitles();
         setTimeout(() => {
             if (Array.isArray(line.items) && line.items.length) {
                 line.items.forEach((card) => {
@@ -452,7 +473,8 @@
                     updateCardTitle(card);
                 });
             }
-        }, 120);
+            syncDomTitles();
+        }, 150);
         if (line.last) {
             const lastData = getDomCardData(line.last);
             if (lastData) state.update(lastData);
@@ -812,7 +834,7 @@
             transform: none !important;
         }
 
-        /* Вертикальные постеры: обрезка названия до 2 строк с увеличенным отступом от года */
+        /* Вертикальные постеры: обрезка названия до 2 строк без наезда года */
         .card:not(.card--wide) .card__title {
             display: -webkit-box !important;
             -webkit-line-clamp: 2 !important;
@@ -821,15 +843,16 @@
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: normal !important;
-            line-height: 1.35em !important;
-            max-height: 2.75em !important;
-            padding-bottom: 0.1em !important;
-            margin-bottom: 0.35em !important;
+            height: auto !important;
+            line-height: 1.3em !important;
+            max-height: 2.65em !important;
+            margin-bottom: 0 !important;
         }
         .card:not(.card--wide) .card__age {
+            position: static !important;
             display: block !important;
             white-space: nowrap !important;
-            margin-top: 0.15em !important;
+            margin-top: 0.35em !important;
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
