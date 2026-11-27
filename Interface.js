@@ -318,8 +318,15 @@
             return;
         }
         clearTimeout(card.__newInterfaceLabelTimer);
-        const text = (card.data && (card.data.title || card.data.name || card.data.original_title || card.data.original_name))
-            ? (card.data.title || card.data.name || card.data.original_title || card.data.original_name).trim() : '';
+        const rawTitle = card.data && (
+            card.data.title ||
+            card.data.name ||
+            card.data.original_title ||
+            card.data.original_name ||
+            card.data.heading ||
+            card.data.label
+        );
+        const text = rawTitle ? String(rawTitle).trim() : '';
         const seek = element.querySelector('.new-interface-card-title');
         if (!text) {
             if (seek && seek.parentNode) seek.parentNode.removeChild(seek);
@@ -347,9 +354,9 @@
         if (!card.params.style.name) card.params.style.name = 'wide';
 
         card.use({
-            onFocus() { state.update(card.data); },
-            onHover() { state.update(card.data); },
-            onTouch() { state.update(card.data); },
+            onFocus() { state.update(card.data); updateCardTitle(card); },
+            onHover() { state.update(card.data); updateCardTitle(card); },
+            onTouch() { state.update(card.data); updateCardTitle(card); },
             onVisible() { applyEpisodeClass(card); updateCardTitle(card); },
             onUpdate() { applyEpisodeClass(card); updateCardTitle(card); },
             onDestroy() {
@@ -466,6 +473,9 @@
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
         .new-interface { position: relative; }
+        .new-interface .card {
+            overflow: visible !important;
+        }
         .new-interface .card.card--wide {
             width: 18.3em;
             padding-bottom: 1.9em !important;
@@ -649,6 +659,30 @@
         }
 
         .new-interface .new-interface__background.loaded { opacity: 1; }
+		
+		        /* Восстановление градиента «Чёрного стиля» в левой части экрана */
+        body.black--style .new-interface::before,
+        .new-interface::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.48) 42%, rgba(0, 0, 0, 0) 75%),
+                        linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
+        }
+        body:not(.black--style) .new-interface::before {
+            opacity: 0.55;
+        }
+        body.black--style .new-interface::before {
+            opacity: 1;
+        }
+        body.light--version .new-interface::before {
+            display: none !important;
+        }
 
         .new-interface .card__title,
         .new-interface .card__age,
