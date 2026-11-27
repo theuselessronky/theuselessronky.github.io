@@ -151,10 +151,21 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                main.scroll.minus(infoNode);
+                                const updateScrollAnchor = () => {
+                    if (!this.attached || !infoNode) return;
+                    const lineHead = container.querySelector('.items-line__head');
+                    const headHeight = lineHead ? lineHead.offsetHeight : 0;
+                    const totalMinus = Math.max(0, infoNode.offsetHeight - headHeight);
+                    main.scroll.minus(totalMinus);
+                };
                 this.attached = true;
+                updateScrollAnchor();
+                this._scrollAnchorHandler = updateScrollAnchor;
+                window.addEventListener('resize', updateScrollAnchor);
+
                 window.__stylish_refresh = () => {
                     if (this.lastData) this.update(this.lastData, true);
+                    updateScrollAnchor();
                 };
             },
 
@@ -265,6 +276,10 @@
                 }
                 if (background && background.parentNode) {
                     background.parentNode.removeChild(background);
+                }
+				if (this._scrollAnchorHandler) {
+                window.removeEventListener('resize', this._scrollAnchorHandler);
+                this._scrollAnchorHandler = null;
                 }
                 this.attached = false;
                 this.lastData = null;
@@ -443,16 +458,18 @@
 
         .new-interface-info {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             padding: 1.5em;
-            height: 25.5em;
-            margin-bottom: 2.6em;
+            height: calc(100vh - 22em);
+            min-height: 18em;
+            margin-bottom: 1.5em;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             box-sizing: border-box;
             pointer-events: none;
         }
+
 
         .new-interface-info__body {
             width: 100%;
@@ -706,12 +723,14 @@
             const title = data.title || data.name || data.original_title || data.original_name || '';
             if (title) this.html.find('.new-interface-info__title').text(title);
 
-            const showDesc = getSetting(DESC_KEY, true);
-            const overview = data.overview || '';
-            if (showDesc && overview) {
-                this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
+                        const showDesc = getSetting(DESC_KEY, true);
+            if (showDesc && !isEpisodeItem(data)) {
+                const overview = (data.overview || '').trim();
+                if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
+                    this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
+                }
             }
-
+			
             const bg = Lampa.Utils.cardImgBackground(data);
             if (bg) Lampa.Background.change(bg);
 
@@ -794,6 +813,14 @@
                     return '<span class="new-interface-info__split">&#9679;</span>' + part.html;
                 }).join('');
                 this.html.find('.new-interface-info__right-bottom').html(html);
+            }
+
+            const showDesc = getSetting(DESC_KEY, true);
+            if (showDesc && movie.overview && !this.html.find('.new-interface-info__description').text()) {
+                const overview = String(movie.overview).trim();
+                if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
+                    this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
+                }
             }
 
             // Логотип заменяет текстовое название
