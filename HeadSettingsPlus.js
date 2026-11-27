@@ -225,7 +225,16 @@
 					if (b.style && b.style.display === 'none') b.style.setProperty('display', 'flex', 'important');
 					try { $b.trigger('hover:enter'); } catch (e1) {}
 					try { $b.trigger('click'); } catch (e2) {}
-					setTimeout(function() { if (b && b.parentNode && !isByLampaInHeader()) setVisible(b, false); }, 50);
+					var hideAgain = function() {
+						if (!isByLampaInHeader()) {
+							findByLampaBtn().each(function() { setVisible(this, false); });
+						}
+					};
+					hideAgain();
+					setTimeout(hideAgain, 50);
+					setTimeout(hideAgain, 200);
+					setTimeout(hideAgain, 500);
+					setTimeout(hideAgain, 1000);
 					return;
 				}
 				if (window.ByLampa) {
@@ -767,7 +776,7 @@
 					});
 				};
 				if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
-			}).observe(hn, { childList: true, subtree: true });
+			}).observe(hn, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
 		} catch (e) {}
 
 		setInterval(function() {
