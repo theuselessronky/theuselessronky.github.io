@@ -4,6 +4,15 @@
 
     const SHOTS_KEY = 'stylish_show_shots';
     const DESC_KEY = 'stylish_show_description';
+    const RELOAD_FLAG = 'stylish_interface_first_reloaded';
+
+    try {
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+            sessionStorage.setItem(RELOAD_FLAG, '1');
+            window.location.reload();
+            return;
+        }
+    } catch (e) {}
 
     /* ================= ИНИЦИАЛИЗАЦИЯ ================= */
 
@@ -160,8 +169,10 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                main.scroll.minus(infoNode);
-                this.attached = true;			 
+                if (main.scroll && typeof main.scroll.minus === 'function') {
+                    main.scroll.minus(infoNode);
+                }
+                this.attached = true;		 
 
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
@@ -662,8 +673,6 @@
             background-position: center;
         }
 
-        .new-interface .shots-row-hidden { display: none !important; }
-
         .new-interface-card-title {
             position: absolute !important;
             left: 0;
@@ -736,6 +745,7 @@
         }
 
         clear() {
+            clearTimeout(this.timer);
             if (!this.html) return;
             this.html.find('.new-interface-info__description').empty();
             this.html.find('.new-interface-info__title').empty();
