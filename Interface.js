@@ -68,15 +68,24 @@
             if (original) original.apply(this, args);
         });
 
-        setTimeout(function () {
+        const reloadIfNeeded = function () {
             if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
             const active = Lampa.Activity.active();
-            if (!active || !active.activity || active.component === 'full') return;
-            const render = typeof active.activity.render === 'function' ? active.activity.render(true) : null;
+            if (!active || active.component === 'full') return;
+            if (active.component !== 'main' && active.component !== 'category') return;
+            const render = active.activity && typeof active.activity.render === 'function' ? active.activity.render(true) : null;
             if (render && !render.classList.contains('new-interface') && shouldUseNewInterface(active)) {
-                Lampa.Activity.replace(active);
+                Lampa.Activity.replace(Object.assign({}, active));
             }
-        }, 300);
+        };
+
+        if (window.appready) {
+            setTimeout(reloadIfNeeded, 100);
+        } else if (Lampa.Listener) {
+            Lampa.Listener.follow('app', function (e) {
+                if (e.type === 'ready') setTimeout(reloadIfNeeded, 100);
+            });
+        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -482,14 +491,18 @@
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
         .new-interface { position: relative; }
-        .new-interface .card.card--wide { width: 18.3em; }
+        .new-interface .card.card--wide {
+            width: 18.3em;
+            padding-bottom: 1.9em !important;
+            margin-bottom: 0 !important;
+        }
 
-         .new-interface-info {
+        .new-interface-info {
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 26em);
-            min-height: 15em;
+            height: calc(100vh - 17.5em);
+            min-height: 14em;
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
@@ -499,8 +512,10 @@
         }
 
         .new-interface .items-line__head > *:not(.items-line__title):not(.items-line__more),
+        .new-interface .items-line__title > *,
         .new-interface .items-line__title svg,
         .new-interface .items-line__title img,
+        .new-interface .items-line__title i,
         .new-interface .items-line__icon {
             display: none !important;
         }
@@ -509,10 +524,6 @@
         .new-interface .items-line__title::after {
             display: none !important;
             content: none !important;
-        }
-
-        .new-interface .items-line {
-            padding-bottom: 1.6em !important;
         }
 
         .new-interface .items-line__body {
@@ -690,24 +701,22 @@
         .new-interface .shots-row-hidden { display: none !important; }
 
         .new-interface-card-title {
-            position: relative !important;
-            margin-top: 0.5em;
-            padding-bottom: 0.35em;
+            position: absolute !important;
+            left: 0;
+            right: 0;
+            bottom: 0.2em;
             font-size: 1.05em;
-            line-height: 1.3em;
-            min-height: 1.65em;
+            line-height: 1.25em;
+            height: 1.25em;
             font-weight: 500;
             color: #fff;
             display: block;
             text-align: left;
-            width: 100%;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             pointer-events: none;
-            box-sizing: border-box;
-            flex-shrink: 0;
         }
         body.light--version .new-interface-card-title { color: #111; }
 
