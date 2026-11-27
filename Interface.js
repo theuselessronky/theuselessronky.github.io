@@ -60,38 +60,7 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
-
-        const triggerMainMenuClick = function () {
-            if (window.__stylish_main_reloaded) return;
-            window.__stylish_main_reloaded = true;
-
-            const menuBtn = document.querySelector('.menu .menu__item[data-action="main"]');
-            if (menuBtn) {
-                $(menuBtn).trigger('hover:enter');
-            } else if (Lampa.Activity && typeof Lampa.Activity.replace === 'function') {
-                Lampa.Activity.out();
-                Lampa.Activity.push({
-                    url: '',
-                    title: Lampa.Lang.translate('title_main'),
-                    component: 'main',
-                    page: 1
-                });
-            }
-        };
-
-        const onMainRendered = function (e) {
-            if (window.__stylish_main_reloaded) return;
-            if (!e || (e.type !== 'complete' && e.type !== 'start')) return;
-            const active = Lampa.Activity && typeof Lampa.Activity.active === 'function' ? Lampa.Activity.active() : null;
-            if (active && active.component === 'main') {
-                Lampa.Listener.remove('activity', onMainRendered);
-                setTimeout(triggerMainMenuClick, 150);
-            }
-        };
-
-        if (Lampa.Listener) {
-            Lampa.Listener.follow('activity', onMainRendered);
-        }
+    }
 
     /* ================= ХЕЛПЕРЫ ================= */
 
@@ -191,10 +160,8 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                if (main.scroll && typeof main.scroll.minus === 'function') {
-                    main.scroll.minus(infoNode);
-                }
-                this.attached = true;		 
+                main.scroll.minus(infoNode);
+                this.attached = true;			 
 
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
@@ -695,6 +662,8 @@
             background-position: center;
         }
 
+        .new-interface .shots-row-hidden { display: none !important; }
+
         .new-interface-card-title {
             position: absolute !important;
             left: 0;
@@ -767,7 +736,6 @@
         }
 
         clear() {
-            clearTimeout(this.timer);
             if (!this.html) return;
             this.html.find('.new-interface-info__description').empty();
             this.html.find('.new-interface-info__title').empty();
