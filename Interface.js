@@ -884,15 +884,18 @@
             text-overflow: ellipsis !important;
             white-space: normal !important;
             height: auto !important;
-            line-height: 1.25em !important;
-            max-height: 2.5em !important;
+            line-height: 1.3em !important;
+            max-height: 2.65em !important;
         }
 
-        /* Увеличенный отступ между 2-й строкой названия и годом только на Android */
+        /* Увеличенная высота 2-й строки и отступ от года только на Android */
         body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) {
-            padding-bottom: 0.6em !important;
+            padding-bottom: 0.7em !important;
         }
         body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) .card__title {
+            line-height: 1.35em !important;
+            max-height: 2.85em !important;
+            padding-bottom: 0.15em !important;
             margin-bottom: 0.55em !important;
         }
         body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) .card__age {
