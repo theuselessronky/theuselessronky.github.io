@@ -29,20 +29,26 @@
         });
         wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
             const element = args && args[0];
-            if (this.__newInterfaceEnabled && element) prepareLineData(element);
+            if (this.__newInterfaceEnabled && element) {
+                if (isShotsRow(null, element) && getSetting(SHOTS_KEY, true) === false) {
+                    return;
+                }
+                prepareLineData(element);
+            }
             return original ? original.apply(this, args) : undefined;
         });
         wrap(mainMap.Items, 'onAppend', function (original, args) {
-            if (original) original.apply(this, args);
-            if (!this.__newInterfaceEnabled) return;
             const item = args && args[0];
             const element = args && args[1];
-            if (!item || !element) return;
 
-            if (isShotsRow(item, element) && getSetting(SHOTS_KEY, true) === false) {
-              const el = typeof item.render === 'function' ? item.render(true) : null;
-              if (el) el.classList.add('shots-row-hidden');
+            if (this.__newInterfaceEnabled && isShotsRow(item, element) && getSetting(SHOTS_KEY, true) === false) {
+                if (item && typeof item.destroy === 'function') item.destroy();
+                return;
             }
+
+            if (original) original.apply(this, args);
+            if (!this.__newInterfaceEnabled || !item || !element) return;
+
             attachLineHandlers(this, item);
         });
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
@@ -97,10 +103,10 @@
     }
 
     function isEpisodeItem(data) {
-        if (!data || typeof data !== 'object') return false;
-        if (data.media_type === 'episode') return true;
-        if (data.show_id && typeof data.episode_number !== 'undefined') return true;
-        return false;
+     if (!data || typeof data !== 'object') return false;
+     if (data.media_type === 'episode') return true;
+     if (data.show_id && typeof data.episode_number === 'number') return true;
+     return false;
     }
 
     function prepareLineData(element) {
@@ -152,8 +158,9 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                main.scroll.minus(infoNode);
-                this.attached = true;
+             main.scroll.minus(infoNode);
+             if (typeof main.scroll.update === 'function') main.scroll.update();
+             this.attached = true;
 
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
