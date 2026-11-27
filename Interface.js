@@ -67,6 +67,16 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
+
+        setTimeout(function () {
+            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
+            const active = Lampa.Activity.active();
+            if (!active || !active.activity || active.component === 'full') return;
+            const render = typeof active.activity.render === 'function' ? active.activity.render(true) : null;
+            if (render && !render.classList.contains('new-interface') && shouldUseNewInterface(active)) {
+                Lampa.Activity.replace(active);
+            }
+        }, 300);
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -488,9 +498,17 @@
             pointer-events: none;
         }
 
-        .new-interface .items-line__head svg,
-        .new-interface .items-line__head img {
+        .new-interface .items-line__head > *:not(.items-line__title):not(.items-line__more),
+        .new-interface .items-line__title svg,
+        .new-interface .items-line__title img,
+        .new-interface .items-line__icon {
             display: none !important;
+        }
+
+        .new-interface .items-line__title::before,
+        .new-interface .items-line__title::after {
+            display: none !important;
+            content: none !important;
         }
 
         .new-interface .items-line {
