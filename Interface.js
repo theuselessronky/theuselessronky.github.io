@@ -27,7 +27,7 @@
             if (!this.__newInterfaceEnabled) return;
             ensureState(this).attach();
         });
-                wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
+        wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
             const element = args && args[0];
             if (this.__newInterfaceEnabled && element) prepareLineData(element);
             return original ? original.apply(this, args) : undefined;
@@ -454,8 +454,9 @@
             pointer-events: none;
         }
 
-         .new-interface-info__body {
+        .new-interface-info__body {
             width: 100%;
+            height: 100%;
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
@@ -463,9 +464,15 @@
             position: relative;
         }
 
-        /* Верхний правый угол: описание */
-        .new-interface .card__description { display: none !important; }
+        /* Скрываем дублирующее название и описание внутри широких карточек */
+        .new-interface .card__description,
+        .new-interface .card__promo,
+        .new-interface .card__promo-title,
+        .new-interface .card__promo-text {
+            display: none !important;
+        }
 
+        /* Верхний правый угол фона: описание выделенного фильма */
         .new-interface-info__head {
             position: absolute;
             top: 1.5em;
@@ -477,8 +484,6 @@
             z-index: 3;
             pointer-events: none;
         }
-
-
 
         /* Левая нижняя колонка: жанры -> название -> год/страна */
         .new-interface-info__left-bottom {
@@ -603,18 +608,10 @@
 
         .new-interface .card__title,
         .new-interface .card__age,
-        .new-interface .card__textbox,
-        .new-interface .card__description,
-        .new-interface .card__overview,
-        .new-interface .card__text,
-        .new-interface .card__info,
-        .new-interface .card__head,
-        .new-interface .card__top,
         .new-interface .card__type,
-        .new-interface .card__icons,
-        .new-interface .card__quality {
-            display: none !important;
-        }
+        .new-interface .card__head,
+        .new-interface .card__top { display: none !important; }
+
 
         .new-interface .card.episode-card .card__poster,
         .new-interface .card.episode-card .card__img,
@@ -710,12 +707,11 @@
             if (title) this.html.find('.new-interface-info__title').text(title);
 
             const showDesc = getSetting(DESC_KEY, true);
-            if (showDesc && !isEpisodeItem(data)) {
-            const overview = (data.overview || '').trim();
-            if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
+            const overview = data.overview || '';
+            if (showDesc && overview) {
                 this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
-                }
             }
+
             const bg = Lampa.Utils.cardImgBackground(data);
             if (bg) Lampa.Background.change(bg);
 
