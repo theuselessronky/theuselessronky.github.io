@@ -85,6 +85,7 @@
     function shouldUseNewInterface(object) {
         if (!object) return false;
         if (window.innerWidth < 767) return false;
+        if (object.component === 'full') return false;
         return true;
     }
 
@@ -443,7 +444,12 @@
         if (addStyleV3.added) return;
         addStyleV3.added = true;
         Lampa.Template.add('new_interface_style_v3', `<style>
+		
         .new-interface { position: relative; }
+        .activity:not(.active) .new-interface-info,
+        .activity:not(.active) .new-interface .full-start__background {
+            display: none !important;
+        }
         .new-interface .card.card--wide { width: 18.3em; }
 
         .new-interface-info {
@@ -488,7 +494,7 @@
             height: auto !important;
             min-height: 1em;
             display: block !important;
-            z-index: 10;
+            z-index: 2;
             pointer-events: none;
         }
 
