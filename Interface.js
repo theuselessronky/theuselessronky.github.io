@@ -177,10 +177,6 @@
                 window.__stylish_refresh = () => {
                     if (this._isActive && this.lastData) this.update(this.lastData, true);
                 };
-				if (main.scroll && typeof main.scroll.minus === 'function') {
-                    main.scroll.minus(infoNode);
-                }
-
             },
 
             update(data, force) {
@@ -706,16 +702,16 @@
         body.light--version .new-interface-info__rate > div:last-child {
             color: rgba(0, 0, 0, 0.55);
         }
-        </style>`);
-        $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
-		
-	    /* Приоритет другому плагину кнопок на странице фильма (Android) */
+
+        /* Приоритет другому плагину кнопок на странице фильма (Android) */
         .full-start-new__buttons .full-start__button.selector.focus,
         .full-start-new__buttons .full-start__button.selector:hover {
             opacity: 1 !important;
             visibility: visible !important;
             transform: none !important;
-        }	
+        }
+        </style>`);
+        $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
     }
 
     /* ================= INFO PANEL ================= */
