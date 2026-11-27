@@ -19,10 +19,13 @@
         if (!mainMap || !mainMap.Items || !mainMap.Create) return;
 
         wrap(mainMap.Items, 'onInit', function (original, args) {
-            if (original) original.apply(this, args);
             this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
+            if (original) original.apply(this, args);
         });
         wrap(mainMap.Create, 'onCreate', function (original, args) {
+            if (this.__newInterfaceEnabled === undefined) {
+                this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
+            }
             if (original) original.apply(this, args);
             if (!this.__newInterfaceEnabled) return;
             ensureState(this).attach();
@@ -164,19 +167,7 @@
                     container.insertBefore(infoNode, background.nextSibling);
                 }
                 main.scroll.minus(infoNode);
-                this.attached = true;
-
-                this.syncScroll = () => {
-                    clearTimeout(this._syncTimer);
-                    this._syncTimer = setTimeout(() => {
-                        if (!this.attached || !main.scroll) return;
-                        const firstRow = container.querySelector('.items-line');
-                        if (firstRow && typeof main.scroll.update === 'function') {
-                            main.scroll.update(firstRow);
-                        }
-                    }, 80);
-                };
-                this.syncScroll();			 
+                this.attached = true;			 
 
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
@@ -483,12 +474,12 @@
         .new-interface { position: relative; }
         .new-interface .card.card--wide { width: 18.3em; }
 
-        .new-interface-info {
+         .new-interface-info {
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 26.8em);
-            min-height: 14em;
+            height: calc(100vh - 26em);
+            min-height: 15em;
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
@@ -497,39 +488,17 @@
             pointer-events: none;
         }
 
-        .new-interface .items-line__head {
-            display: flex;
-            align-items: center;
-            height: 2.2em !important;
-            min-height: 2.2em !important;
-            max-height: 2.2em !important;
-            overflow: hidden;
-        }
-
         .new-interface .items-line__head svg,
         .new-interface .items-line__head img {
-            max-height: 1.4em !important;
-            width: auto !important;
-            flex-shrink: 0;
+            display: none !important;
         }
 
         .new-interface .items-line {
-            display: flex !important;
-            flex-direction: column !important;
-            padding-bottom: 0.6em !important;
-            margin-bottom: 0.5em !important;
-            box-sizing: border-box !important;
+            padding-bottom: 1.6em !important;
         }
 
         .new-interface .items-line__body {
-            padding-bottom: 0.4em !important;
-        }
-
-        .new-interface .card.card--wide {
-            display: flex !important;
-            flex-direction: column !important;
-            padding-bottom: 0 !important;
-            height: auto !important;
+            overflow: visible !important;
         }
 
         .new-interface-info__body {
