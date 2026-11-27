@@ -870,7 +870,7 @@
             transform: none !important;
         }
 
-        /* Вертикальные постеры: обрезка названия до 2 строк и чёткий отступ до года */
+        /* Вертикальные постеры: обрезка названия до 2 строк (общая) */
         .card:not(.card--wide):not(.bookmarks-folder) .card__title {
             display: -webkit-box !important;
             -webkit-line-clamp: 2 !important;
@@ -881,15 +881,33 @@
             white-space: normal !important;
             height: auto !important;
             line-height: 1.25em !important;
-            max-height: 2.5em !important;
-            margin-bottom: 0.45em !important;
+            max-height: 2.55em !important;
         }
-        .card:not(.card--wide):not(.bookmarks-folder) .card__age {
+
+        /* Отступы между датой, названием, годом и следующим рядом только на Android */
+        body.platform--android .card:not(.card--wide):not(.bookmarks-folder) {
+            height: auto !important;
+            padding-bottom: 0.8em !important;
+            margin-bottom: 1.2em !important;
+        }
+        body.platform--android .card:not(.card--wide):not(.bookmarks-folder) .card__history {
+            position: static !important;
+            display: block !important;
+            margin-top: 0.45em !important;
+            margin-bottom: 0.35em !important;
+            line-height: 1.2em !important;
+        }
+        body.platform--android .card:not(.card--wide):not(.bookmarks-folder) .card__title {
+            margin-top: 0 !important;
+            margin-bottom: 0.4em !important;
+        }
+        body.platform--android .card:not(.card--wide):not(.bookmarks-folder) .card__age {
             position: static !important;
             display: block !important;
             white-space: nowrap !important;
             line-height: 1.2em !important;
-            margin-top: 0.35em !important;
+            margin-top: 0 !important;
+            margin-bottom: 0.4em !important;
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
