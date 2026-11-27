@@ -27,7 +27,7 @@
             if (!this.__newInterfaceEnabled) return;
             ensureState(this).attach();
         });
-        wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
+                wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
             const element = args && args[0];
             if (this.__newInterfaceEnabled && element) prepareLineData(element);
             return original ? original.apply(this, args) : undefined;
@@ -467,14 +467,17 @@
         .new-interface .card__description { display: none !important; }
 
         .new-interface-info__head {
-            width: 45%;
-            margin-left: auto;
-            align-self: flex-end;
+            position: absolute;
+            top: 1.5em;
+            right: 1.5em;
+            width: 42%;
             display: flex;
             justify-content: flex-end;
             align-items: flex-start;
-            padding-top: 0.5em;
+            z-index: 3;
+            pointer-events: none;
         }
+
 
 
         /* Левая нижняя колонка: жанры -> название -> год/страна */
@@ -600,10 +603,18 @@
 
         .new-interface .card__title,
         .new-interface .card__age,
-        .new-interface .card__type,
+        .new-interface .card__textbox,
+        .new-interface .card__description,
+        .new-interface .card__overview,
+        .new-interface .card__text,
+        .new-interface .card__info,
         .new-interface .card__head,
-        .new-interface .card__top { display: none !important; }
-
+        .new-interface .card__top,
+        .new-interface .card__type,
+        .new-interface .card__icons,
+        .new-interface .card__quality {
+            display: none !important;
+        }
 
         .new-interface .card.episode-card .card__poster,
         .new-interface .card.episode-card .card__img,
