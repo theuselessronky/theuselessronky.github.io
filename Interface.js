@@ -159,7 +159,6 @@
                     container.insertBefore(infoNode, background.nextSibling);
                 }
              main.scroll.minus(infoNode);
-             if (typeof main.scroll.update === 'function') main.scroll.update();
              this.attached = true;
 
                 this._activityListener = (e) => {
