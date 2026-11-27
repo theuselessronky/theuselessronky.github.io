@@ -60,6 +60,7 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
+		
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -318,13 +319,14 @@
             return;
         }
         clearTimeout(card.__newInterfaceLabelTimer);
-        const rawTitle = card.data && (
-            card.data.title ||
-            card.data.name ||
-            card.data.original_title ||
-            card.data.original_name ||
-            card.data.heading ||
-            card.data.label
+        const data = card.data || element.card_data;
+        const rawTitle = data && (
+            data.title ||
+            data.name ||
+            data.original_title ||
+            data.original_name ||
+            data.heading ||
+            data.label
         );
         const text = rawTitle ? String(rawTitle).trim() : '';
         const seek = element.querySelector('.new-interface-card-title');
@@ -347,18 +349,41 @@
     }
 
     function decorateCard(state, card) {
-        if (!card || card.__newInterfaceCard || typeof card.use !== 'function' || !card.data) return;
+        if (!card || card.__newInterfaceCard || typeof card.use !== 'function') return;
         card.__newInterfaceCard = true;
         card.params = card.params || {};
         card.params.style = card.params.style || {};
         if (!card.params.style.name) card.params.style.name = 'wide';
 
+        const getData = () => {
+            const el = typeof card.render === 'function' ? card.render(true) : null;
+            return card.data || (el && el.card_data) || null;
+        };
+
         card.use({
-            onFocus() { state.update(card.data); updateCardTitle(card); },
-            onHover() { state.update(card.data); updateCardTitle(card); },
-            onTouch() { state.update(card.data); updateCardTitle(card); },
-            onVisible() { applyEpisodeClass(card); updateCardTitle(card); },
-            onUpdate() { applyEpisodeClass(card); updateCardTitle(card); },
+            onFocus() {
+                const d = getData();
+                if (d) state.update(d);
+                updateCardTitle(card);
+            },
+            onHover() {
+                const d = getData();
+                if (d) state.update(d);
+                updateCardTitle(card);
+            },
+            onTouch() {
+                const d = getData();
+                if (d) state.update(d);
+                updateCardTitle(card);
+            },
+            onVisible() {
+                applyEpisodeClass(card);
+                updateCardTitle(card);
+            },
+            onUpdate() {
+                applyEpisodeClass(card);
+                updateCardTitle(card);
+            },
             onDestroy() {
                 clearTimeout(card.__newInterfaceLabelTimer);
                 if (card.__newInterfaceLabel && card.__newInterfaceLabel.parentNode) {
@@ -569,8 +594,8 @@
             flex-shrink: 0;
         }
         .new-interface-info__right-bottom--boxed {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 0.65em 1em;
+            background: rgba(0, 0, 0, 0.38);
+            padding: 0.7em 1.6em;
             border-radius: 20px;
             box-sizing: border-box;
         }
@@ -611,8 +636,8 @@
             text-align: right;
             width: fit-content;
             max-width: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 0.65em 1em;
+            background: rgba(0, 0, 0, 0.38);
+            padding: 0.7em 1.6em;
             border-radius: 20px;
             box-sizing: border-box;
         }
@@ -774,6 +799,23 @@
             visibility: visible !important;
             transform: none !important;
         }
+
+        /* Вертикальные постеры: обрезка названия до 2 строк без затрагивания отделённого года */
+        .card:not(.card--wide) .card__title {
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: normal !important;
+            line-height: 1.25em !important;
+            max-height: 2.5em !important;
+        }
+        .card:not(.card--wide) .card__age {
+            display: block !important;
+            white-space: nowrap !important;
+        }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
     }
@@ -815,7 +857,7 @@
             this.html.find('.new-interface-info__title').empty();
             this.html.find('.new-interface-info__meta-top').empty();
             this.html.find('.new-interface-info__genres').empty();
-            this.html.find('.new-interface-info__right-bottom').empty();
+            this.html.find('.new-interface-info__right-bottom').removeClass('new-interface-info__right-bottom--boxed').empty();
         }
         update(data) {
             if (!data) return;
