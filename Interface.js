@@ -554,17 +554,37 @@
         .new-interface-info__title    { order: 2; }
         .new-interface-info__genres   { order: 3; }
 
-        /* Правая нижняя строка: длительность • pg • рейтинг */
+        /* Правая нижняя строка/колонка */
         .new-interface-info__right-bottom {
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-end;
             justify-content: flex-end;
-            gap: 0.6em;
+            gap: 0.45em;
             font-size: 0.95em;
             color: rgba(255, 255, 255, 0.85);
             text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
             white-space: nowrap;
             flex-shrink: 0;
+        }
+        .new-interface-info__right-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.6em;
+        }
+        .new-interface-info__right-meta {
+            font-size: 1em;
+            color: rgba(255, 255, 255, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.4em;
+        }
+        .new-interface-info__right-genres {
+            font-size: 0.95em;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: right;
         }
 		
         /* Описание */
@@ -597,11 +617,14 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             max-width: 100%;
+            margin-top: 0.18em;
         }
         .new-interface-info__title img {
             max-height: 1.8em;
             max-width: 100%;
+            margin-top: 0.12em;
             margin-bottom: 0.1em;
+            display: block;
         }
 
         /* Год • Страна */
@@ -844,39 +867,54 @@
             const showGenres = getSetting('stylish_show_genres', true);
 
             // Левая нижняя колонка: жанры (снизу), название (над), год • страна (сверху)
-            if (showGenres && Array.isArray(movie.genres) && movie.genres.length) {
-                const genresText = movie.genres.map((i) => Lampa.Utils.capitalizeFirstLetter(i.name)).join(', ');
-                this.html.find('.new-interface-info__genres').text(genresText);
-            }
+            const moveMetaRight = !showPg && !showRuntime && !showRating;
+
+            const genresText = (showGenres && Array.isArray(movie.genres) && movie.genres.length)
+                ? movie.genres.map((i) => Lampa.Utils.capitalizeFirstLetter(i.name)).join(', ')
+                : '';
 
             const metaParts = [];
             if (showYear && create !== '0000') metaParts.push(create);
             if (showCountry && countries && countries.length) metaParts.push(countries.join(', '));
-            if (metaParts.length) {
-                this.html.find('.new-interface-info__meta-top').html(metaParts.join('<span class="new-interface-info__split">&#9679;</span>'));
-            }
+            const metaHtml = metaParts.length ? metaParts.join('<span class="new-interface-info__split">&#9679;</span>') : '';
 
-            // Правая нижняя строка: длительность • PG • рейтинг
-            const rightParts = [];
-            if (showRuntime && movie.runtime) {
-                rightParts.push({ html: Lampa.Utils.secondsToTime(movie.runtime * 60, true), isRate: false });
-            }
-            if (showPg && pg) {
-                rightParts.push({ html: pg, isRate: false });
-            }
-            if (showRating && vote > 0) {
-                rightParts.push({
-                    html: `<div class="new-interface-info__rate"><div>${vote}</div><div>TMDB</div></div>`,
-                    isRate: true
-                });
-            }
+            if (moveMetaRight) {
+                const rightStack = [];
+                if (metaHtml) rightStack.push(`<div class="new-interface-info__right-meta">${metaHtml}</div>`);
+                if (genresText) rightStack.push(`<div class="new-interface-info__right-genres">${genresText}</div>`);
+                if (rightStack.length) {
+                    this.html.find('.new-interface-info__right-bottom').html(rightStack.join(''));
+                }
+            } else {
+                if (genresText) {
+                    this.html.find('.new-interface-info__genres').text(genresText);
+                }
+                if (metaHtml) {
+                    this.html.find('.new-interface-info__meta-top').html(metaHtml);
+                }
 
-            if (rightParts.length) {
-                const html = rightParts.map(function (part, index) {
-                    if (index === 0) return part.html;
-                    return '<span class="new-interface-info__split">&#9679;</span>' + part.html;
-                }).join('');
-                this.html.find('.new-interface-info__right-bottom').html(html);
+                // Правая нижняя строка: длительность • PG • рейтинг
+                const rightParts = [];
+                if (showRuntime && movie.runtime) {
+                    rightParts.push({ html: Lampa.Utils.secondsToTime(movie.runtime * 60, true), isRate: false });
+                }
+                if (showPg && pg) {
+                    rightParts.push({ html: pg, isRate: false });
+                }
+                if (showRating && vote > 0) {
+                    rightParts.push({
+                        html: `<div class="new-interface-info__rate"><div>${vote}</div><div>TMDB</div></div>`,
+                        isRate: true
+                    });
+                }
+
+                if (rightParts.length) {
+                    const html = rightParts.map(function (part, index) {
+                        if (index === 0) return part.html;
+                        return '<span class="new-interface-info__split">&#9679;</span>' + part.html;
+                    }).join('');
+                    this.html.find('.new-interface-info__right-bottom').html(`<div class="new-interface-info__right-row">${html}</div>`);
+                }
             }
 
             const showDesc = getSetting(DESC_KEY, true) !== false;
