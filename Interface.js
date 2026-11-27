@@ -157,12 +157,9 @@
 
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
-                    const active = Lampa.Activity && Lampa.Activity.active ? Lampa.Activity.active() : null;
-                    const isFull = (e.object && e.object.component === 'full') || (active && active.component === 'full');
-                    const hostActivity = container.closest('.activity');
-                    const isCurrent = !isFull && (!hostActivity || hostActivity.classList.contains('active'));
-                    this.infoElement.style.display = isCurrent ? '' : 'none';
-                    background.style.display = isCurrent ? '' : 'none';
+                    const isCurrent = e.object && e.object.activity === main.activity;
+                    this.infoElement.style.visibility = isCurrent ? '' : 'hidden';
+                    background.style.visibility = isCurrent ? '' : 'hidden';
                 };
                 Lampa.Listener.follow('activity', this._activityListener);
 
@@ -279,6 +276,10 @@
                 if (background && background.parentNode) {
                     background.parentNode.removeChild(background);
                 }
+				if (this._scrollAnchorHandler) {
+                window.removeEventListener('resize', this._scrollAnchorHandler);
+                this._scrollAnchorHandler = null;
+                }
                 if (this._activityListener) {
                     Lampa.Listener.remove('activity', this._activityListener);
                     this._activityListener = null;
@@ -377,7 +378,7 @@
     }
 
     function attachLineHandlers(main, line) {
-		if (!line || line.__newInterfaceLine) return;
+        if (!line || line.__newInterfaceLine || line.__stylish_hidden) return;
         line.__newInterfaceLine = true;
         const state = ensureState(main);
         const applyToCard = (card) => decorateCard(state, card);
@@ -852,5 +853,6 @@
 
     if (Lampa.Manifest.app_digital >= 300) {
         startPluginV3();
+        return;
     }
 })();
