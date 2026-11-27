@@ -320,14 +320,32 @@
         }
         clearTimeout(card.__newInterfaceLabelTimer);
         const data = card.data || element.card_data;
-        const rawTitle = data && (
-            data.title ||
+        if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) {
+            const seekEmpty = element.querySelector('.new-interface-card-title');
+            if (seekEmpty && seekEmpty.parentNode) seekEmpty.parentNode.removeChild(seekEmpty);
+            card.__newInterfaceLabel = null;
+            return;
+        }
+        const rawTitle = data.title ||
             data.name ||
             data.original_title ||
             data.original_name ||
             data.heading ||
-            data.label
-        );
+            data.label;
+        clearTimeout(card.__newInterfaceLabelTimer);
+        const data = card.data || element.card_data;
+        if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) {
+            const seekEmpty = element.querySelector('.new-interface-card-title');
+            if (seekEmpty && seekEmpty.parentNode) seekEmpty.parentNode.removeChild(seekEmpty);
+            card.__newInterfaceLabel = null;
+            return;
+        }
+        const rawTitle = data.title ||
+            data.name ||
+            data.original_title ||
+            data.original_name ||
+            data.heading ||
+            data.label;
         const text = rawTitle ? String(rawTitle).trim() : '';
         const seek = element.querySelector('.new-interface-card-title');
         if (!text) {
@@ -441,6 +459,14 @@
             }
         });
         if (Array.isArray(line.items) && line.items.length) line.items.forEach(applyToCard);
+        setTimeout(() => {
+            if (Array.isArray(line.items) && line.items.length) {
+                line.items.forEach((card) => {
+                    applyToCard(card);
+                    updateCardTitle(card);
+                });
+            }
+        }, 120);
         if (line.last) {
             const lastData = getDomCardData(line.last);
             if (lastData) state.update(lastData);
@@ -800,7 +826,7 @@
             transform: none !important;
         }
 
-        /* Вертикальные постеры: обрезка названия до 2 строк без затрагивания отделённого года */
+        /* Вертикальные постеры: обрезка названия до 2 строк с увеличенным отступом от года */
         .card:not(.card--wide) .card__title {
             display: -webkit-box !important;
             -webkit-line-clamp: 2 !important;
@@ -809,12 +835,15 @@
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: normal !important;
-            line-height: 1.25em !important;
-            max-height: 2.5em !important;
+            line-height: 1.35em !important;
+            max-height: 2.75em !important;
+            padding-bottom: 0.1em !important;
+            margin-bottom: 0.35em !important;
         }
         .card:not(.card--wide) .card__age {
             display: block !important;
             white-space: nowrap !important;
+            margin-top: 0.15em !important;
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
@@ -970,7 +999,7 @@
                         if (index === 0) return part.html;
                         return '<span class="new-interface-info__split">&#9679;</span>' + part.html;
                     }).join('');
-                    this.html.find('.new-interface-info__right-bottom').html(`<div class="new-interface-info__right-row">${html}</div>`);
+                    rightBottomEl.addClass('new-interface-info__right-bottom--boxed').html(`<div class="new-interface-info__right-row">${html}</div>`);
                 }
             }
 
