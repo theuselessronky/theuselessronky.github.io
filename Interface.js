@@ -37,9 +37,10 @@
             }
             return original ? original.apply(this, args) : undefined;
         });
+
         wrap(mainMap.Items, 'onAppend', function (original, args) {
             const item = args && args[0];
-            const element = args && args[1];
+            const element = (args && args[1]) || (item && (item.data || item.object));
 
             if (this.__newInterfaceEnabled && isShotsRow(item, element) && getSetting(SHOTS_KEY, true) === false) {
                 if (item && typeof item.destroy === 'function') item.destroy();
@@ -47,9 +48,13 @@
             }
 
             if (original) original.apply(this, args);
-            if (!this.__newInterfaceEnabled || !item || !element) return;
+            if (!this.__newInterfaceEnabled || !item) return;
 
             attachLineHandlers(this, item);
+
+            if (this.__newInterfaceState && typeof this.__newInterfaceState.syncScroll === 'function') {
+                this.__newInterfaceState.syncScroll();
+            }
         });
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
             if (this.__newInterfaceState) {
@@ -158,8 +163,20 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-             main.scroll.minus(infoNode);
-             this.attached = true;
+                main.scroll.minus(infoNode);
+                this.attached = true;
+
+                this.syncScroll = () => {
+                    clearTimeout(this._syncTimer);
+                    this._syncTimer = setTimeout(() => {
+                        if (!this.attached || !main.scroll) return;
+                        const rows = container.querySelectorAll('.items-line');
+                        if (rows.length && typeof main.scroll.update === 'function') {
+                            main.scroll.update(rows);
+                        }
+                    }, 80);
+                };
+                this.syncScroll();			 
 
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
@@ -470,14 +487,49 @@
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 24.5em);
-            min-height: 15em;
+            height: calc(100vh - 26.8em);
+            min-height: 14em;
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             box-sizing: border-box;
             pointer-events: none;
+        }
+
+        .new-interface .items-line__head {
+            display: flex;
+            align-items: center;
+            height: 2.2em !important;
+            min-height: 2.2em !important;
+            max-height: 2.2em !important;
+            overflow: hidden;
+        }
+
+        .new-interface .items-line__head svg,
+        .new-interface .items-line__head img {
+            max-height: 1.4em !important;
+            width: auto !important;
+            flex-shrink: 0;
+        }
+
+        .new-interface .items-line {
+            display: flex !important;
+            flex-direction: column !important;
+            padding-bottom: 0.6em !important;
+            margin-bottom: 0.5em !important;
+            box-sizing: border-box !important;
+        }
+
+        .new-interface .items-line__body {
+            padding-bottom: 0.4em !important;
+        }
+
+        .new-interface .card.card--wide {
+            display: flex !important;
+            flex-direction: column !important;
+            padding-bottom: 0 !important;
+            height: auto !important;
         }
 
         .new-interface-info__body {
@@ -651,17 +703,24 @@
         .new-interface .shots-row-hidden { display: none !important; }
 
         .new-interface-card-title {
-            margin-top: 0.6em;
+            position: relative !important;
+            margin-top: 0.5em;
+            padding-bottom: 0.35em;
             font-size: 1.05em;
+            line-height: 1.3em;
+            min-height: 1.65em;
             font-weight: 500;
             color: #fff;
             display: block;
             text-align: left;
+            width: 100%;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             pointer-events: none;
+            box-sizing: border-box;
+            flex-shrink: 0;
         }
         body.light--version .new-interface-card-title { color: #111; }
 
