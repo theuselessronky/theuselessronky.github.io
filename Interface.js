@@ -55,8 +55,14 @@
 
             attachLineHandlers(this, item);
 
-            if (this.__newInterfaceState && typeof this.__newInterfaceState.syncScroll === 'function') {
-                this.__newInterfaceState.syncScroll();
+            if (!this.__firstRowSynced && this.scroll && typeof item.render === 'function') {
+                this.__firstRowSynced = true;
+                setTimeout(() => {
+                    const el = item.render(true);
+                    if (el && this.scroll && typeof this.scroll.update === 'function') {
+                        this.scroll.update(el, true);
+                    }
+                }, 50);
             }
         });
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
@@ -67,25 +73,6 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
-
-        const reloadIfNeeded = function () {
-            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
-            const active = Lampa.Activity.active();
-            if (!active || active.component === 'full') return;
-            if (active.component !== 'main' && active.component !== 'category') return;
-            const render = active.activity && typeof active.activity.render === 'function' ? active.activity.render(true) : null;
-            if (render && !render.classList.contains('new-interface') && shouldUseNewInterface(active)) {
-                Lampa.Activity.replace(Object.assign({}, active));
-            }
-        };
-
-        if (window.appready) {
-            setTimeout(reloadIfNeeded, 100);
-        } else if (Lampa.Listener) {
-            Lampa.Listener.follow('app', function (e) {
-                if (e.type === 'ready') setTimeout(reloadIfNeeded, 100);
-            });
-        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -501,8 +488,8 @@
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 17.5em);
-            min-height: 14em;
+            height: calc(100vh - 25.5em);
+            min-height: 15em;
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
