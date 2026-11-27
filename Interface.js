@@ -12,6 +12,10 @@
         if (window.plugin_interface_ready_v3) return;
         window.plugin_interface_ready_v3 = true;
 
+        if (Lampa.Platform && typeof Lampa.Platform.is === 'function' && Lampa.Platform.is('android')) {
+            document.body.classList.add('is-android-device');
+        }
+
         addStyleV3();
         registerSettings();
 
@@ -870,7 +874,7 @@
             transform: none !important;
         }
 
-        /* Вертикальные постеры: обрезка названия до 2 строк и отступ сверху у года */
+        /* Вертикальные постеры: обрезка названия до 2 строк */
         .card:not(.card--wide):not(.bookmarks-folder) .card__title {
             display: -webkit-box !important;
             -webkit-line-clamp: 2 !important;
@@ -882,16 +886,25 @@
             height: auto !important;
             line-height: 1.25em !important;
             max-height: 2.5em !important;
-            margin-bottom: 0 !important;
         }
-        .card:not(.card--wide):not(.bookmarks-folder) .card__age {
-            position: static !important;
+
+        /* Увеличенный отступ между 2-й строкой названия и годом только на Android */
+        body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) {
+            padding-bottom: 0.6em !important;
+        }
+        body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) .card__title {
+            margin-bottom: 0.55em !important;
+        }
+        body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) .card__age {
+            position: relative !important;
+            top: 0.35em !important;
+            bottom: auto !important;
             display: block !important;
             white-space: nowrap !important;
             line-height: 1.2em !important;
-            padding-top: 0.45em !important;
-            margin-top: 0.25em !important;
+            margin-top: 0.35em !important;
         }
+
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
     }
