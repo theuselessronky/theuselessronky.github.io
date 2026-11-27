@@ -472,7 +472,9 @@
         addStyleV3.added = true;
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
-        .new-interface { position: relative; }
+        .new-interface { position: relative; z-index: 0; }
+        .new-interface .items-line,
+        .new-interface .scroll { position: relative; z-index: 2; }
         .new-interface .card {
             overflow: visible !important;
         }
@@ -652,33 +654,26 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 0;
+            z-index: -2;
             object-fit: cover;
             transition: opacity 0.4s ease;
             opacity: 0;
         }
 
         .new-interface .new-interface__background.loaded { opacity: 1; }
-		
-		        /* Восстановление градиента «Чёрного стиля» в левой части экрана */
-        body.black--style .new-interface::before,
-        .new-interface::before {
+
+        /* Слой градиента «Чёрного стиля» — строго между фоном (-2) и контентом (0+) */
+        body.black--style .new-interface::before {
             content: '';
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 1;
+            z-index: -1;
             pointer-events: none;
-            background: linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.48) 42%, rgba(0, 0, 0, 0) 75%),
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
                         linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
-        }
-        body:not(.black--style) .new-interface::before {
-            opacity: 0.55;
-        }
-        body.black--style .new-interface::before {
-            opacity: 1;
         }
         body.light--version .new-interface::before {
             display: none !important;
