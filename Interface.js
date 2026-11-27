@@ -152,8 +152,16 @@
                 if (infoNode && infoNode.parentNode !== container) {
                     container.insertBefore(infoNode, background.nextSibling);
                 }
-                                main.scroll.minus(infoNode);
+                main.scroll.minus(infoNode);
                 this.attached = true;
+
+                this._activityListener = (e) => {
+                    if (e.type !== 'start' || !this.infoElement) return;
+                    const isCurrent = e.object && e.object.activity === main.activity;
+                    this.infoElement.style.visibility = isCurrent ? '' : 'hidden';
+                    background.style.visibility = isCurrent ? '' : 'hidden';
+                };
+                Lampa.Listener.follow('activity', this._activityListener);
 
                 window.__stylish_refresh = () => {
                     if (this.lastData) this.update(this.lastData, true);
@@ -271,6 +279,10 @@
 				if (this._scrollAnchorHandler) {
                 window.removeEventListener('resize', this._scrollAnchorHandler);
                 this._scrollAnchorHandler = null;
+                }
+                if (this._activityListener) {
+                    Lampa.Listener.remove('activity', this._activityListener);
+                    this._activityListener = null;
                 }
                 this.attached = false;
                 this.lastData = null;
