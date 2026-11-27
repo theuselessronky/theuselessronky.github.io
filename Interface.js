@@ -450,17 +450,15 @@
             position: relative;
             z-index: 2;
             padding: 1.5em;
-            height: calc(100vh - 21.5em);
-            min-height: 16em;
-            margin-bottom: 0.5em;
+            height: calc(100vh - 24.5em);
+            min-height: 15em;
+            margin-bottom: 0;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             box-sizing: border-box;
             pointer-events: none;
         }
-
-
 
         .new-interface-info__body {
             width: 100%;
@@ -480,19 +478,19 @@
             display: none !important;
         }
 
-                /* Верхний правый угол фона: описание выделенного фильма */
+        /* Верхний правый угол фона: описание выделенного фильма */
         .new-interface-info__head {
             position: absolute;
-            top: 5.5em;
+            top: 1.5em;
             right: 1.5em;
-            width: 42%;
-            display: flex !important;
-            justify-content: flex-end;
-            align-items: flex-start;
+            width: 45%;
+            max-width: 38em;
+            height: auto !important;
+            min-height: 1em;
+            display: block !important;
             z-index: 10;
             pointer-events: none;
         }
-
 
         /* Левая нижняя колонка: жанры -> название -> год/страна */
         .new-interface-info__left-bottom {
@@ -522,19 +520,18 @@
 		
         /* Описание */
         .new-interface-info__description {
-            font-size: 0.95em;
+            font-size: 1em;
             font-weight: 300;
-            line-height: 1.4;
-            color: #fff;
+            line-height: 1.45;
+            color: #fff !important;
             text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
             overflow: hidden;
             text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 4;
+            line-clamp: 4;
             -webkit-box-orient: vertical;
-            max-height: 4.2em;
-            min-height: 0;
+            max-height: 5.8em !important;
             text-align: right;
             width: 100%;
         }
@@ -716,7 +713,7 @@
             const title = data.title || data.name || data.original_title || data.original_name || '';
             if (title) this.html.find('.new-interface-info__title').text(title);
 
-                        const showDesc = getSetting(DESC_KEY, true);
+            const showDesc = getSetting(DESC_KEY, true) !== false;
             if (showDesc && !isEpisodeItem(data)) {
                 const overview = (data.overview || '').trim();
                 if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
@@ -808,7 +805,7 @@
                 this.html.find('.new-interface-info__right-bottom').html(html);
             }
 
-            const showDesc = getSetting(DESC_KEY, true);
+            const showDesc = getSetting(DESC_KEY, true) !== false;
             if (showDesc && movie.overview && !this.html.find('.new-interface-info__description').text()) {
                 const overview = String(movie.overview).trim();
                 if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
