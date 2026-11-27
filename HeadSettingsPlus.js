@@ -201,12 +201,13 @@
 
 		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
 		function findByLampaBtn() {
-			var $found = $('.head #NOTICE, .head .notice-screen, .head .bylampa--notice, .head .bylampa-notice, .head .bylampa__notice, .head .notice--bylampa, .head [data-action="bylampa_notice"], .head [data-bylampa-notice], .head [data-hf-bylampa="1"]');
+			var $found = $('.head #NOTICE, .head .notice-screen, .head .bylampa--notice, .head .bylampa-notice, .head .bylampa__notice, .head .notice--bylampa, .head [data-action="bylampa_notice"], .head [data-bylampa-notice], .head [data-hf-bylampa="1"]').not('.notice--icon');
 			if ($found.length) return $found;
 			var list = [];
 			$('.head .head__action').each(function() {
 				var el = this;
-				if (el.classList.contains('open--settings') ||
+				if (el.classList.contains('notice--icon') ||
+					el.classList.contains('open--settings') ||
 					el.classList.contains('open--search') ||
 					el.classList.contains('open--notice') ||
 					el.classList.contains('open--feed') ||
@@ -216,13 +217,14 @@
 					el.classList.contains('full--screen')) return;
 
 				var html = (el.outerHTML || '').toLowerCase();
-				if (html.indexOf('bylampa') !== -1 || html.indexOf('bell') !== -1 || html.indexOf('notice') !== -1) {
+				if (html.indexOf('bylampa') !== -1 || html.indexOf('notice-screen') !== -1 || el.id === 'NOTICE') {
 					el.setAttribute('data-hf-bylampa', '1');
 					list.push(el);
 				}
 			});
 			return $(list);
 		}
+		
 		function hasByLampaBtn() { return findByLampaBtn().length > 0; }
 
 		function openByLampa() {
@@ -901,7 +903,7 @@
 		if (!document.getElementById('hf-bylampa-hide-style')) {
 			var st = document.createElement('style');
 			st.id = 'hf-bylampa-hide-style';
-			st.textContent = 'body.hf-hide-bylampa-btn .head #NOTICE, body.hf-hide-bylampa-btn .head #NOTICE.notice-screen, body.hf-hide-bylampa-btn .head .notice-screen, body.hf-hide-bylampa-btn .head .bylampa--notice, body.hf-hide-bylampa-btn .head .bylampa-notice, body.hf-hide-bylampa-btn .head .bylampa__notice, body.hf-hide-bylampa-btn .head .notice--bylampa, body.hf-hide-bylampa-btn .head [data-action="bylampa_notice"], body.hf-hide-bylampa-btn .head [data-bylampa-notice], body.hf-hide-bylampa-btn .head [data-hf-bylampa="1"], body.hf-hide-bylampa-btn .head [data-hf-hidden="1"] { display: none !important; visibility: hidden !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important; position: absolute !important; left: -9999px !important; }';
+			st.textContent = 'body.hf-hide-bylampa-btn .head #NOTICE:not(.notice--icon), body.hf-hide-bylampa-btn .head .notice-screen:not(.notice--icon), body.hf-hide-bylampa-btn .head .bylampa--notice:not(.notice--icon), body.hf-hide-bylampa-btn .head .bylampa-notice:not(.notice--icon), body.hf-hide-bylampa-btn .head .bylampa__notice:not(.notice--icon), body.hf-hide-bylampa-btn .head .notice--bylampa:not(.notice--icon), body.hf-hide-bylampa-btn .head [data-action="bylampa_notice"]:not(.notice--icon), body.hf-hide-bylampa-btn .head [data-bylampa-notice]:not(.notice--icon), body.hf-hide-bylampa-btn .head [data-hf-bylampa="1"]:not(.notice--icon) { display: none !important; visibility: hidden !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important; position: absolute !important; left: -9999px !important; }';
 			document.head.appendChild(st);
 		}
 
