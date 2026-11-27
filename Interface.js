@@ -27,6 +27,9 @@
             if (original) original.apply(this, args);
         });
         wrap(mainMap.Create, 'onCreate', function (original, args) {
+            if (this.__newInterfaceEnabled === undefined) {
+                this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
+            }
             if (original) original.apply(this, args);
             if (!this.__newInterfaceEnabled) return;
             ensureState(this).attach();
@@ -146,8 +149,10 @@
             lastData: null,
             lastUpdateTime: 0,
 			
-			slideshowNetwork: new Lampa.Reguest(),
+            slideshowNetwork: new Lampa.Reguest(),
+            slideshowStartTimer: null,
             slideshowTimer: null,
+            slideshowCache: {},
             slideshowImages: [],
             slideshowIndex: 0,
             slideshowCurrentId: null,
@@ -185,9 +190,10 @@
                 };
                 Lampa.Listener.follow('activity', this._activityListener);
 
-                window.__stylish_refresh = () => {
+                this._refreshFn = () => {
                     if (this._isActive && this.lastData) this.update(this.lastData, true);
                 };
+                window.__stylish_refresh = this._refreshFn;
             },
 
             update(data, force) {
@@ -234,8 +240,7 @@
                 this.slideshowImages = [];
                 this.slideshowIndex = 0;
 
-                if (!data || !data.id) return;
-                if (isEpisodeItem(data)) return;
+                if (!data || !data.id || isEpisodeItem(data)) return;
                 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 
                 const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
@@ -244,32 +249,46 @@
                     `${type}/${data.id}/images?api_key=${Lampa.TMDB.key()}&language=${language}&include_image_language=${language},null,en`
                 );
 
-                this.slideshowNetwork.clear();
-                this.slideshowNetwork.timeout(5000);
-                this.slideshowNetwork.silent(url, (images) => {
-                    if (this.slideshowCurrentId !== data.id) return;
-                    const backdrops = (images && images.backdrops) ? images.backdrops : [];
-                    let list = backdrops
-                        .filter((img) => img.file_path && img.iso_639_1 !== 'xx')
-                        .map((img) => img.file_path);
-                    const current = data.backdrop_path ? '/' + data.backdrop_path.replace(/^\//, '') : null;
-                    list = list.filter((p, i, arr) => arr.indexOf(p) === i && p !== current);
-
+                const applyList = (list) => {
+                    if (this.slideshowCurrentId !== data.id || !list.length) return;
                     this.slideshowImages = list;
                     this.slideshowIndex = 0;
+                    this.slideshowTimer = setInterval(() => {
+                        if (!this.slideshowImages.length) return;
+                        const next = this.slideshowImages[this.slideshowIndex % this.slideshowImages.length];
+                        this.slideshowIndex++;
+                        this.setBackground(Lampa.TMDB.image('t/p/w1280' + next));
+                    }, 10000);
+                };
 
-                    if (list.length > 0) {
-                        this.slideshowTimer = setInterval(() => {
-                            if (!this.slideshowImages.length) return;
-                            const next = this.slideshowImages[this.slideshowIndex % this.slideshowImages.length];
-                            this.slideshowIndex++;
-                            this.setBackground(Lampa.TMDB.image('t/p/w1280' + next));
-                        }, 10000);
-                    }
-                });
+                if (this.slideshowCache[url]) {
+                    applyList(this.slideshowCache[url]);
+                    return;
+                }
+
+                clearTimeout(this.slideshowStartTimer);
+                this.slideshowStartTimer = setTimeout(() => {
+                    if (this.slideshowCurrentId !== data.id) return;
+                    this.slideshowNetwork.clear();
+                    this.slideshowNetwork.timeout(5000);
+                    this.slideshowNetwork.silent(url, (images) => {
+                        const backdrops = (images && images.backdrops) ? images.backdrops : [];
+                        const current = data.backdrop_path ? '/' + data.backdrop_path.replace(/^\//, '') : null;
+                        const list = backdrops
+                            .filter((img) => img.file_path && img.iso_639_1 !== 'xx')
+                            .map((img) => img.file_path)
+                            .filter((p, i, arr) => arr.indexOf(p) === i && p !== current);
+                        const cacheKeys = Object.keys(this.slideshowCache);
+                        if (cacheKeys.length >= 40) delete this.slideshowCache[cacheKeys[0]];
+                        this.slideshowCache[url] = list;
+                        applyList(list);
+                    });
+                }, 1500);
             },
 
             stopSlideshow() {
+                clearTimeout(this.slideshowStartTimer);
+                this.slideshowStartTimer = null;
                 this.slideshowNetwork.clear();
                 if (this.slideshowTimer) {
                     clearInterval(this.slideshowTimer);
@@ -305,7 +324,9 @@
                 }
                 this.attached = false;
                 this.lastData = null;
-                delete window.__stylish_refresh;
+                if (window.__stylish_refresh === this._refreshFn) {
+                    delete window.__stylish_refresh;
+                }
             }
         };
         return state;
@@ -380,17 +401,14 @@
             onFocus() {
                 const d = getData();
                 if (d) state.update(d);
-                updateCardTitle(card);
             },
             onHover() {
                 const d = getData();
                 if (d) state.update(d);
-                updateCardTitle(card);
             },
             onTouch() {
                 const d = getData();
                 if (d) state.update(d);
-                updateCardTitle(card);
             },
             onVisible() {
                 applyEpisodeClass(card);
@@ -453,7 +471,6 @@
                 toggleTimer = setTimeout(() => {
                     const domData = getFocusedCardData(line);
                     if (domData) state.update(domData);
-                    syncDomTitles();
                 }, 32);
             },
             onMore() { state.reset(); },
@@ -507,9 +524,9 @@
         if (lineEl && typeof MutationObserver !== 'undefined') {
             line.__newInterfaceObserver = new MutationObserver(() => {
                 clearTimeout(moTimer);
-                moTimer = setTimeout(syncDomTitles, 60);
+                moTimer = setTimeout(syncDomTitles, 150);
             });
-            line.__newInterfaceObserver.observe(lineEl, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+            line.__newInterfaceObserver.observe(lineEl, { childList: true, subtree: true });
         }
         if (line.last) {
             const lastData = getDomCardData(line.last);
@@ -789,7 +806,9 @@
             height: 100vh;
             z-index: -2;
             object-fit: cover;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.35s ease;
+            will-change: opacity;
+            transform: translateZ(0);
             opacity: 0;
         }
 
@@ -854,7 +873,9 @@
         body.light--version .new-interface-info__title,
         body.light--version .new-interface-info__meta-top,
         body.light--version .new-interface-info__genres,
-        body.light--version .new-interface-info__right-bottom {
+        body.light--version .new-interface-info__right-bottom,
+        body.light--version .new-interface-info__right-meta,
+        body.light--version .new-interface-info__right-genres {
             color: #111;
             text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.8);
         }
@@ -899,13 +920,10 @@
             margin-bottom: 0.55em !important;
         }
         body.is-android-device .card:not(.card--wide):not(.bookmarks-folder) .card__age {
-            position: relative !important;
-            top: 0.35em !important;
-            bottom: auto !important;
             display: block !important;
             white-space: nowrap !important;
             line-height: 1.2em !important;
-            margin-top: 0.35em !important;
+            margin-top: 0.45em !important;
         }
 
         </style>`);
@@ -993,6 +1011,8 @@
                 this.network.clear();
                 this.network.timeout(5000);
                 this.network.silent(url, (movie) => {
+                    const loadedKeys = Object.keys(this.loaded);
+                    if (loadedKeys.length >= 40) delete this.loaded[loadedKeys[0]];
                     this.loaded[url] = movie;
                     if (this.currentUrl === url) this.draw(movie);
                 });
