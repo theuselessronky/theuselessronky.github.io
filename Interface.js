@@ -128,7 +128,7 @@
         const info = new InterfaceInfo();
         info.create();
         const background = document.createElement('img');
-        background.className = 'full-start__background';
+        background.className = 'new-interface__background';
 
         const state = {
             main,
@@ -163,21 +163,28 @@
                 main.scroll.minus(infoNode);
                 this.attached = true;			 
 
+                this._isActive = true;
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
-                    const isCurrent = e.object && e.object.activity === main.activity;
-                    this.infoElement.style.visibility = isCurrent ? '' : 'hidden';
-                    background.style.visibility = isCurrent ? '' : 'hidden';
+                    const isCurrent = Boolean(e.object && e.object.activity === main.activity);
+                    this._isActive = isCurrent;
+                    this.infoElement.style.display = isCurrent ? '' : 'none';
+                    background.style.display = isCurrent ? '' : 'none';
+                    if (!isCurrent) this.stopSlideshow();
                 };
                 Lampa.Listener.follow('activity', this._activityListener);
 
                 window.__stylish_refresh = () => {
-                    if (this.lastData) this.update(this.lastData, true);
+                    if (this._isActive && this.lastData) this.update(this.lastData, true);
                 };
+				if (main.scroll && typeof main.scroll.minus === 'function') {
+                    main.scroll.minus(infoNode);
+                }
+
             },
 
             update(data, force) {
-                if (!data) return;
+                if (!data || !this._isActive) return;
                 const now = Date.now();
                 const isSame = this.lastData && this.lastData.id === data.id;
                 if (!force && isSame && now - this.lastUpdateTime < 150) return;
@@ -633,7 +640,7 @@
         }
 
         /* Фон */
-        .new-interface .full-start__background {
+        .new-interface .new-interface__background {
             position: fixed;
             top: 0;
             left: 0;
@@ -645,7 +652,7 @@
             opacity: 0;
         }
 
-        .new-interface .full-start__background.loaded { opacity: 1; }
+        .new-interface .new-interface__background.loaded { opacity: 1; }
 
         .new-interface .card__title,
         .new-interface .card__age,
@@ -662,7 +669,6 @@
             background-position: center;
         }
 
-        .new-interface .shots-row-hidden { display: none !important; }
 
         .new-interface-card-title {
             position: absolute !important;
@@ -702,6 +708,14 @@
         }
         </style>`);
         $('body').append(Lampa.Template.get('new_interface_style_v3', {}, true));
+		
+	    /* Приоритет другому плагину кнопок на странице фильма (Android) */
+        .full-start-new__buttons .full-start__button.selector.focus,
+        .full-start-new__buttons .full-start__button.selector:hover {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: none !important;
+        }	
     }
 
     /* ================= INFO PANEL ================= */
