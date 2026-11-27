@@ -332,20 +332,6 @@
             data.original_name ||
             data.heading ||
             data.label;
-        clearTimeout(card.__newInterfaceLabelTimer);
-        const data = card.data || element.card_data;
-        if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) {
-            const seekEmpty = element.querySelector('.new-interface-card-title');
-            if (seekEmpty && seekEmpty.parentNode) seekEmpty.parentNode.removeChild(seekEmpty);
-            card.__newInterfaceLabel = null;
-            return;
-        }
-        const rawTitle = data.title ||
-            data.name ||
-            data.original_title ||
-            data.original_name ||
-            data.heading ||
-            data.label;
         const text = rawTitle ? String(rawTitle).trim() : '';
         const seek = element.querySelector('.new-interface-card-title');
         if (!text) {
