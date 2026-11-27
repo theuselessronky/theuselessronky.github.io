@@ -95,8 +95,8 @@
 
     function shouldUseNewInterface(object) {
         if (!object) return false;
-        if (window.innerWidth < 767) return false;
         if (object.component === 'full') return false;
+        if (window.innerWidth < 480 && !Lampa.Platform.tv()) return false;
         return true;
     }
 
@@ -170,9 +170,9 @@
                     clearTimeout(this._syncTimer);
                     this._syncTimer = setTimeout(() => {
                         if (!this.attached || !main.scroll) return;
-                        const rows = container.querySelectorAll('.items-line');
-                        if (rows.length && typeof main.scroll.update === 'function') {
-                            main.scroll.update(rows);
+                        const firstRow = container.querySelector('.items-line');
+                        if (firstRow && typeof main.scroll.update === 'function') {
+                            main.scroll.update(firstRow);
                         }
                     }, 80);
                 };
