@@ -201,22 +201,27 @@
 
 		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
 		function findByLampaBtn() {
-			try {
-				var ex = $('.head .bylampa--notice, .head .bylampa-notice, .head [data-action="bylampa_notice"], .head [data-bylampa-notice]');
-				if (ex.length) return ex;
-				if (!hasByLampaEnv()) return $();
-				return $('.head .head__action, .head__actions > div, .head__actions > button').filter(function() {
-					var el = $(this);
-					if (!el.hasClass('selector') && !el.hasClass('head__action')) return false;
-					for (var i = 0; i < BYLAMPA_EXCLUDE.length; i++) if (el.hasClass(BYLAMPA_EXCLUDE[i])) return false;
-					var cls = (this.className || '').toString().toLowerCase();
-					if (/bookmark|torr|cub|tmdb|radio|shot|sync|theme|lang|exit|power/.test(cls)) return false;
-					if (this.id === 'secured') return false;
-					var a = (el.attr('data-action') || '').toLowerCase();
-					if (a && a.indexOf('bylampa') === -1 && a.indexOf('notice') === -1 && a.indexOf('change') === -1) return false;
-					return el.find('svg').length > 0 || el.find('img').length > 0;
-				});
-			} catch (e) { return $(); }
+			var $found = $('.head #NOTICE, .head .notice-screen, .head .bylampa--notice, .head .bylampa-notice, .head .bylampa__notice, .head .notice--bylampa, .head [data-action="bylampa_notice"], .head [data-bylampa-notice], .head [data-hf-bylampa="1"]');
+			if ($found.length) return $found;
+			var list = [];
+			$('.head .head__action').each(function() {
+				var el = this;
+				if (el.classList.contains('open--settings') ||
+					el.classList.contains('open--search') ||
+					el.classList.contains('open--notice') ||
+					el.classList.contains('open--feed') ||
+					el.classList.contains('open--premium') ||
+					el.classList.contains('open--profile') ||
+					el.classList.contains('open--broadcast') ||
+					el.classList.contains('full--screen')) return;
+
+				var html = (el.outerHTML || '').toLowerCase();
+				if (html.indexOf('bylampa') !== -1 || html.indexOf('bell') !== -1 || html.indexOf('notice') !== -1) {
+					el.setAttribute('data-hf-bylampa', '1');
+					list.push(el);
+				}
+			});
+			return $(list);
 		}
 		function hasByLampaBtn() { return findByLampaBtn().length > 0; }
 
@@ -225,7 +230,6 @@
 				var $b = findByLampaBtn();
 				var b = $b.get(0);
 				if (b) {
-					if (b.style && b.style.display === 'none') b.style.setProperty('display', 'flex', 'important');
 					try { $b.trigger('hover:enter'); } catch (e1) {}
 					try { $b.trigger('click'); } catch (e2) {}
 					var hideAgain = function() {
@@ -897,7 +901,7 @@
 		if (!document.getElementById('hf-bylampa-hide-style')) {
 			var st = document.createElement('style');
 			st.id = 'hf-bylampa-hide-style';
-			st.textContent = 'body.hf-hide-bylampa-btn .head .bylampa--notice, body.hf-hide-bylampa-btn .head .bylampa-notice, body.hf-hide-bylampa-btn .head [data-action="bylampa_notice"], body.hf-hide-bylampa-btn .head [data-bylampa-notice], body.hf-hide-bylampa-btn .head [data-hf-hidden="1"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }';
+			st.textContent = 'body.hf-hide-bylampa-btn .head #NOTICE, body.hf-hide-bylampa-btn .head #NOTICE.notice-screen, body.hf-hide-bylampa-btn .head .notice-screen, body.hf-hide-bylampa-btn .head .bylampa--notice, body.hf-hide-bylampa-btn .head .bylampa-notice, body.hf-hide-bylampa-btn .head .bylampa__notice, body.hf-hide-bylampa-btn .head .notice--bylampa, body.hf-hide-bylampa-btn .head [data-action="bylampa_notice"], body.hf-hide-bylampa-btn .head [data-bylampa-notice], body.hf-hide-bylampa-btn .head [data-hf-bylampa="1"], body.hf-hide-bylampa-btn .head [data-hf-hidden="1"] { display: none !important; visibility: hidden !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important; position: absolute !important; left: -9999px !important; }';
 			document.head.appendChild(st);
 		}
 
