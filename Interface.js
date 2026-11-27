@@ -167,7 +167,11 @@
                 this._isActive = true;
                 this._activityListener = (e) => {
                     if (e.type !== 'start' || !this.infoElement) return;
-                    const isCurrent = Boolean(e.object && e.object.activity === main.activity);
+                    const activeObj = Lampa.Activity && typeof Lampa.Activity.active === 'function' ? Lampa.Activity.active() : null;
+                    const isCurrent = Boolean(
+                        (e.object && e.object.activity === main.activity) ||
+                        (activeObj && activeObj.activity === main.activity)
+                    );
                     this._isActive = isCurrent;
                     this.infoElement.style.display = isCurrent ? '' : 'none';
                     background.style.display = isCurrent ? '' : 'none';
@@ -447,7 +451,7 @@
         const syncDomTitles = () => {
             const lineEl = typeof line.render === 'function' ? line.render(true) : null;
             if (!lineEl || !lineEl.querySelectorAll) return;
-            const cards = lineEl.querySelectorAll('.card');
+            const cards = lineEl.querySelectorAll('.card, .card-episode');
             cards.forEach((el) => {
                 const data = el.card_data;
                 if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) return;
@@ -537,10 +541,13 @@
         .new-interface .card {
             overflow: visible !important;
         }
-        .new-interface .card.card--wide {
+        .new-interface .card.card--wide,
+        .new-interface .card-episode {
             width: 18.3em;
             padding-bottom: 1.9em !important;
             margin-bottom: 0 !important;
+            position: relative !important;
+            overflow: visible !important;
         }
 
         .new-interface-info {
