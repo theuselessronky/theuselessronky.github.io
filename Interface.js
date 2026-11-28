@@ -122,6 +122,15 @@
                 }
             });
         }
+		// Мгновенная реакция на смену настроек фона
+        if (Lampa.Storage && Lampa.Storage.listener) {
+            Lampa.Storage.listener.follow('change', function (e) {
+                if (e.name === 'background_type' || e.name === 'background') {
+                    if (window.__stylish_refresh) window.__stylish_refresh();
+					}
+				});
+			}
+		}
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -263,10 +272,13 @@
                 };
                 window.__stylish_refresh = this._refreshFn;
                 
-                // Применяем класс сразу при старте
+                // Применяем класс сразу при старте и вызываем рефреш
                 const initBgType = Lampa.Storage.get('background_type', 'complex');
                 if (initBgType === 'card') document.body.classList.add('has-card-bg');
-            },
+                else document.body.classList.remove('has-card-bg');
+                
+                // Принудительно обновляем состояние при старте
+                if (this._isActive && this.lastData) this.update(this.lastData, true);
 
             update(data, force) {
                 if (!data || !this._isActive) return;
@@ -701,7 +713,7 @@
         addStyleV3.added = true;
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
-        .new-interface { position: relative; z-index: 1; }
+        .new-interface { position: relative; z-index: 10; } /* Контент выше всего */
         .new-interface .items-line,
         .new-interface .scroll { position: relative; z-index: 2; }
         .new-interface .card {
@@ -921,12 +933,19 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 0; /* Теперь фон над body, но под контентом */
+            z-index: 1; /* Теперь фон выше body */
             object-fit: cover;
             transition: opacity 0.35s ease;
             will-change: opacity;
             transform: translateZ(0);
             opacity: 0;
+            pointer-events: none;
+        }
+		 /* Системный canvas Lampa (блики Сложного фона) — выше нашего фона, но ниже контента */
+        .background__one,
+        .background__two,
+        .background__fade {
+            z-index: 2 !important;
             pointer-events: none;
         }
 
@@ -940,7 +959,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 1; /* Выше фона (0), но ниже контента (2) */
+            z-index: 3; /* Выше фона (0), но ниже контента (2) */
             pointer-events: none;
             background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
                         linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
