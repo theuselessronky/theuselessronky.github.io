@@ -268,7 +268,7 @@
                 }
             },
 
-            startSlideshow(data) {
+             startSlideshow(data) {
                 this.slideshowImages = [];
                 this.slideshowIndex = 0;
                 this.slideshowCurrentId = null;
@@ -277,15 +277,15 @@
                 this.slideshowCurrentId = data.id;
                 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 
-                const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
-                const language = Lampa.Storage.get('language');
+                const isTv = data.media_type === 'tv' || (!data.media_type && (data.first_air_date || data.number_of_seasons || (data.name && !data.title && !data.release_date)));
+                const type = isTv ? 'tv' : 'movie';
                 const url = Lampa.TMDB.api(
-                    `${type}/${data.id}/images?api_key=${Lampa.TMDB.key()}&language=${language}`
+                    `${type}/${data.id}/images?api_key=${Lampa.TMDB.key()}`
                 );
 
                 const applyList = (list) => {
                     if (this.slideshowCurrentId !== data.id || !list.length) return;
-					if (this.slideshowTimer) clearInterval(this.slideshowTimer);
+                    if (this.slideshowTimer) clearInterval(this.slideshowTimer);
                     this.slideshowImages = list;
                     this.slideshowIndex = 0;
                     this.slideshowTimer = setInterval(() => {
@@ -293,7 +293,7 @@
                         const next = this.slideshowImages[this.slideshowIndex % this.slideshowImages.length];
                         this.slideshowIndex++;
                         this.setBackground(Lampa.TMDB.image('t/p/w1280' + next));
-                    }, 10000);
+                    }, 5000);
                 };
 
                 if (this.slideshowCache[url]) {
@@ -310,17 +310,8 @@
                         const backdrops = (images && images.backdrops) ? images.backdrops : [];
                         const current = data.backdrop_path ? '/' + data.backdrop_path.replace(/^\//, '') : null;
 
-                        const langPriority = [language, 'en', null];
-                        const byPriority = backdrops.slice().sort(function (a, b) {
-                            const ai = langPriority.indexOf(a.iso_639_1);
-                            const bi = langPriority.indexOf(b.iso_639_1);
-                            const ar = ai === -1 ? 999 : ai;
-                            const br = bi === -1 ? 999 : bi;
-                            return ar - br;
-                        });
-
-                        const list = byPriority
-                            .filter((img) => img.file_path && img.iso_639_1 !== 'xx')
+                        const list = backdrops
+                            .filter((img) => img && img.file_path)
                             .map((img) => img.file_path)
                             .filter((p, i, arr) => arr.indexOf(p) === i && p !== current);
 
