@@ -34,17 +34,14 @@
             if (!this.__newInterfaceEnabled) return;
             ensureState(this).attach();
         });
-        wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
-            const element = args && args[0];
-            if (this.__newInterfaceEnabled && element) {
-                if (isShotsRow(null, element) && getSetting(SHOTS_KEY, true) === false) {
-                    return;
-                }
-                prepareLineData(element);
-            }
-            return original ? original.apply(this, args) : undefined;
-        });
-
+		wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
+			const element = args && args[0];
+			if (this.__newInterfaceEnabled && element) {
+			prepareLineData(element);
+			}
+		return original ? original.apply(this, args) : undefined;
+		});
+		
         wrap(mainMap.Items, 'onAppend', function (original, args) {
             const item = args && args[0];
             const element = (args && args[1]) || (item && (item.data || item.object));
@@ -100,7 +97,8 @@
     function shouldUseNewInterface(object) {
         if (!object) return false;
         if (object.component === 'full') return false;
-        if (window.innerWidth > 0 && window.innerWidth < 480 && !Lampa.Platform.tv()) return false;
+		const isTv = Lampa.Platform && typeof Lampa.Platform.tv === 'function' ? Lampa.Platform.tv() : false;
+		if (window.innerWidth > 0 && window.innerWidth < 480 && !isTv) return false;
         return true;
     }
 
@@ -119,16 +117,19 @@
     }
 
     function prepareLineData(element) {
-        if (!element || !Array.isArray(element.results)) return;
-        element.results.forEach(function (item) {
-            if (!item) return;
-            if (item.still_path && (item.episode_number !== undefined || item.season_number !== undefined)) {
-                item.__is_episode = true;
-                if (!item.backdrop_path) item.backdrop_path = item.still_path;
-            }
-        });
-        Lampa.Utils.extendItemsParams(element.results, { style: { name: 'wide' } });
-    }
+		if (!element || !Array.isArray(element.results)) return;
+		element.results.forEach(function (item) {
+			if (!item) return;
+			if (item.still_path && (item.episode_number !== undefined || item.season_number !== undefined)) {
+				item.__is_episode = true;
+				if (!item.backdrop_path) item.backdrop_path = item.still_path;
+			}
+		});
+		const first = element.results[0];
+		if (!first || !first.style || first.style.name !== 'wide') {
+			Lampa.Utils.extendItemsParams(element.results, { style: { name: 'wide' } });
+		}
+	}	
 
     /* ================= СОСТОЯНИЕ ================= */
 
@@ -163,12 +164,12 @@
                 if (!container) return;
                 container.classList.add('new-interface');
                 if (!background.parentElement) {
-                    container.insertBefore(background, container.firstChild || null);
+                    document.body.appendChild(background);
                 }
                 const infoNode = info.render(true);
                 this.infoElement = infoNode;
                 if (infoNode && infoNode.parentNode !== container) {
-                    container.insertBefore(infoNode, background.nextSibling);
+                    container.insertBefore(infoNode, container.firstChild || null);
                 }
                 if (main.scroll && typeof main.scroll.minus === 'function') {
                     main.scroll.minus(infoNode);
@@ -226,14 +227,15 @@
                 }, 1000);
             },
 
-            setBackground(path) {
-                if (!path || background.src === path) return;
-                background.classList.remove('loaded');
-                background.onload = () => background.classList.add('loaded');
-                background.onerror = () => background.classList.remove('loaded');
-                this.backgroundLast = path;
-                background.src = path;
-            },
+		setBackground(path) {
+			if (!path || this.backgroundLast === path) return;
+			this.backgroundLast = path;
+			const token = path;
+			background.classList.remove('loaded');
+			background.onload = () => { if (this.backgroundLast === token) background.classList.add('loaded'); };
+			background.onerror = () => { if (this.backgroundLast === token) background.classList.remove('loaded'); };
+			background.src = path;
+		},
 
             startSlideshow(data) {
                 this.slideshowCurrentId = data.id;
@@ -251,6 +253,7 @@
 
                 const applyList = (list) => {
                     if (this.slideshowCurrentId !== data.id || !list.length) return;
+					if (this.slideshowTimer) clearInterval(this.slideshowTimer);
                     this.slideshowImages = list;
                     this.slideshowIndex = 0;
                     this.slideshowTimer = setInterval(() => {
@@ -289,7 +292,6 @@
             stopSlideshow() {
                 clearTimeout(this.slideshowStartTimer);
                 this.slideshowStartTimer = null;
-                this.slideshowNetwork.clear();
                 if (this.slideshowTimer) {
                     clearInterval(this.slideshowTimer);
                     this.slideshowTimer = null;
@@ -309,6 +311,7 @@
             destroy() {
                 clearTimeout(this.backgroundTimer);
                 this.stopSlideshow();
+				this.slideshowNetwork.clear();
                 info.destroy();
                 const container = main.render(true);
                 if (container) container.classList.remove('new-interface');
@@ -346,11 +349,15 @@
         if (!card || typeof card.render !== 'function') return;
         const element = card.render(true);
         if (!element) return;
-        if (!element.isConnected) {
-            clearTimeout(card.__newInterfaceLabelTimer);
-            card.__newInterfaceLabelTimer = setTimeout(() => updateCardTitle(card), 50);
-            return;
-        }
+		if (!element.isConnected) {
+			clearTimeout(card.__newInterfaceLabelTimer);
+			card.__newInterfaceLabelTries = (card.__newInterfaceLabelTries || 0) + 1;
+		if (card.__newInterfaceLabelTries > 40) return; // ~2 сек
+			card.__newInterfaceLabelTimer = setTimeout(() => updateCardTitle(card), 50);
+		return;
+		}
+		card.__newInterfaceLabelTries = 0;
+
         clearTimeout(card.__newInterfaceLabelTimer);
         const data = card.data || element.card_data;
         if (!data || (!data.id && !data.backdrop_path && !data.poster_path)) {
@@ -410,10 +417,11 @@
                 const d = getData();
                 if (d) state.update(d);
             },
-            onVisible() {
-                applyEpisodeClass(card);
-                updateCardTitle(card);
-            },
+			onVisible() {
+				applyEpisodeClass(card);
+				const el = typeof card.render === 'function' ? card.render(true) : null;
+				if (el && el.isConnected) updateCardTitle(card);
+			},
             onUpdate() {
                 applyEpisodeClass(card);
                 updateCardTitle(card);
@@ -447,7 +455,7 @@
     function getFocusedCardData(line) {
         const container = line && typeof line.render === 'function' ? line.render(true) : null;
         if (!container || !container.querySelector) return null;
-        const focus = container.querySelector('.selector.focus') || container.querySelector('.focus');
+        const focus = container.querySelector('.card.focus') || container.querySelector('.selector.focus');
         return getDomCardData(focus);
     }
 
@@ -473,7 +481,6 @@
                     if (domData) state.update(domData);
                 }, 32);
             },
-            onMore() { state.reset(); },
             onDestroy() {
                 clearTimeout(moTimer);
                 clearTimeout(syncTimer);
@@ -481,8 +488,7 @@
                 if (line.__newInterfaceObserver) {
                     line.__newInterfaceObserver.disconnect();
                     delete line.__newInterfaceObserver;
-                }
-                state.reset();
+                };
                 delete line.__newInterfaceLine;
             }
         });
@@ -522,11 +528,17 @@
 
         const lineEl = typeof line.render === 'function' ? line.render(true) : null;
         if (lineEl && typeof MutationObserver !== 'undefined') {
-            line.__newInterfaceObserver = new MutationObserver(() => {
-                clearTimeout(moTimer);
-                moTimer = setTimeout(syncDomTitles, 150);
-            });
-            line.__newInterfaceObserver.observe(lineEl, { childList: true, subtree: true });
+		line.__newInterfaceObserver = new MutationObserver((mutations) => {
+			let hasAdd = false;
+			for (let i = 0; i < mutations.length; i++) {
+				if (mutations[i].addedNodes && mutations[i].addedNodes.length) { hasAdd = true; break; }
+			}
+		if (!hasAdd) return;
+		clearTimeout(moTimer);
+		moTimer = setTimeout(syncDomTitles, 250);
+		});
+		line.__newInterfaceObserver.observe(lineEl, { childList: true });
+
         }
         if (line.last) {
             const lastData = getDomCardData(line.last);
@@ -540,6 +552,7 @@
         target[method] = function (...args) {
             return handler.call(this, original, args);
         };
+		target[method].__original = original;
     }
 
     /* ================= НАСТРОЙКИ ================= */
@@ -828,7 +841,8 @@
                         linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
         }
         body.light--version .new-interface::before {
-            display: none !important;
+            display: block !important;
+            background: linear-gradient(0deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 45%);
         }
 
         .new-interface .card__title,
@@ -939,6 +953,8 @@
             this.network = new Lampa.Reguest();
             this.loaded = {};
             this.currentUrl = null;
+            this._lastDrawnUrl = null;
+            this._lastId = null;
         }
                 create() {
             if (this.html) return;
@@ -973,8 +989,12 @@
         update(data) {
             if (!data) return;
             if (!this.html) this.create();
+			const sameItem = this._lastId === data.id;
+			this._lastId = data.id;
+			if (!sameItem) {
             this.currentUrl = null;
             this.clear();
+			}
 
             const title = data.title || data.name || data.original_title || data.original_name || '';
             if (title) this.html.find('.new-interface-info__title').text(title);
@@ -983,7 +1003,9 @@
             if (showDesc && !isEpisodeItem(data)) {
                 const overview = (data.overview || '').trim();
                 if (overview && overview !== 'Без описания' && overview !== Lampa.Lang.translate('nofind_movie')) {
-                    this.html.find('.new-interface-info__description').text(this.truncateDescription(overview));
+                    const descEl = this.html.find('.new-interface-info__description');
+                    const short = this.truncateDescription(overview);
+                    if (descEl.text() !== short) descEl.text(short);
                 }
             }
             this.load(data);
@@ -1005,7 +1027,11 @@
             const language = Lampa.Storage.get('language');
             const url = Lampa.TMDB.api(`${type}/${data.id}?api_key=${Lampa.TMDB.key()}&append_to_response=content_ratings,release_dates,images&language=${language}`);
             this.currentUrl = url;
-            if (this.loaded[url]) { this.draw(this.loaded[url]); return; }
+            if (this.loaded[url]) {
+                if (this._lastDrawnUrl === url) return;
+                this.draw(this.loaded[url]);
+                return;
+            }
             clearTimeout(this.timer);
             this.timer = setTimeout(() => {
                 this.network.clear();
@@ -1020,6 +1046,7 @@
         }
         draw(movie) {
             if (!movie || !this.html) return;
+            this._lastDrawnUrl = this.currentUrl;
             const sources = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb ? Lampa.Api.sources.tmdb : null;
             const create = ((movie.release_date || movie.first_air_date || '0000') + '').slice(0, 4);
             const vote = parseFloat((movie.vote_average || 0) + '').toFixed(1);
@@ -1036,8 +1063,11 @@
             // Левая нижняя колонка: жанры (снизу), название (над), год • страна (сверху)
             const moveMetaRight = !showPg && !showRuntime && !showRating;
 
+            const cap = (Lampa.Utils && typeof Lampa.Utils.capitalizeFirstLetter === 'function')
+                ? Lampa.Utils.capitalizeFirstLetter
+                : (s) => s;
             const genresText = (showGenres && Array.isArray(movie.genres) && movie.genres.length)
-                ? movie.genres.map((i) => Lampa.Utils.capitalizeFirstLetter(i.name)).join(', ')
+                ? movie.genres.map((i) => cap(i.name)).join(', ')
                 : '';
 
             const metaParts = [];
@@ -1065,7 +1095,7 @@
 
                 // Правая нижняя строка: длительность • PG • рейтинг
                 const rightParts = [];
-                if (showRuntime && movie.runtime) {
+                if (showRuntime && movie.runtime && Lampa.Utils && typeof Lampa.Utils.secondsToTime === 'function') {
                     rightParts.push({ html: Lampa.Utils.secondsToTime(movie.runtime * 60, true), isRate: false });
                 }
                 if (showPg && pg) {
