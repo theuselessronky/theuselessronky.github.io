@@ -23,16 +23,13 @@
         if (!mainMap || !mainMap.Items || !mainMap.Create) return;
 
         wrap(mainMap.Items, 'onInit', function (original, args) {
-            this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
             if (original) original.apply(this, args);
+            this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
         });
         wrap(mainMap.Create, 'onCreate', function (original, args) {
-            if (this.__newInterfaceEnabled === undefined) {
-                this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
-            }
-		if (infoNode && infoNode.parentNode !== container) {
-			container.insertBefore(infoNode, container.firstChild || null);
-		}
+            if (original) original.apply(this, args);
+            if (!this.__newInterfaceEnabled) return;
+            ensureState(this).attach();
         });
 		wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
 			const element = args && args[0];
@@ -62,12 +59,6 @@
             if (!this.__newInterfaceEnabled || !item) return;
 
             attachLineHandlers(this, item);
-
-            if (this.items && this.items.length === 1 && this.scroll && typeof this.scroll.update === 'function') {
-                const lineEl = typeof item.render === 'function' ? item.render(true) : null;
-                if (lineEl) this.scroll.update(lineEl, true);
-            }
-
         });
 		
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
