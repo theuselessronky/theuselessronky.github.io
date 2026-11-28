@@ -64,34 +64,6 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
-
-        const reloadMainOnBoot = function () {
-            if (window.__stylish_boot_reloaded) return;
-            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
-            const active = Lampa.Activity.active();
-            if (!active || active.component !== 'main') return;
-
-            window.__stylish_boot_reloaded = true;
-            Lampa.Activity.replace({
-                url: active.url || '',
-                title: active.title || Lampa.Lang.translate('title_main'),
-                component: 'main',
-                page: 1
-            });
-            setTimeout(function () {
-                if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                    Lampa.Controller.toggle('content');
-                }
-            }, 150);
-        };
-
-        if (window.appready) {
-            setTimeout(reloadMainOnBoot, 600);
-        } else if (Lampa.Listener) {
-            Lampa.Listener.follow('app', function (e) {
-                if (e.type === 'ready') setTimeout(reloadMainOnBoot, 600);
-            });
-        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -275,7 +247,7 @@
                 const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
                 const language = Lampa.Storage.get('language');
                 const url = Lampa.TMDB.api(
-                    `${type}/${data.id}/images?api_key=${Lampa.TMDB.key()}&language=${language}&include_image_language=${language},null,en`
+                    `${type}/${data.id}/images?api_key=${Lampa.TMDB.key()}&language=${language}`
                 );
 
                 const applyList = (list) => {
@@ -304,10 +276,21 @@
                     this.slideshowNetwork.silent(url, (images) => {
                         const backdrops = (images && images.backdrops) ? images.backdrops : [];
                         const current = data.backdrop_path ? '/' + data.backdrop_path.replace(/^\//, '') : null;
-                        const list = backdrops
+
+                        const langPriority = [language, 'en', null];
+                        const byPriority = backdrops.slice().sort(function (a, b) {
+                            const ai = langPriority.indexOf(a.iso_639_1);
+                            const bi = langPriority.indexOf(b.iso_639_1);
+                            const ar = ai === -1 ? 999 : ai;
+                            const br = bi === -1 ? 999 : bi;
+                            return ar - br;
+                        });
+
+                        const list = byPriority
                             .filter((img) => img.file_path && img.iso_639_1 !== 'xx')
                             .map((img) => img.file_path)
                             .filter((p, i, arr) => arr.indexOf(p) === i && p !== current);
+
                         const cacheKeys = Object.keys(this.slideshowCache);
                         if (cacheKeys.length >= 40) delete this.slideshowCache[cacheKeys[0]];
                         this.slideshowCache[url] = list;
