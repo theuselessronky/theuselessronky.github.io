@@ -221,7 +221,8 @@
                 if (!container) return;
                 container.classList.add('new-interface');
                 const bgType = Lampa.Storage.get('background_type', 'complex');
-                this._bgEnabled = bgType !== 'none';
+                // Включаем фон, если выбран "Картинка" или "Сложный"
+                this._bgEnabled = (bgType === 'card' || bgType === 'complex');
                 if (this._bgEnabled) {
                     document.querySelectorAll('.new-interface__background').forEach(function (el) {
                         if (el !== background && el.parentNode) el.parentNode.removeChild(el);
@@ -687,8 +688,6 @@
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
         .new-interface { position: relative; z-index: 1; }
-        body { background-color: #000; }
-        body.light--version { background-color: #fff; }
         .new-interface .items-line,
         .new-interface .scroll { position: relative; z-index: 2; }
         .new-interface .card {
@@ -908,7 +907,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -2;
+            z-index: 0; /* Теперь фон над body, но под контентом */
             object-fit: cover;
             transition: opacity 0.35s ease;
             will-change: opacity;
@@ -919,7 +918,7 @@
 
         .new-interface__background.loaded { opacity: 1; }
 
-        /* Слой градиента «Чёрного стиля» — на body, чтобы накрывать и боковое меню */
+        /* Слой градиента «Чёрного стиля» — накрывает фон, но под контентом */
         body.black--style::after {
             content: '';
             position: fixed;
@@ -927,7 +926,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -1;
+            z-index: 1; /* Выше фона (0), но ниже контента (2) */
             pointer-events: none;
             background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
                         linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
@@ -939,7 +938,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -1;
+            z-index: 1;
             pointer-events: none;
             background: linear-gradient(0deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 45%);
         }
