@@ -261,27 +261,24 @@
                 Lampa.Listener.follow('activity', this._activityListener);
 
                 this._refreshFn = () => {
-                    const bgType = Lampa.Storage.get('background_type', 'complex');
-                    if (bgType === 'card') {
-                        document.body.classList.add('has-card-bg');
+                    if (this._isActive && this.lastData) {
+                        this.update(this.lastData, true);
                     } else {
-                        document.body.classList.remove('has-card-bg');
+                        // Нет активной карточки — просто ставим/снимаем класс для "Картинки"
+                        const bgType = Lampa.Storage.get('background_type', 'complex');
+                        if (bgType === 'card') document.body.classList.add('has-card-bg');
+                        else document.body.classList.remove('has-card-bg');
                     }
-                    if (this._isActive && this.lastData) this.update(this.lastData, true);
                 };
                 window.__stylish_refresh = this._refreshFn;
-                
-                // Применяем класс сразу при старте и вызываем рефреш
+
+                // Стартовое состояние класса
                 const initBgType = Lampa.Storage.get('background_type', 'complex');
-                if (initBgType === 'card') {
-                    document.body.classList.add('has-card-bg');
-                } else {
-                    document.body.classList.remove('has-card-bg');
-                }
-                
-                // Принудительно обновляем состояние при старте
+                if (initBgType === 'card') document.body.classList.add('has-card-bg');
+                else document.body.classList.remove('has-card-bg');
+
+                // Если карточка уже известна — принудительно применяем настройки
                 if (this._isActive && this.lastData) this.update(this.lastData, true);
-            },
 
             update(data, force) {
                 if (!data || !this._isActive) return;
@@ -295,12 +292,22 @@
 
                 info.update(data);
 
-                // Проверяем тип фона "на лету" КАЖДЫЙ раз, когда меняется карточка
                 const bgType = Lampa.Storage.get('background_type', 'complex');
                 const bgEnabled = (bgType === 'card' || bgType === 'complex');
-                
+
+                // Класс "Картинка" — отключает "Чёрный стиль" (градиент)
+                if (bgType === 'card') {
+                    document.body.classList.add('has-card-bg');
+                } else {
+                    document.body.classList.remove('has-card-bg');
+                }
+
                 if (bgEnabled) {
                     background.style.display = '';
+                    // Сброс кэша фона, чтобы "Простой → Картинка" сразу подхватилось
+                    if (force) {
+                        this.backgroundLast = '';
+                    }
                     this.updateBackground(data);
                     if (isNewItem || force) {
                         this.stopSlideshow();
@@ -308,7 +315,9 @@
                     }
                 } else {
                     background.style.display = 'none';
-                    background.src = '';
+                    background.classList.remove('loaded');
+                    background.removeAttribute('src');
+                    this.backgroundLast = '';   // сброс, чтобы при возврате фон поставился заново
                     this.stopSlideshow();
                 }
             },
@@ -948,8 +957,11 @@
         .background__one,
         .background__two,
         .background__fade {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
             z-index: 2 !important;
-            pointer-events: none;
+            pointer-events: none !important;
         }
 
         .new-interface__background.loaded { opacity: 1; }
