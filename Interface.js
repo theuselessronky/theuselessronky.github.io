@@ -73,59 +73,10 @@
             if (original) original.apply(this, args);
         });
 
-        const refreshMainHandlers = function () {
-            if (window.__stylish_boot_refreshed) return;
-            const main = Lampa.Maker && Lampa.Maker.map ? Lampa.Maker.map('Main') : null;
-            if (!main || !main.Items || typeof main.render !== 'function') return;
-            const container = main.render(true);
-            if (!container) return;
-
-            window.__stylish_boot_refreshed = true;
-
-            if (main.__newInterfaceEnabled === undefined) {
-                main.__newInterfaceEnabled = shouldUseNewInterface(main.object);
-            }
-            if (!main.__newInterfaceEnabled) return;
-
-            container.classList.add('new-interface');
-            ensureState(main).attach();
-
-            const items = main.Items;
-            if (items && Array.isArray(items.items)) {
-                items.items.forEach(function (line) {
-                    if (line) attachLineHandlers(main, line);
-                });
-            }
-        };
-
-        if (window.appready) {
-            setTimeout(refreshMainHandlers, 300);
-        } else if (Lampa.Listener) {
-            Lampa.Listener.follow('app', function (e) {
-                if (e.type === 'ready') setTimeout(refreshMainHandlers, 300);
-            });
-        }
-
-        // Страховка: если строка создаётся позже (например, «Сейчас смотрят»),
-        // досинхронизируем её при событии 'line'
-        if (Lampa.Listener) {
-            Lampa.Listener.follow('line', function (e) {
-                const main = Lampa.Maker && Lampa.Maker.map ? Lampa.Maker.map('Main') : null;
-                if (!main || !main.Items) return;
-                const items = main.Items;
-                if (items && Array.isArray(items.items)) {
-                    items.items.forEach(function (line) {
-                        if (line && !line.__newInterfaceLine) {
-                            attachLineHandlers(main, line);
-                        }
-                    });
-                }
-            });
-        }
         // Мгновенная реакция на смену настроек фона
         if (Lampa.Storage && Lampa.Storage.listener) {
             Lampa.Storage.listener.follow('change', function (e) {
-                if (e.name === 'background_type' || e.name === 'background') {
+                if (e.name === 'background_type') {
                     if (window.__stylish_refresh) window.__stylish_refresh();
                 }
             });
@@ -393,13 +344,6 @@
                 this.slideshowCurrentId = null;
             },
 
-            reset() {
-                clearTimeout(this.backgroundTimer);
-                this.backgroundTimer = null;
-                info.empty();
-                this.stopSlideshow();
-            },
-
             destroy() {
                 clearTimeout(this.backgroundTimer);
                 this.stopSlideshow();
@@ -549,19 +493,13 @@
     }
 
     function attachLineHandlers(main, line) {
-        if (!line || line.__stylish_hidden) return;
+		if (!line) return;
 
         const state = ensureState(main);
         const applyToCard = (card) => decorateCard(state, card);
 
         // Если строка уже обработана — только досинхронизируем карточки
-        if (line.__newInterfaceLine) {
-            if (Array.isArray(line.items) && line.items.length) {
-                line.items.forEach(applyToCard);
-            }
-            return;
-        }
-
+        if (line.__newInterfaceLine) return;
         line.__newInterfaceLine = true;
         let moTimer = null;
         let syncTimer = null;
@@ -651,7 +589,6 @@
         target[method] = function (...args) {
             return handler.call(this, original, args);
         };
-		target[method].__original = original;
     }
 
     /* ================= НАСТРОЙКИ ================= */
@@ -1037,7 +974,7 @@
             this._lastDrawnUrl = null;
             this._lastId = null;
         }
-                create() {
+        create() {
             if (this.html) return;
             this.html = $(`<div class="new-interface-info">
                 <div class="new-interface-info__head">
@@ -1052,6 +989,13 @@
                     <div class="new-interface-info__right-bottom"></div>
                 </div>
             </div>`);
+            this.els = {
+                desc: this.html.find('.new-interface-info__description'),
+                title: this.html.find('.new-interface-info__title'),
+                meta: this.html.find('.new-interface-info__meta-top'),
+                genres: this.html.find('.new-interface-info__genres'),
+                right: this.html.find('.new-interface-info__right-bottom')
+            };
         }
         render(js) {
             if (!this.html) this.create();
@@ -1061,11 +1005,11 @@
         clear() {
             clearTimeout(this.timer);
             if (!this.html) return;
-            this.html.find('.new-interface-info__description').empty();
-            this.html.find('.new-interface-info__title').empty();
-            this.html.find('.new-interface-info__meta-top').empty();
-            this.html.find('.new-interface-info__genres').empty();
-            this.html.find('.new-interface-info__right-bottom').removeClass('new-interface-info__right-bottom--boxed').empty();
+            this.els.desc.empty();
+            this.els.title.empty();
+            this.els.meta.empty();
+            this.els.genres.empty();
+            this.els.right.removeClass('new-interface-info__right-bottom--boxed').empty();
         }
         update(data, force) {
             if (!data) return;
@@ -1218,14 +1162,12 @@
                 }
             }
         }
-        empty() {
-            this.clear();
-        }
         destroy() {
             clearTimeout(this.timer);
             this.network.clear();
             this.loaded = {};
             this.currentUrl = null;
+			this.els = null;
             if (this.html) { this.html.remove(); this.html = null; }
         }
     }
