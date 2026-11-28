@@ -36,15 +36,22 @@
         });
 		wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
 			const element = args && args[0];
-			if (this.__newInterfaceEnabled && element) {
-			prepareLineData(element);
+			if (this.__newInterfaceEnabled === undefined) {
+				this.__newInterfaceEnabled = shouldUseNewInterface(this.object);
 			}
-		return original ? original.apply(this, args) : undefined;
+			if (this.__newInterfaceEnabled && element) {
+				prepareLineData(element);
+			}
+			return original ? original.apply(this, args) : undefined;
 		});
 		
         wrap(mainMap.Items, 'onAppend', function (original, args) {
             const item = args && args[0];
             const element = (args && args[1]) || (item && (item.data || item.object));
+
+            if (this.__newInterfaceEnabled === undefined) {
+                this.__newInterfaceEnabled = shouldUseNewInterface(this.object);
+            }
 
             if (this.__newInterfaceEnabled && isShotsRow(item, element) && getSetting(SHOTS_KEY, true) === false) {
                 if (item && typeof item.destroy === 'function') item.destroy();
@@ -56,6 +63,7 @@
 
             attachLineHandlers(this, item);
         });
+		
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
             if (this.__newInterfaceState) {
                 this.__newInterfaceState.destroy();
@@ -91,10 +99,27 @@
         };
 
         if (window.appready) {
-            setTimeout(refreshMainHandlers, 600);
+            setTimeout(refreshMainHandlers, 300);
         } else if (Lampa.Listener) {
             Lampa.Listener.follow('app', function (e) {
-                if (e.type === 'ready') setTimeout(refreshMainHandlers, 600);
+                if (e.type === 'ready') setTimeout(refreshMainHandlers, 300);
+            });
+        }
+
+        // Страховка: если строка создаётся позже (например, «Сейчас смотрят»),
+        // досинхронизируем её при событии 'line'
+        if (Lampa.Listener) {
+            Lampa.Listener.follow('line', function (e) {
+                const main = Lampa.Maker && Lampa.Maker.map ? Lampa.Maker.map('Main') : null;
+                if (!main || !main.Items) return;
+                const items = main.Items;
+                if (items && Array.isArray(items.items)) {
+                    items.items.forEach(function (line) {
+                        if (line && !line.__newInterfaceLine) {
+                            attachLineHandlers(main, line);
+                        }
+                    });
+                }
             });
         }
     }
@@ -195,8 +220,18 @@
                 const container = main.render(true);
                 if (!container) return;
                 container.classList.add('new-interface');
-                if (!background.parentElement) {
-                    document.body.appendChild(background);
+                const bgType = Lampa.Storage.get('background_type', 'complex');
+                this._bgEnabled = bgType !== 'none';
+                if (this._bgEnabled) {
+                    document.querySelectorAll('.new-interface__background').forEach(function (el) {
+                        if (el !== background && el.parentNode) el.parentNode.removeChild(el);
+                    });
+                    if (!background.parentElement) {
+                        document.body.appendChild(background);
+                    }
+                }
+                if (!this._bgEnabled && background.parentElement) {
+                    background.parentElement.removeChild(background);
                 }
                 const infoNode = info.render(true);
                 this.infoElement = infoNode;
@@ -240,11 +275,11 @@
                 this.lastData = data;
 
                 info.update(data);
-                this.updateBackground(data);
+                if (this._bgEnabled) this.updateBackground(data);
 
-                if (isNewItem) {
+                if (isNewItem || force) {
                     this.stopSlideshow();
-                    this.startSlideshow(data);
+                    if (this._bgEnabled) this.startSlideshow(data);
                 }
             },
 
@@ -270,11 +305,12 @@
 		},
 
             startSlideshow(data) {
-                this.slideshowCurrentId = data.id;
                 this.slideshowImages = [];
                 this.slideshowIndex = 0;
+                this.slideshowCurrentId = null;
 
                 if (!data || !data.id || isEpisodeItem(data)) return;
+                this.slideshowCurrentId = data.id;
                 if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
 
                 const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
@@ -650,7 +686,7 @@
         addStyleV3.added = true;
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
-        .new-interface { position: relative; z-index: 0; }
+        .new-interface { position: relative; z-index: 1; }
         body { background-color: #000; }
         body.light--version { background-color: #fff; }
         .new-interface .items-line,
