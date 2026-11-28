@@ -82,10 +82,13 @@
                 }
             });
         }
-		// Если стартовый экран Main уже открыт до загрузки плагина — мягко перезапускаем его один раз
-        if (window.appready && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
+        // Если стартовый экран Main на Android открылся до загрузки плагина — перезапускаем его один раз после app ready
+        const syncInitialMain = function () {
+            if (window.__stylish_initial_synced) return;
+            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
             const active = Lampa.Activity.active();
-            if (active && active.component === 'main' && active.activity && !active.activity.find('.new-interface').length) {
+            if (active && active.component === 'main') {
+                window.__stylish_initial_synced = true;
                 Lampa.Activity.replace({
                     url: active.url || '',
                     title: active.title || Lampa.Lang.translate('title_main'),
@@ -93,6 +96,18 @@
                     page: 1
                 });
             }
+        };
+
+        if (window.appready) {
+            syncInitialMain();
+        } else if (Lampa.Listener) {
+            const onAppReady = function (e) {
+                if (e && e.type === 'ready') {
+                    Lampa.Listener.remove('app', onAppReady);
+                    syncInitialMain();
+                }
+            };
+            Lampa.Listener.follow('app', onAppReady);
         }
     }
 
@@ -197,12 +212,6 @@
                 }
                 if (main.scroll && typeof main.scroll.minus === 'function') {
                     main.scroll.minus(infoNode);
-                    requestAnimationFrame(() => {
-                        if (this.attached && main.scroll && typeof main.scroll.render === 'function') {
-                            const scrollBody = main.scroll.render(true);
-                            if (scrollBody) scrollBody.style.transform = '';
-                        }
-                    });
                 }
                 this.attached = true;			 
 
