@@ -260,29 +260,26 @@
                 };
                 Lampa.Listener.follow('activity', this._activityListener);
 
+                const applyBgModeClass = () => {
+                    const mode = Lampa.Storage.get('background_type', 'complex');
+                    document.body.classList.remove('bg-mode--simple', 'bg-mode--card', 'bg-mode--complex');
+                    document.body.classList.add('bg-mode--' + mode);
+                };
+
                 this._refreshFn = () => {
+                    applyBgModeClass();
                     if (this._isActive && this.lastData) {
                         this.update(this.lastData, true);
-                    } else {
-                        // Нет активной карточки — просто ставим/снимаем класс для "Картинки"
-                        const bgType = Lampa.Storage.get('background_type', 'complex');
-                        if (bgType === 'card') document.body.classList.add('has-card-bg');
-                        else document.body.classList.remove('has-card-bg');
                     }
                 };
                 window.__stylish_refresh = this._refreshFn;
 
-                // Стартовое состояние класса
-                const initBgType = Lampa.Storage.get('background_type', 'complex');
-                if (initBgType === 'card') document.body.classList.add('has-card-bg');
-                else document.body.classList.remove('has-card-bg');
+                applyBgModeClass();
 
-                // Если карточка уже известна — принудительно применяем настройки
                 if (this._isActive && this.lastData) this.update(this.lastData, true);
             },
 
             update(data, force) {
-
                 if (!data || !this._isActive) return;
                 const now = Date.now();
                 const isSame = this.lastData && this.lastData.id === data.id;
@@ -292,58 +289,75 @@
                 const isNewItem = !this.lastData || this.lastData.id !== data.id;
                 this.lastData = data;
 
-                info.update(data);
+                info.update(data, force);
 
                 const bgType = Lampa.Storage.get('background_type', 'complex');
-                const bgEnabled = (bgType === 'card' || bgType === 'complex');
+                document.body.classList.remove('bg-mode--simple', 'bg-mode--card', 'bg-mode--complex');
+                document.body.classList.add('bg-mode--' + bgType);
 
-                // Класс "Картинка" — отключает "Чёрный стиль" (градиент)
-                if (bgType === 'card') {
-                    document.body.classList.add('has-card-bg');
-                } else {
-                    document.body.classList.remove('has-card-bg');
+                if (force) {
+                    this.backgroundLast = '';
                 }
 
-                if (bgEnabled) {
-                    background.style.display = '';
-                    // Сброс кэша фона, чтобы "Простой → Картинка" сразу подхватилось
-                    if (force) {
-                        this.backgroundLast = '';
+                if (bgType === 'simple') {
+                    // "Простой": убираем нашу картинку-фон, оставляем родной размытый фон Lampa
+                    clearTimeout(this.backgroundTimer);
+                    background.style.display = 'none';
+                    background.classList.remove('loaded');
+                    background.removeAttribute('src');
+                    this.stopSlideshow();
+
+                    const nativeBg = Lampa.Utils && typeof Lampa.Utils.cardImgBackground === 'function'
+                        ? Lampa.Utils.cardImgBackground(data)
+                        : '';
+                    if (nativeBg && Lampa.Background && typeof Lampa.Background.change === 'function') {
+                        Lampa.Background.change(nativeBg);
                     }
-                    this.updateBackground(data);
+                } else {
+                    // "Картинка" (card) и "Сложный" (complex): работает наш фон и слайд-шоу
+                    background.style.display = '';
+                    if (force) {
+                        this.updateBackground(data, true);
+                    } else {
+                        this.updateBackground(data, false);
+                    }
                     if (isNewItem || force) {
                         this.stopSlideshow();
                         this.startSlideshow(data);
                     }
-                } else {
-                    background.style.display = 'none';
-                    background.classList.remove('loaded');
-                    background.removeAttribute('src');
-                    this.backgroundLast = '';   // сброс, чтобы при возврате фон поставился заново
-                    this.stopSlideshow();
                 }
             },
 
-            updateBackground(data) {
+            updateBackground(data, immediate) {
                 let imgPath = data && data.backdrop_path;
                 if (!imgPath && data && data.still_path) imgPath = data.still_path;
                 const path = imgPath ? Lampa.Api.img(imgPath, 'w1280') : '';
                 if (!path || path === this.backgroundLast) return;
                 clearTimeout(this.backgroundTimer);
-                this.backgroundTimer = setTimeout(() => {
+                if (immediate) {
                     this.setBackground(path);
-                }, 1000);
+                } else {
+                    this.backgroundTimer = setTimeout(() => {
+                        this.setBackground(path);
+                    }, 1000);
+                }
             },
 
-		setBackground(path) {
-			if (!path || this.backgroundLast === path) return;
-			this.backgroundLast = path;
-			const token = path;
-			background.classList.remove('loaded');
-			background.onload = () => { if (this.backgroundLast === token) background.classList.add('loaded'); };
-			background.onerror = () => { if (this.backgroundLast === token) background.classList.remove('loaded'); };
-			background.src = path;
-		},
+            setBackground(path) {
+                if (!path || this.backgroundLast === path) return;
+                this.backgroundLast = path;
+                const token = path;
+                const bgType = Lampa.Storage.get('background_type', 'complex');
+
+                if (bgType === 'complex' && Lampa.Background && typeof Lampa.Background.change === 'function') {
+                    Lampa.Background.change(path);
+                }
+
+                background.classList.remove('loaded');
+                background.onload = () => { if (this.backgroundLast === token) background.classList.add('loaded'); };
+                background.onerror = () => { if (this.backgroundLast === token) background.classList.remove('loaded'); };
+                background.src = path;
+            },
 
             startSlideshow(data) {
                 this.slideshowImages = [];
@@ -955,7 +969,7 @@
             opacity: 0;
             pointer-events: none;
         }
-        /* Системный canvas Lampa (блики Сложного фона) — выше нашего фона, но ниже контента */
+        /* Системный слой Lampa: в режиме "Простой" — размытый фон; в "Сложном" — слой бликов; в "Картинке" — скрыт */
         .background__one,
         .background__two,
         .background__fade {
@@ -965,10 +979,20 @@
             z-index: 2 !important;
             pointer-events: none !important;
         }
+        body.bg-mode--card .background__one,
+        body.bg-mode--card .background__two,
+        body.bg-mode--card .background__fade {
+            display: none !important;
+        }
+        body.bg-mode--complex .background__one,
+        body.bg-mode--complex .background__two {
+            opacity: 0.45 !important;
+            mix-blend-mode: screen;
+        }
 
         .new-interface__background.loaded { opacity: 1; }
 
-        /* Слой градиента «Чёрного стиля» — накрывает фон, но под контентом */
+        /* Слой градиента «Чёрного стиля» — всегда поверх фона и бликов (z-index: 3), но под контентом (10) */
         body.black--style::after {
             content: '';
             position: fixed;
@@ -976,14 +1000,10 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 3; /* Выше фона (0), но ниже контента (2) */
+            z-index: 3;
             pointer-events: none;
             background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
                         linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
-        }
-        /* Если выбран "Картинка" — отключаем "Чёрный стиль" (затемнение) */
-        body.black--style.has-card-bg::after {
-            display: none !important;
         }
         body.light--version::after {
             content: '';
@@ -1138,15 +1158,16 @@
             this.html.find('.new-interface-info__genres').empty();
             this.html.find('.new-interface-info__right-bottom').removeClass('new-interface-info__right-bottom--boxed').empty();
         }
-        update(data) {
+        update(data, force) {
             if (!data) return;
             if (!this.html) this.create();
-			const sameItem = this._lastId === data.id;
-			this._lastId = data.id;
-			if (!sameItem) {
-            this.currentUrl = null;
-            this.clear();
-			}
+            const sameItem = this._lastId === data.id;
+            this._lastId = data.id;
+            if (!sameItem || force) {
+                this.currentUrl = null;
+                this._lastDrawnUrl = null;
+                this.clear();
+            }
 
             const title = data.title || data.name || data.original_title || data.original_name || '';
             if (title) this.html.find('.new-interface-info__title').text(title);
