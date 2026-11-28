@@ -598,6 +598,8 @@
         Lampa.Template.add('new_interface_style_v3', `<style>
 		
         .new-interface { position: relative; z-index: 0; }
+        body { background-color: #000; }
+        body.light--version { background-color: #fff; }
         .new-interface .items-line,
         .new-interface .scroll { position: relative; z-index: 2; }
         .new-interface .card {
@@ -811,7 +813,7 @@
         }
 
         /* Фон */
-        .new-interface .new-interface__background {
+        .new-interface__background {
             position: fixed;
             top: 0;
             left: 0;
@@ -823,9 +825,10 @@
             will-change: opacity;
             transform: translateZ(0);
             opacity: 0;
+            pointer-events: none;
         }
 
-        .new-interface .new-interface__background.loaded { opacity: 1; }
+        .new-interface__background.loaded { opacity: 1; }
 
         /* Слой градиента «Чёрного стиля» — строго между фоном (-2) и контентом (0+) */
         body.black--style .new-interface::before {
