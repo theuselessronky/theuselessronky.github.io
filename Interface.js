@@ -30,9 +30,9 @@
             if (this.__newInterfaceEnabled === undefined) {
                 this.__newInterfaceEnabled = shouldUseNewInterface(this && this.object);
             }
-            if (original) original.apply(this, args);
-            if (!this.__newInterfaceEnabled) return;
-            ensureState(this).attach();
+		if (infoNode && infoNode.parentNode !== container) {
+			container.insertBefore(infoNode, container.firstChild || null);
+		}
         });
 		wrap(mainMap.Create, 'onCreateAndAppend', function (original, args) {
 			const element = args && args[0];
@@ -63,6 +63,11 @@
 
             attachLineHandlers(this, item);
 
+            if (this.items && this.items.length === 1 && this.scroll && typeof this.scroll.update === 'function') {
+                const lineEl = typeof item.render === 'function' ? item.render(true) : null;
+                if (lineEl) this.scroll.update(lineEl, true);
+            }
+
         });
 		
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
@@ -82,33 +87,6 @@
                 }
             });
         }
-        // Если стартовый экран Main на Android открылся до загрузки плагина — перезапускаем его один раз после app ready
-        const syncInitialMain = function () {
-            if (window.__stylish_initial_synced) return;
-            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
-            const active = Lampa.Activity.active();
-            if (active && active.component === 'main') {
-                window.__stylish_initial_synced = true;
-                Lampa.Activity.replace({
-                    url: active.url || '',
-                    title: active.title || Lampa.Lang.translate('title_main'),
-                    component: 'main',
-                    page: 1
-                });
-            }
-        };
-
-        if (window.appready) {
-            syncInitialMain();
-        } else if (Lampa.Listener) {
-            const onAppReady = function (e) {
-                if (e && e.type === 'ready') {
-                    Lampa.Listener.remove('app', onAppReady);
-                    syncInitialMain();
-                }
-            };
-            Lampa.Listener.follow('app', onAppReady);
-        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -120,22 +98,9 @@
 
     function isShotsRow(line, element) {
         if (!line && !element) return false;
-        const candidates = [
-            line && line.title,
-            line && line.component,
-            line && line.method,
-            line && line.type,
-            line && line.object && line.object.title,
-            line && line.object && line.object.component,
-            element && element.title,
-            element && element.name,
-            element && element.component,
-            element && element.method,
-            element && element.type
-        ].filter(Boolean).map(function (s) { return String(s).toLowerCase(); });
-        return candidates.some(function (s) {
-            return s.indexOf('shots') !== -1 || s.indexOf('шотс') !== -1;
-        });
+        const title = String((element && (element.title || element.name)) || (line && line.title) || '').toLowerCase().trim();
+        const comp = String((element && element.component) || (line && line.component) || '').toLowerCase().trim();
+        return comp === 'shots' || title === 'shots' || title === 'шотс';
     }
 
     function shouldUseNewInterface(object) {
@@ -690,6 +655,7 @@
             padding: 1.5em;
             height: calc(100vh - 25.5em);
             min-height: 15em;
+            max-height: 25em;
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
@@ -1194,7 +1160,7 @@
 
     /* ================= ЗАПУСК ================= */
 
-    if (Lampa.Manifest.app_digital >= 300) {
+    if (Lampa.Maker && Lampa.Maker.map) {
         startPluginV3();
     }
 })();
