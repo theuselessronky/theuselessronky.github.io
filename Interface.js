@@ -82,6 +82,18 @@
                 }
             });
         }
+		// Если стартовый экран Main уже открыт до загрузки плагина — мягко перезапускаем его один раз
+        if (window.appready && Lampa.Activity && typeof Lampa.Activity.active === 'function') {
+            const active = Lampa.Activity.active();
+            if (active && active.component === 'main' && active.activity && !active.activity.find('.new-interface').length) {
+                Lampa.Activity.replace({
+                    url: active.url || '',
+                    title: active.title || Lampa.Lang.translate('title_main'),
+                    component: 'main',
+                    page: 1
+                });
+            }
+        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -185,11 +197,12 @@
                 }
                 if (main.scroll && typeof main.scroll.minus === 'function') {
                     main.scroll.minus(infoNode);
-                    if (typeof main.scroll.update === 'function') {
-                        setTimeout(() => {
-                            if (this.attached && main.scroll) main.scroll.update();
-                        }, 100);
-                    }
+                    requestAnimationFrame(() => {
+                        if (this.attached && main.scroll && typeof main.scroll.render === 'function') {
+                            const scrollBody = main.scroll.render(true);
+                            if (scrollBody) scrollBody.style.transform = '';
+                        }
+                    });
                 }
                 this.attached = true;			 
 
@@ -1046,7 +1059,8 @@
             if (!data || !data.id) return;
             if (isEpisodeItem(data)) return;
             if (!Lampa.TMDB || typeof Lampa.TMDB.api !== 'function' || typeof Lampa.TMDB.key !== 'function') return;
-            const type = data.media_type === 'tv' || data.name ? 'tv' : 'movie';
+            const isTv = data.media_type === 'tv' || (!data.media_type && (data.first_air_date || data.number_of_seasons || (data.name && !data.title && !data.release_date)));
+            const type = isTv ? 'tv' : 'movie';
             const language = Lampa.Storage.get('language');
             const url = Lampa.TMDB.api(`${type}/${data.id}?api_key=${Lampa.TMDB.key()}&append_to_response=content_ratings,release_dates,images&language=${language}`);
             this.currentUrl = url;
