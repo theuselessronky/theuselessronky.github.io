@@ -201,13 +201,10 @@
     function createInterfaceState(main) {
         const info = new InterfaceInfo();
         info.create();
-        const background = document.createElement('img');
-        background.className = 'new-interface__background';
 
         const state = {
             main,
             info,
-            background,
             infoElement: null,
             backgroundTimer: null,
             backgroundLast: '',
@@ -228,13 +225,7 @@
                 const container = main.render(true);
                 if (!container) return;
                 container.classList.add('new-interface');
-                 // Всегда держим фон в body, но управляем его видимостью в update()
-                document.querySelectorAll('.new-interface__background').forEach(function (el) {
-                    if (el !== background && el.parentNode) el.parentNode.removeChild(el);
-                });
-                if (!background.parentElement) {
-                    document.body.appendChild(background);
-                }
+
                 const infoNode = info.render(true);
                 this.infoElement = infoNode;
                 if (infoNode && infoNode.parentNode !== container) {
@@ -255,26 +246,16 @@
                     );
                     this._isActive = isCurrent;
                     this.infoElement.style.display = isCurrent ? '' : 'none';
-                    background.style.display = isCurrent ? '' : 'none';
                     if (!isCurrent) this.stopSlideshow();
                 };
                 Lampa.Listener.follow('activity', this._activityListener);
 
-                const applyBgModeClass = () => {
-                    const mode = Lampa.Storage.get('background_type', 'complex');
-                    document.body.classList.remove('bg-mode--simple', 'bg-mode--card', 'bg-mode--complex');
-                    document.body.classList.add('bg-mode--' + mode);
-                };
-
                 this._refreshFn = () => {
-                    applyBgModeClass();
                     if (this._isActive && this.lastData) {
                         this.update(this.lastData, true);
                     }
                 };
                 window.__stylish_refresh = this._refreshFn;
-
-                applyBgModeClass();
 
                 if (this._isActive && this.lastData) this.update(this.lastData, true);
             },
@@ -291,36 +272,21 @@
 
                 info.update(data, force);
 
-                const bgType = Lampa.Storage.get('background_type', 'complex');
-                document.body.classList.remove('bg-mode--simple', 'bg-mode--card', 'bg-mode--complex');
-                document.body.classList.add('bg-mode--' + bgType);
-
                 if (force) {
                     this.backgroundLast = '';
                 }
 
-                if (bgType === 'simple') {
-                    // "Простой": убираем нашу картинку-фон, оставляем родной размытый фон Lampa
-                    clearTimeout(this.backgroundTimer);
-                    background.style.display = 'none';
-                    background.classList.remove('loaded');
-                    background.removeAttribute('src');
-                    this.stopSlideshow();
+                const bgType = Lampa.Storage.get('background_type', 'complex');
 
+                if (bgType === 'simple') {
+                    clearTimeout(this.backgroundTimer);
+                    this.stopSlideshow();
                     const nativeBg = Lampa.Utils && typeof Lampa.Utils.cardImgBackground === 'function'
                         ? Lampa.Utils.cardImgBackground(data)
                         : '';
-                    if (nativeBg && Lampa.Background && typeof Lampa.Background.change === 'function') {
-                        Lampa.Background.change(nativeBg);
-                    }
+                    if (nativeBg) this.setBackground(nativeBg);
                 } else {
-                    // "Картинка" (card) и "Сложный" (complex): работает наш фон и слайд-шоу
-                    background.style.display = '';
-                    if (force) {
-                        this.updateBackground(data, true);
-                    } else {
-                        this.updateBackground(data, false);
-                    }
+                    this.updateBackground(data, Boolean(force));
                     if (isNewItem || force) {
                         this.stopSlideshow();
                         this.startSlideshow(data);
@@ -346,17 +312,9 @@
             setBackground(path) {
                 if (!path || this.backgroundLast === path) return;
                 this.backgroundLast = path;
-                const token = path;
-                const bgType = Lampa.Storage.get('background_type', 'complex');
-
-                if (bgType === 'complex' && Lampa.Background && typeof Lampa.Background.change === 'function') {
+                if (Lampa.Background && typeof Lampa.Background.change === 'function') {
                     Lampa.Background.change(path);
                 }
-
-                background.classList.remove('loaded');
-                background.onload = () => { if (this.backgroundLast === token) background.classList.add('loaded'); };
-                background.onerror = () => { if (this.backgroundLast === token) background.classList.remove('loaded'); };
-                background.src = path;
             },
 
             startSlideshow(data) {
@@ -451,9 +409,6 @@
                 if (container) container.classList.remove('new-interface');
                 if (this.infoElement && this.infoElement.parentNode) {
                     this.infoElement.parentNode.removeChild(this.infoElement);
-                }
-                if (background && background.parentNode) {
-                    background.parentNode.removeChild(background);
                 }
                 if (this._activityListener) {
                     Lampa.Listener.remove('activity', this._activityListener);
@@ -952,69 +907,6 @@
         .new-interface-info__rate > div:last-child {
             color: rgba(255, 255, 255, 0.55);
             font-size: 0.8em;
-        }
-
-        /* Фон */
-        .new-interface__background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1; /* Фон выше body */
-            object-fit: cover;
-            transition: opacity 0.35s ease;
-            will-change: opacity;
-            transform: translateZ(0);
-            opacity: 0;
-            pointer-events: none;
-        }
-        /* Системный слой Lampa: в режиме "Простой" — размытый фон; в "Сложном" — слой бликов; в "Картинке" — скрыт */
-        .background__one,
-        .background__two,
-        .background__fade {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            z-index: 2 !important;
-            pointer-events: none !important;
-        }
-        body.bg-mode--card .background__one,
-        body.bg-mode--card .background__two,
-        body.bg-mode--card .background__fade {
-            display: none !important;
-        }
-        body.bg-mode--complex .background__one,
-        body.bg-mode--complex .background__two {
-            opacity: 0.45 !important;
-            mix-blend-mode: screen;
-        }
-
-        .new-interface__background.loaded { opacity: 1; }
-
-        /* Слой градиента «Чёрного стиля» — всегда поверх фона и бликов (z-index: 3), но под контентом (10) */
-        body.black--style::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 3;
-            pointer-events: none;
-            background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
-                        linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
-        }
-        body.light--version::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1;
-            pointer-events: none;
-            background: linear-gradient(0deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 45%);
         }
 
         .new-interface .card__title,
