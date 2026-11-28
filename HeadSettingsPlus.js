@@ -19,6 +19,7 @@
 		settings: { ru: 'Настройки', en: 'Settings', uk: 'Налаштування', zh: '设置' },
 		premium: { ru: 'Премиум', en: 'Premium', uk: 'Преміум', zh: '高级' },
 		profile: { ru: 'Профиль', en: 'Profile', uk: 'Профіль', zh: '个人资料' },
+		friends: { ru: 'Друзья', en: 'Friends', uk: 'Друзі', zh: '好友' },
 		feed: { ru: 'Новости', en: 'Feed', uk: 'Новини', zh: '饲料' },
 		notice: { ru: 'Уведомления', en: 'Notifications', uk: 'Сповіщення', zh: '通知' },
 		broadcast: { ru: 'Вещание', en: 'Broadcast', uk: 'Мовлення', zh: '广播' },
@@ -78,6 +79,7 @@
 			head_filter_show_settings:   { l: 'settings',   f: 'Настройки',           s: '.open--settings' },
 			head_filter_show_premium:    { l: 'premium',    f: 'Премиум',             s: '.open--premium, [data-action="premium"]' },
 			head_filter_show_profile:    { l: 'profile',    f: 'Профиль',             s: '.open--profile, [data-action="profile"]' },
+			head_filter_show_friends:    { l: 'friends',    f: 'Друзья',              s: '.open--friends, [data-action="friends"]' },
 			head_filter_show_feed:       { l: 'feed',       f: 'Новости',             s: '.open--feed, [data-action="feed"]' },
 			head_filter_show_notice:     { l: 'notice',     f: 'Уведомления',         s: '.notice--icon' },
 			head_filter_show_broadcast:  { l: 'broadcast',  f: 'Вещание',             s: '.open--broadcast, [data-action="broadcast"]' },
@@ -199,7 +201,7 @@
 			return result;
 		}
 
-		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
+		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--friends','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
 		function findByLampaBtn() {
 			var $found = $('.head #NOTICE, .head .notice-screen, .head .bylampa--notice, .head .bylampa-notice, .head .bylampa__notice, .head .notice--bylampa, .head [data-action="bylampa_notice"], .head [data-bylampa-notice], .head [data-hf-bylampa="1"]').not('.notice--icon');
 			if ($found.length) return $found;
@@ -213,6 +215,7 @@
 					el.classList.contains('open--feed') ||
 					el.classList.contains('open--premium') ||
 					el.classList.contains('open--profile') ||
+					el.classList.contains('open--friends') ||
 					el.classList.contains('open--broadcast') ||
 					el.classList.contains('full--screen')) return;
 
