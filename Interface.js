@@ -830,8 +830,8 @@
 
         .new-interface__background.loaded { opacity: 1; }
 
-        /* Слой градиента «Чёрного стиля» — строго между фоном (-2) и контентом (0+) */
-        body.black--style .new-interface::before {
+        /* Слой градиента «Чёрного стиля» — на body, чтобы накрывать и боковое меню */
+        body.black--style::after {
             content: '';
             position: fixed;
             top: 0;
@@ -843,8 +843,15 @@
             background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
                         linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
         }
-        body.light--version .new-interface::before {
-            display: block !important;
+        body.light--version::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
             background: linear-gradient(0deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 45%);
         }
 
