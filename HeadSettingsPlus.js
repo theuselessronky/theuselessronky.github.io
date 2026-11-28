@@ -149,19 +149,6 @@
 		}
 		function applyStatic() { hideShowAll(topHead); hideShowAll(standardHead); }
 
-		var envCache = null;
-		function hasByLampaEnv() {
-			if (envCache !== null) return envCache;
-			try {
-				if (window.ByLampa) { envCache = true; return true; }
-				var ss = document.getElementsByTagName('script');
-				for (var i = 0; i < ss.length; i++) if ((ss[i].src || '').toLowerCase().indexOf('bylampa') !== -1) { envCache = true; return true; }
-				var ls = document.getElementsByTagName('link');
-				for (var j = 0; j < ls.length; j++) if ((ls[j].href || '').toLowerCase().indexOf('bylampa') !== -1) { envCache = true; return true; }
-			} catch (e) {}
-			envCache = false; return false;
-		}
-
 		var webCache = null;
 		function isWebBrowser() {
 			if (webCache !== null) return webCache;
@@ -184,7 +171,7 @@
 					if (!definitive && typeof P.screen === 'function') {
 						var s = String(P.screen() || '').toLowerCase();
 						if (s.indexOf('android') !== -1 || s.indexOf('ios') !== -1 || s.indexOf('webos') !== -1 || s.indexOf('tizen') !== -1) { definitive = true; result = false; }
-						else if (s.indexOf('browser') !== -1 || s.indexOf('web') !== -1) { definitive = true; result = true; }
+						else if (s.indexOf('browser') !== -1 || s.indexOf('web') !== -1 || s.indexOf('desktop') !== -1) { definitive = true; result = true; }
 					}
 				}
 				if (!definitive) {
@@ -201,23 +188,16 @@
 			return result;
 		}
 
-		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--friends','open--feed','notice--icon','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
+		var BYLAMPA_EXCLUDE = ['open--search','open--settings','open--premium','open--profile','open--friends','open--feed','notice--icon','open--notice','open--broadcast','full--screen','full-screen','m-reload-screen','black-friday__button','head__backward','head__menu-icon'];
 		function findByLampaBtn() {
-			var $found = $('.head #NOTICE, .head .notice-screen, .head .bylampa--notice, .head .bylampa-notice, .head .bylampa__notice, .head .notice--bylampa, .head [data-action="bylampa_notice"], .head [data-bylampa-notice], .head [data-hf-bylampa="1"]').not('.notice--icon');
+			var $found = $('.head #NOTICE, .head .notice-screen, .head .bylampa--notice, .head .bylampa-notice, .head [data-action="bylampa_notice"], .head [data-bylampa-notice], .head [data-hf-bylampa="1"]').not('.notice--icon');
 			if ($found.length) return $found;
 			var list = [];
 			$('.head .head__action').each(function() {
 				var el = this;
-				if (el.classList.contains('notice--icon') ||
-					el.classList.contains('open--settings') ||
-					el.classList.contains('open--search') ||
-					el.classList.contains('open--notice') ||
-					el.classList.contains('open--feed') ||
-					el.classList.contains('open--premium') ||
-					el.classList.contains('open--profile') ||
-					el.classList.contains('open--friends') ||
-					el.classList.contains('open--broadcast') ||
-					el.classList.contains('full--screen')) return;
+				for (var i = 0; i < BYLAMPA_EXCLUDE.length; i++) {
+					if (el.classList.contains(BYLAMPA_EXCLUDE[i])) return;
+				}
 
 				var html = (el.outerHTML || '').toLowerCase();
 				if (html.indexOf('bylampa') !== -1 || html.indexOf('notice-screen') !== -1 || el.id === 'NOTICE') {
@@ -269,6 +249,7 @@
 			try {
 				var items = $('.hf-bylampa-changes');
 				if (!hasByLampaBtn()) {
+					if (document.body) document.body.classList.remove('hf-hide-bylampa-btn');
 					if (items.length) { items.remove(); refreshMenuCtrl(); }
 					return;
 				}
@@ -382,7 +363,7 @@
 			}
 			var out = [];
 			try {
-				var markers = document.querySelectorAll('.head__markers, .head .head__markers');
+				var markers = document.querySelectorAll('.head__markers');
 				for (var m = 0; m < markers.length; m++) {
 					if (markers[m] && out.indexOf(markers[m]) === -1) out.push(markers[m]);
 				}
@@ -618,10 +599,7 @@
 		function isAvailable(name) {
 			if (name in alwaysVisible) return true;
 			if (name === 'head_filter_bylampa_notice_v2') return hasByLampaBtn();
-			if (name === 'head_filter_show_fullscreen') {
-				if (!isWebBrowser()) return false;
-				return true;
-			}
+			if (name === 'head_filter_show_fullscreen') return isWebBrowser();
 			if (name in topHead) return document.querySelector(topHead[name].s) !== null;
 			if (name in standardHead) return document.querySelector(standardHead[name].s) !== null;
 			return true;
@@ -736,10 +714,8 @@
 						}
 						if (iconEl.length) iconEl.replaceWith(clone);
 						else hf.prepend(clone);
-						if (hf.find('svg').length > 0) hf.addClass('hf-icon-fixed');
-					} else {
-						hf.addClass('hf-icon-fixed');
 					}
+					hf.addClass('hf-icon-fixed');
 
 					if (iface.length && iface.next().attr('data-component') !== 'head_filter') {
 						iface.after(hf);
@@ -780,8 +756,17 @@
 
 		try {
 			var hn = document.querySelector('.head');
-			if (hn && window.MutationObserver) new MutationObserver(function() {
+			if (hn && window.MutationObserver) new MutationObserver(function(mutations) {
 				if (busy || rafPending) return;
+				var relevant = false;
+				for (var i = 0; i < mutations.length; i++) {
+					var m = mutations[i];
+					if (m.type === 'childList' || m.attributeName === 'style' || (m.target && m.target.id === 'NOTICE')) {
+						relevant = true;
+						break;
+					}
+				}
+				if (!relevant) return;
 				rafPending = true;
 				var run = function() {
 					rafPending = false;
@@ -797,6 +782,7 @@
 
 		setInterval(function() {
 			if (busy) return;
+			if (document.body && document.body.classList.contains('player--active')) return;
 			if (!document.querySelector('.head') && !document.querySelector('.settings-param')) return;
 			withTick(function() {
 				applyStatic();
@@ -804,7 +790,7 @@
 				var c = (Lampa.Controller && typeof Lampa.Controller.enabled === 'function') ? Lampa.Controller.enabled() : null;
 				if (c && (c.name === 'settings_param' || c.name === 'settings_component')) refreshByLampaRow();
 			});
-		}, 2000);
+		}, 4000);
 
 		if (Lampa.Controller && Lampa.Controller.listener && typeof Lampa.Controller.listener.follow === 'function') {
 			Lampa.Controller.listener.follow('toggle', function(e) {
