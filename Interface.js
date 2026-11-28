@@ -64,6 +64,39 @@
             delete this.__newInterfaceEnabled;
             if (original) original.apply(this, args);
         });
+
+        const refreshMainHandlers = function () {
+            if (window.__stylish_boot_refreshed) return;
+            const main = Lampa.Maker && Lampa.Maker.map ? Lampa.Maker.map('Main') : null;
+            if (!main || !main.Items || typeof main.render !== 'function') return;
+            const container = main.render(true);
+            if (!container) return;
+
+            window.__stylish_boot_refreshed = true;
+
+            if (main.__newInterfaceEnabled === undefined) {
+                main.__newInterfaceEnabled = shouldUseNewInterface(main.object);
+            }
+            if (!main.__newInterfaceEnabled) return;
+
+            container.classList.add('new-interface');
+            ensureState(main).attach();
+
+            const items = main.Items;
+            if (items && Array.isArray(items.items)) {
+                items.items.forEach(function (line) {
+                    if (line) attachLineHandlers(main, line);
+                });
+            }
+        };
+
+        if (window.appready) {
+            setTimeout(refreshMainHandlers, 600);
+        } else if (Lampa.Listener) {
+            Lampa.Listener.follow('app', function (e) {
+                if (e.type === 'ready') setTimeout(refreshMainHandlers, 600);
+            });
+        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -470,10 +503,20 @@
     }
 
     function attachLineHandlers(main, line) {
-        if (!line || line.__newInterfaceLine || line.__stylish_hidden) return;
-        line.__newInterfaceLine = true;
+        if (!line || line.__stylish_hidden) return;
+
         const state = ensureState(main);
         const applyToCard = (card) => decorateCard(state, card);
+
+        // Если строка уже обработана — только досинхронизируем карточки
+        if (line.__newInterfaceLine) {
+            if (Array.isArray(line.items) && line.items.length) {
+                line.items.forEach(applyToCard);
+            }
+            return;
+        }
+
+        line.__newInterfaceLine = true;
         let moTimer = null;
         let syncTimer = null;
         let toggleTimer = null;
