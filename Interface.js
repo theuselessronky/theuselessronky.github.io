@@ -281,6 +281,7 @@
                 
                 // Принудительно обновляем состояние при старте
                 if (this._isActive && this.lastData) this.update(this.lastData, true);
+            },
 
             update(data, force) {
                 if (!data || !this._isActive) return;
