@@ -63,14 +63,6 @@
 
             attachLineHandlers(this, item);
 
-            if (window.__stylish_need_focus) {
-                window.__stylish_need_focus = false;
-                setTimeout(function () {
-                    if (Lampa.Controller && typeof Lampa.Controller.toggle === 'function') {
-                        Lampa.Controller.toggle('content');
-                    }
-                }, 50);
-            }
         });
 		
         wrap(mainMap.Items, 'onDestroy', function (original, args) {
@@ -89,39 +81,6 @@
                     if (window.__stylish_refresh) window.__stylish_refresh();
                 }
             });
-        }
-
-        // Однократная перезагрузка Главной на Android при холодном старте (для ряда «Сейчас смотрят»)
-        const reloadMainOnBoot = function () {
-            if (window.__stylish_boot_reloaded) return;
-            const isAndroid = Lampa.Platform && typeof Lampa.Platform.is === 'function' && Lampa.Platform.is('android');
-            if (!isAndroid) return;
-            if (!Lampa.Activity || typeof Lampa.Activity.active !== 'function') return;
-
-            const active = Lampa.Activity.active();
-            if (!active || active.component !== 'main') return;
-
-            window.__stylish_boot_reloaded = true;
-            window.__stylish_need_focus = true;
-
-            Lampa.Activity.replace({
-                url: active.url || '',
-                title: active.title || Lampa.Lang.translate('title_main'),
-                component: 'main',
-                page: 1
-            });
-        };
-
-        if (window.appready) {
-            setTimeout(reloadMainOnBoot, 600);
-        } else if (Lampa.Listener) {
-            const onAppReady = function (e) {
-                if (e && e.type === 'ready') {
-                    Lampa.Listener.remove('app', onAppReady);
-                    setTimeout(reloadMainOnBoot, 600);
-                }
-            };
-            Lampa.Listener.follow('app', onAppReady);
         }
     }
 
@@ -226,6 +185,11 @@
                 }
                 if (main.scroll && typeof main.scroll.minus === 'function') {
                     main.scroll.minus(infoNode);
+                    if (typeof main.scroll.update === 'function') {
+                        setTimeout(() => {
+                            if (this.attached && main.scroll) main.scroll.update();
+                        }, 100);
+                    }
                 }
                 this.attached = true;			 
 
