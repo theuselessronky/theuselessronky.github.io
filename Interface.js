@@ -279,8 +279,10 @@
 
                 // Если карточка уже известна — принудительно применяем настройки
                 if (this._isActive && this.lastData) this.update(this.lastData, true);
+            },
 
             update(data, force) {
+
                 if (!data || !this._isActive) return;
                 const now = Date.now();
                 const isSame = this.lastData && this.lastData.id === data.id;
