@@ -122,15 +122,14 @@
                 }
             });
         }
-		// Мгновенная реакция на смену настроек фона
+        // Мгновенная реакция на смену настроек фона
         if (Lampa.Storage && Lampa.Storage.listener) {
             Lampa.Storage.listener.follow('change', function (e) {
                 if (e.name === 'background_type' || e.name === 'background') {
                     if (window.__stylish_refresh) window.__stylish_refresh();
-					}
-				});
-			}
-		}
+                }
+            });
+        }
     }
 
     /* ================= ХЕЛПЕРЫ ================= */
@@ -274,8 +273,11 @@
                 
                 // Применяем класс сразу при старте и вызываем рефреш
                 const initBgType = Lampa.Storage.get('background_type', 'complex');
-                if (initBgType === 'card') document.body.classList.add('has-card-bg');
-                else document.body.classList.remove('has-card-bg');
+                if (initBgType === 'card') {
+                    document.body.classList.add('has-card-bg');
+                } else {
+                    document.body.classList.remove('has-card-bg');
+                }
                 
                 // Принудительно обновляем состояние при старте
                 if (this._isActive && this.lastData) this.update(this.lastData, true);
@@ -933,7 +935,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 1; /* Теперь фон выше body */
+            z-index: 1; /* Фон выше body */
             object-fit: cover;
             transition: opacity 0.35s ease;
             will-change: opacity;
@@ -941,7 +943,7 @@
             opacity: 0;
             pointer-events: none;
         }
-		 /* Системный canvas Lampa (блики Сложного фона) — выше нашего фона, но ниже контента */
+        /* Системный canvas Lampa (блики Сложного фона) — выше нашего фона, но ниже контента */
         .background__one,
         .background__two,
         .background__fade {
