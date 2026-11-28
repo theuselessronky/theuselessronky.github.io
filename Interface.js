@@ -699,6 +699,23 @@
         .new-interface { position: relative; z-index: 10; } /* Контент выше всего */
         .new-interface .items-line,
         .new-interface .scroll { position: relative; z-index: 2; }
+
+        /* Слой градиента «Чёрного стиля» — поверх родного фона/слайдшоу (z-index: 0-1), но ниже контента и меню (z-index: 10+) */
+        body.black--style::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+            pointer-events: none;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 80%),
+                        linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 45%);
+        }
+        body.light--version::after {
+            display: none !important;
+        }
         .new-interface .card {
             overflow: visible !important;
         }
